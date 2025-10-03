@@ -1,0 +1,1311 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Workflow Vector – Login & Dashboard</title>
+<!-- Chart.js para os gráficos do Dashboard -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#0b1220;--card:#111a2b;--muted:#7e8aa0;--text:#eaf0ff;--accent:#6aa6ff;--accent-2:#8b5cf6;
+    --ring:0 0 0 3px rgba(106,166,255,.25);
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+    background:
+      radial-gradient(1200px 1200px at 10% -10%,rgba(138,92,246,.15),transparent 50%),
+      radial-gradient(900px 900px at 120% 10%,rgba(106,166,255,.15),transparent 60%),
+      var(--bg);
+    color:var(--text);
+    display:grid;place-items:center; padding:24px;
+  }
+  .app{width:min(1300px,100%); display:grid; gap:18px;}
+  .title{text-align:center; line-height:1.2}
+  .title h1{margin:.2rem 0;font-size:clamp(22px,4vw,34px)}
+  .title p{margin:0;color:var(--muted)}
+  .card{background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.02));
+    border:1px solid rgba(255,255,255,.08); border-radius:16px; box-shadow:0 10px 30px rgba(0,0,0,.45); overflow:hidden}
+
+  /* LOGIN */
+  .login{display:grid; grid-template-columns: 1.1fr .9fr; gap:0; min-height:380px}
+  @media (max-width:920px){.login{grid-template-columns:1fr}.side{display:none}}
+  .panel{padding:28px}
+  .side{background:
+    radial-gradient(100% 100% at 0% 0%, rgba(139,92,246,.25), transparent 55%),
+    radial-gradient(100% 100% at 100% 0%, rgba(106,166,255,.25), transparent 55%),
+      linear-gradient(180deg, #0c172a, #0a1424);
+    border-left:1px solid rgba(255,255,255,.06); display:grid; place-items:center; padding:24px}
+  .side .brand{display:grid; gap:12px; text-align:center; place-items:center}
+  .logo{width:180px;height:180px;border-radius:18px;
+    background:conic-gradient(from 180deg at 50% 50%, var(--accent), var(--accent-2));
+    display:grid;place-items:center;font-weight:800;font-size:3.3rem; color:#fff}
+
+  /* FORM */
+  .field{display:grid; gap:6px; margin:10px 0}
+  label{font-size:.9rem;color:var(--muted)}
+  input,select,textarea{
+    width:100%; padding:10px 12px; border-radius:10px; border:1px solid rgba(255,255,255,.12);
+    background:#0b1426; color:var(--text);outline:none; transition:.2s border-color,.2s box-shadow; font-size:.95rem}
+  textarea{min-height:90px; resize:vertical}
+  input:focus, select:focus, textarea:focus{border-color:var(--accent); box-shadow:var(--ring)}
+  .row{display:flex; gap:12px; flex-wrap:wrap; margin-top:8px}
+  .btn{appearance:none; border:1px solid rgba(255,255,255,.12); background:#0d1628; color:#eaf0ff;
+    padding:10px 14px; border-radius:10px; cursor:pointer;transition:.2s transform,.2s background,.2s border-color, .2s box-shadow; font-weight:600}
+  .btn:hover{transform:translateY(-1px); border-color:rgba(255,255,255,.25)}
+  .btn:focus{outline:none; box-shadow:var(--ring)}
+  .btn.primary{background:linear-gradient(180deg, #2a60ff, #1b47c9); border-color:transparent}
+  .btn.ghost{background:transparent}
+  .muted{color:var(--muted); font-size:.9rem}
+  .warning{font-size:.85rem;color:#f8c37a}
+
+  dialog{border:none; border-radius:14px; max-width:1200px; width:min(98vw,1200px); box-shadow:0 20px 60px rgba(0,0,0,.6); background:var(--card); color:var(--text)}
+  dialog::backdrop{background:rgba(0,0,0,.55)}
+  .modal{padding:18px}
+  .modal h3{margin:0 0 8px 0}
+  .modal .actions{display:flex; justify-content:flex-end; gap:10px; margin-top:10px}
+
+  /* DASH */
+  .dash{display:none}
+  .wrap{padding:16px 20px;}
+  .toprow{display:flex; align-items:center; gap:12px;}
+  .topbar{
+    display:flex; align-items:center; gap:14px;
+    padding:12px 14px; border:1px solid rgba(255,255,255,.08);
+    background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.02));
+    border-radius:12px; width:fit-content;
+  }
+  .badgeWV{width:36px;height:36px;border-radius:10px; background:conic-gradient(from 180deg at 50% 50%, var(--accent), var(--accent-2)); display:grid;place-items:center;font-weight:800;}
+  .hello{font-size:1rem; line-height:1.2}
+  .hello .muted{color:var(--muted); font-size:.9rem}
+  .right{margin-left:auto}
+  .frame{margin-top:16px; border:1px dashed rgba(255,255,255,.25); background:rgba(0,0,0,.15); border-radius:12px; padding:14px;}
+  .toolbar{display:flex; gap:10px; flex-wrap:wrap}
+  .tabs{display:flex; gap:8px; overflow:auto; margin:12px 0 10px 0; padding-bottom:4px}
+  .tab{padding:8px 12px; border-radius:999px; border:1px solid rgba(255,255,255,.18); background:#0d1628; cursor:pointer; white-space:nowrap}
+  .tab.active{background:linear-gradient(180deg, #2a60ff, #1b47c9); border-color:transparent}
+
+  .tableWrap{overflow:auto; border:1px solid rgba(255,255,255,.12); border-radius:12px}
+  table{width:100%; border-collapse:collapse; font-size:.95rem}
+  th, td{padding:10px 12px; border-bottom:1px solid rgba(255,255,255,.08); vertical-align:middle}
+  th{position:sticky; top:0; background:#0f182b; text-align:left}
+  tr.sel{outline:2px solid #6aa6ff}
+  .status-badge{display:inline-block;padding:4px 8px;border-radius:999px;font-size:.8rem;font-weight:700;border:1px solid rgba(255,255,255,.18)}
+  .st-novo{background:rgba(200,200,200,.15)}
+  .st-azulclaro{background:rgba(129,199,245,.22); border-color:rgba(129,199,245,.35)}
+  .st-roxo{background:rgba(150,114,255,.22); border-color:rgba(150,114,255,.35)}
+  .st-azulescuro{background:rgba(95,158,255,.22); border-color:rgba(95,158,255,.35)}
+  .st-laranja{background:rgba(255,170,86,.25); border-color:rgba(255,170,86,.4)}
+  .st-rosa{background:rgba(255,140,200,.25); border-color:rgba(255,140,200,.4)}
+  .st-verde{background:rgba(130,230,150,.25); border-color:rgba(130,230,150,.4)}
+  .st-amarelo{background:rgba(255,220,120,.3); border-color:rgba(255,220,120,.5)}
+  .st-vermelho{background:rgba(255,120,120,.28); border-color:rgba(255,120,120,.45)}
+
+  /* EDITAR: colunas */
+  .cols{overflow:auto; padding-bottom:6px}
+  .colsInner{ display:grid; grid-auto-flow:column; grid-auto-columns: minmax(230px,1fr); gap:12px; align-items:start; }
+  .col{ border:1px solid rgba(255,255,255,.12); border-radius:12px; padding:10px; background:rgba(0,0,0,.18); min-height:160px; }
+  .col h5{margin:0 0 8px 0; display:flex; justify-content:space-between; align-items:center; font-size:1rem}
+  .col .list{font-size:.9rem}
+  .col .item{opacity:.95}
+  .col .muted{color:var(--muted)}
+  .sep{height:1px;background:rgba(255,255,255,.08); margin:10px 0}
+
+  /* estados & filiais em novo job (com datas) */
+  .estado-row{
+    display:grid;
+    grid-template-columns: 120px 1fr 160px 160px auto;
+    gap:10px; align-items:center; margin-bottom:8px
+  }
+  .estado-row .iconbtn{padding:8px 10px; border-radius:10px}
+
+  /* chips de cargo coloridos */
+  .role-chip{ display:inline-block; padding:4px 8px; border-radius:999px; font-size:.8rem; font-weight:700;
+    border:1px solid rgba(255,255,255,.18); margin:0 2px }
+  .role-prata{background:linear-gradient(180deg,#d1d5db,#9ca3af); color:#111827}
+  .role-verde{background:rgba(130,230,150,.25); border-color:rgba(130,230,150,.4)}
+  .role-roxo{background:rgba(150,114,255,.22); border-color:rgba(150,114,255,.35)}
+  .role-azul{background:rgba(129,199,245,.22); border-color:rgba(129,199,245,.35)}
+  .role-laranja{background:rgba(255,170,86,.25); border-color:rgba(255,170,86,.4)}
+  .role-rosa{background:rgba(255,140,200,.25); border-color:rgba(255,140,200,.4)}
+  .role-amarelo{background:rgba(255,220,120,.3); border-color:rgba(255,220,120,.5)}
+  .role-roxoclaro{background:rgba(192,132,252,.25); border-color:rgba(192,132,252,.4)}
+
+  /* busy overlay */
+  #busy{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;place-items:center;z-index:99999}
+  #busy .box{background:#0e1730;border:1px solid rgba(255,255,255,.12);padding:14px 16px;border-radius:12px}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="title">
+    <h1>Workflow Vector</h1>
+    <p>Seja bem vindo ao Wrokflow Vector, uma plataforma de lançamentos de JOBS.</p>
+  </div>
+
+  <!-- ===== LOGIN ===== -->
+  <section class="card login" id="loginView">
+    <div class="panel">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <h2 style="margin:0 0 12px 0">Entrar</h2>
+          <p class="muted">Use seu e-mail e senha para acessar.</p>
+        </div>
+        <button class="btn" id="btnCfg">⚙ Configurar GitHub</button>
+      </div>
+
+      <div class="field"><label for="email">E-mail</label><input id="email" type="email" placeholder="voce@empresa.com.br" /></div>
+      <div class="field"><label for="senha">Senha</label><input id="senha" type="password" placeholder="••••••••" /></div>
+
+      <div class="row" style="margin-top:10px">
+        <button class="btn ghost" id="btnCadastrar">Cadastrar</button>
+        <button class="btn primary" id="btnLogin">Login</button>
+        <button class="btn ghost" id="btnEsqueci">Esqueci minha senha/e-mail!</button>
+      </div>
+
+      <p class="warning" style="margin-top:8px">Dica: abrir via <strong>http://localhost</strong> (Live Server) melhora permissões de rede.</p>
+    </div>
+    <aside class="side">
+      <div class="brand">
+        <div class="logo">WV</div>
+        <div class="muted" style="margin-top:6px">
+          <span class="chip" style="padding:6px 10px;border:1px solid rgba(255,255,255,.14);border-radius:999px">V0.1 - Job mananger Vector</span>
+        </div>
+      </div>
+    </aside>
+  </section>
+
+  <!-- MODAL: CONFIG GITHUB -->
+  <dialog id="modalCfg">
+    <form method="dialog" class="modal" id="formCfg">
+      <h3>Configurar GitHub</h3>
+      <div class="row" style="gap:16px;flex-wrap:wrap">
+        <div class="field" style="min-width:220px"><label>Owner</label><input id="cfgOwner" placeholder="ex.: JPVectorsitem" /></div>
+        <div class="field" style="min-width:220px"><label>Repo</label><input id="cfgRepo" placeholder="ex.: LINKS-img" /></div>
+        <div class="field" style="min-width:160px"><label>Branch</label><input id="cfgBranch" placeholder="main" /></div>
+      </div>
+      <div class="row" style="gap:16px;flex-wrap:wrap">
+        <div class="field" style="min-width:260px"><label>users.csv (caminho)</label><input id="cfgUsers" placeholder="users.csv" /></div>
+        <div class="field" style="min-width:260px"><label>jobs.csv (caminho)</label><input id="cfgJobs" placeholder="jobs.csv" /></div>
+        <div class="field" style="min-width:260px"><label>jobs_encerrados.csv (caminho)</label><input id="cfgClosed" placeholder="jobs_encerrados.csv" /></div>
+      </div>
+      <div class="field"><label>TOKEN (GitHub Personal Access Token)</label><input id="cfgToken" type="password" placeholder="ghp_xxx..." /></div>
+      <div class="row" style="align-items:center">
+        <label style="display:flex;gap:8px;align-items:center"><input id="cfgRemember" type="checkbox" checked /> Lembrar token neste navegador</label>
+      </div>
+      <div class="actions">
+        <button class="btn" type="button" data-close="modalCfg">Cancelar</button>
+        <button class="btn primary" type="button" id="btnCfgSalvar">Salvar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- MODAL: CADASTRO -->
+  <dialog id="modalCadastro">
+    <form method="dialog" class="modal" id="formCadastro">
+      <h3>Novo cadastro</h3>
+      <div class="field"><label for="cadNome">Nome completo</label><input id="cadNome" type="text" placeholder="Seu nome completo" /></div>
+      <div class="field"><label for="cadEmail">E-mail</label><input id="cadEmail" type="email" placeholder="voce@empresa.com.br" /></div>
+      <div class="field"><label for="cadSenha">Senha</label><input id="cadSenha" type="password" placeholder="Crie uma senha" /></div>
+
+      <div class="row" style="gap:16px;flex-wrap:wrap">
+        <div class="field" style="min-width:220px">
+          <label for="cadCargoP">Cargo (PRINCIPAL)</label>
+          <select id="cadCargoP">
+            <option value="">— selecione —</option>
+            <option>Administrador</option><option>Diretor</option><option>Gerente</option>
+            <option>Trafego</option><option>Layout</option><option>Diagramador</option>
+            <option>Digitador</option><option>Revisor</option><option>Site</option>
+            <option>Encerramento</option>
+          </select>
+        </div>
+        <div class="field" style="min-width:220px">
+          <label for="cadCargoS">Cargo (SECUNDÁRIA) — opcional</label>
+          <select id="cadCargoS">
+            <option value="">— nenhuma —</option>
+            <option>Administrador</option><option>Diretor</option><option>Gerente</option>
+            <option>Trafego</option><option>Layout</option><option>Diagramador</option>
+            <option>Digitador</option><option>Revisor</option><option>Site</option>
+            <option>Encerramento</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn" type="button" id="btnLimparCadastro">Limpar</button>
+        <button class="btn" type="button" data-close="modalCadastro">Cancelar</button>
+        <button class="btn primary" type="button" id="btnDoCadastrar">Cadastrar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- MODAL: ESQUECI / ATUALIZAR SENHA -->
+  <dialog id="modalReset">
+    <form method="dialog" class="modal" id="formReset">
+      <h3>Atualizar senha</h3>
+      <div class="field"><label for="resetNome">Nome</label><input id="resetNome" type="text" placeholder="Seu nome completo" /></div>
+      <div class="field"><label for="resetEmail">E-mail</label><input id="resetEmail" type="email" placeholder="voce@empresa.com.br" /></div>
+      <div class="field">
+        <label for="resetCargo">Cargo</label>
+        <select id="resetCargo">
+          <option value="">— selecione —</option>
+          <option>Administrador</option><option>Diretor</option><option>Gerente</option>
+          <option>Trafego</option><option>Layout</option><option>Diagramador</option>
+          <option>Digitador</option><option>Revisor</option><option>Site</option>
+          <option>Encerramento</option>
+        </select>
+      </div>
+      <div id="resetNovaSenhaWrap" class="field" style="display:none">
+        <label for="resetNovaSenha">Nova senha</label>
+        <input id="resetNovaSenha" type="password" placeholder="Digite a nova senha" />
+      </div>
+      <div class="actions">
+        <button class="btn" type="button" id="btnResetLimpar">Limpar</button>
+        <button class="btn" type="button" data-close="modalReset">Cancelar</button>
+        <button class="btn" type="button" id="btnResetValidar">Validar</button>
+        <button class="btn primary" type="button" id="btnResetAtualizar" style="display:none">Atualizar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- ===== DASHBOARD ===== -->
+  <section class="card dash" id="dashView">
+    <div class="wrap">
+      <div class="toprow">
+        <div class="topbar">
+          <div class="badgeWV">WV</div>
+          <div class="hello">
+            <div id="greet">Olá, seja bem vindo Usuário: Perfil</div>
+            <div class="muted" id="emailHint"></div>
+          </div>
+        </div>
+        <div class="right">
+          <button class="btn" id="btnLogout">Sair</button>
+        </div>
+      </div>
+
+      <section class="frame" id="frameBox">
+        <div class="toolbar">
+          <button class="btn primary" id="btnNovoJob">Novo JOB</button>
+          <button class="btn" id="btnExcluirJob">Excluir Job</button>
+          <button class="btn" id="btnVerEncerrados">Visualizar encerrados</button>
+          <button class="btn" id="btnVerDashboard">Ver Dashboard</button>
+        </div>
+
+        <div class="tabs" id="tabs"></div>
+
+        <div class="tableWrap">
+          <table id="jobsTable" aria-label="Lista de JOBs">
+            <thead>
+              <tr>
+                <th style="width:70px">ID</th>
+                <th style="width:140px">OS</th>
+                <th style="width:260px">Título</th>
+                <th style="width:160px">Regional</th>
+                <th style="width:140px">Tipo JOB</th>
+                <th style="width:160px">Status</th>
+                <th style="width:190px">Criado Em</th>
+                <th style="width:120px">Editar</th>
+                <th style="width:120px">Visualizar</th>
+                <th style="width:140px">Finalizar Job</th>
+              </tr>
+            </thead>
+            <tbody id="jobsBody"></tbody>
+          </table>
+          <div class="muted" style="padding:8px 12px">Dica: clique numa linha para selecioná-la antes de usar “Excluir Job”.</div>
+        </div>
+      </section>
+    </div>
+  </section>
+
+  <!-- MODAL: NOVO JOB -->
+  <dialog id="modalJob">
+    <form method="dialog" class="modal" id="formJob">
+      <h3 id="jobModalTitle">Novo JOB</h3>
+
+      <div class="row" style="gap:16px; flex-wrap:wrap">
+        <div class="field" style="min-width:250px;flex:1">
+          <label for="jobRegional">Regional</label>
+          <select id="jobRegional"></select>
+        </div>
+        <div class="field" style="min-width:160px">
+          <label for="jobTipoLoja">Tipo da loja</label>
+          <select id="jobTipoLoja"><option value="">— selecione —</option><option>AS</option><option>AT</option></select>
+        </div>
+        <div class="field" style="min-width:210px">
+          <label for="jobTipo">Tipo do JOB</label>
+          <select id="jobTipo"><option value="">— selecione —</option><option>Tabloide Digital</option><option>Tabloide Impresso</option></select>
+        </div>
+        <div class="field" style="min-width:180px">
+          <label for="jobAcaoNacional">Ação nacional</label>
+          <select id="jobAcaoNacional"><option>Não</option><option>Sim</option></select>
+        </div>
+      </div>
+
+      <div class="row" style="gap:16px; flex-wrap:wrap">
+        <div class="field" style="flex:2; min-width:280px">
+          <label for="jobTabloide">Nome do tabloide</label>
+          <input id="jobTabloide" type="text" placeholder="Ex.: Festival Vinhos, Queijos e Massas" />
+        </div>
+        <div class="field" style="flex:1; min-width:240px">
+          <label for="jobComplemento">Complemento</label>
+          <input id="jobComplemento" type="text" placeholder="Texto complementar opcional" />
+        </div>
+      </div>
+
+      <div class="row" style="gap:16px; flex-wrap:wrap">
+        <div class="field" style="min-width:160px">
+          <label for="jobTamanho">Tamanho da página</label>
+          <select id="jobTamanho"><option value="">— selecione —</option><option>A3</option><option>A4</option></select>
+        </div>
+        <div class="field" style="min-width:180px">
+          <label for="jobQtdPag">Quantidade de páginas</label>
+          <input id="jobQtdPag" type="number" min="1" step="1" placeholder="Ex.: 8" />
+        </div>
+      </div>
+
+      <div class="stripe s-azulclaro">Estados & Filiais</div>
+      <div id="estadoList"></div>
+      <div class="row"><button class="btn" type="button" id="btnAddEstado">+ Linha</button></div>
+
+      <div class="field"><label for="jobObs">Observação</label><textarea id="jobObs" placeholder="Observações gerais do JOB"></textarea></div>
+
+      <div class="row" style="gap:16px; flex-wrap:wrap">
+        <div class="field" style="min-width:200px">
+          <label for="jobDashboard">Vai para o Dashboard?</label>
+          <select id="jobDashboard"><option>Sim</option><option>Não</option></select>
+        </div>
+      </div>
+
+      <input type="hidden" id="jobId" />
+      <div class="actions">
+        <button class="btn" type="button" id="btnJobLimpar">Limpar</button>
+        <button class="btn" type="button" data-close="modalJob">Cancelar</button>
+        <button class="btn primary" type="button" id="btnJobLancar">Lançar JOB</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- MODAL: EDITAR (colunas) -->
+  <dialog id="modalEtapas">
+    <div class="modal">
+      <h3 id="etapasTitle">Etapas do JOB</h3>
+      <div id="etapasHead" class="muted" style="margin-bottom:8px"></div>
+      <div id="etapasBlocks"></div>
+      <div class="actions">
+        <button class="btn" type="button" id="btnEtapasCancelar">Cancelar</button>
+        <button class="btn primary" type="button" id="btnEtapasSalvar">Salvar/Atualizar</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- MODAL: ADD EVENTO -->
+  <dialog id="modalAddEvt">
+    <form method="dialog" class="modal" id="formAddEvt">
+      <h3 id="addEvtTitle">Adicionar evento</h3>
+      <div id="addEvtFields"></div>
+      <div class="actions">
+        <button class="btn" type="button" id="btnAddEvtCancelar">Cancelar</button>
+        <button class="btn primary" type="button" id="btnAddEvtOk">OK</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- MODAL: VISUALIZAR (read-only) -->
+  <dialog id="modalVer">
+    <div class="modal">
+      <h3 id="verTitle">Detalhes do JOB</h3>
+      <div id="verBody"></div>
+      <div class="actions">
+        <button class="btn" type="button" id="btnVerFechar">Fechar</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- MODAL: ENCERRADOS -->
+  <dialog id="modalEncerrados">
+    <div class="modal">
+      <h3>Visualizar encerrados</h3>
+      <div class="row" style="gap:12px;align-items:flex-end">
+        <div class="field" style="min-width:260px">
+          <label>Regional</label>
+          <select id="encFiltroRegional"></select>
+        </div>
+        <button class="btn" id="btnEncCarregar" type="button">Carregar</button>
+      </div>
+      <div id="encList" style="margin-top:10px; max-height:50vh; overflow:auto"></div>
+      <div class="actions">
+        <button class="btn" type="button" id="btnEncFechar">Fechar</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- MODAL: DASHBOARD (com gráficos) -->
+  <dialog id="modalDash">
+    <div class="modal">
+      <h3>Dashboard — Materiais finalizados</h3>
+      <div class="row" style="gap:12px;align-items:flex-end">
+        <div class="field" style="min-width:260px">
+          <label>Filtro por Regional</label>
+          <select id="dashFiltroRegional"></select>
+        </div>
+        <button class="btn" id="btnDashAplicar" type="button">Aplicar</button>
+      </div>
+
+      <div id="dashBody" style="max-height:65vh; overflow:auto; margin-top:10px">
+        <div><strong>Total de JOBs finalizados:</strong> <span id="dashTotal">0</span></div>
+
+        <div style="margin-top:12px">
+          <h4 style="margin:6px 0">Layout — por colaborador</h4>
+          <canvas id="chartLayout"></canvas>
+        </div>
+        <div style="margin-top:12px">
+          <h4 style="margin:6px 0">Digitação — por colaborador</h4>
+          <canvas id="chartDigitacao"></canvas>
+        </div>
+        <div style="margin-top:12px">
+          <h4 style="margin:6px 0">Diagramação — por colaborador</h4>
+          <canvas id="chartDiagramacao"></canvas>
+        </div>
+        <div style="margin-top:12px">
+          <h4 style="margin:6px 0">Revisão — por colaborador</h4>
+          <canvas id="chartRevisao"></canvas>
+        </div>
+        <div style="margin-top:12px">
+          <h4 style="margin:6px 0">Site — por colaborador</h4>
+          <canvas id="chartSite"></canvas>
+        </div>
+
+        <div style="margin-top:16px">
+          <h4 style="margin:6px 0">Materiais por Estado</h4>
+          <table id="dashEstado" style="width:100%;border-collapse:collapse">
+            <thead><tr><th style="text-align:left;padding:6px 8px">Estado</th><th style="text-align:left;padding:6px 8px">Qtde</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn" type="button" id="btnDashFechar">Fechar</button>
+      </div>
+    </div>
+  </dialog>
+</div>
+
+<!-- Overlay busy -->
+<div id="busy"><div class="box">Sincronizando com GitHub…</div></div>
+
+<script>
+  // =================== PRESETS GitHub ===================
+  // Edite os valores padrão abaixo se quiser vir preenchido:
+  const GH_PRESET = {
+    enabled: true,
+    owner: 'JPVectorsitem',
+    repo: 'LINKS-img',
+    branch: 'main',
+    paths: { users: 'users.csv', jobs: 'jobs.csv', closed: 'jobs_encerrados.csv' },
+    token: '' // deixe vazio; configure pelo botão ⚙ e marque "Lembrar token"
+  };
+
+  // ===== Utils =====
+  const qs=s=>document.querySelector(s); const qsa=s=>Array.from(document.querySelectorAll(s));
+  const toast=(m)=>{const d=document.createElement('div');d.textContent=m;d.style.cssText='position:fixed;left:50%;top:22px;transform:translateX(-50%);background:#1f2a44;color:#eaf0ff;padding:10px 14px;border:1px solid rgba(255,255,255,.16);border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,.5);z-index:9999';document.body.appendChild(d);setTimeout(()=>d.remove(),2300);};
+  const openModal=id=>document.getElementById(id)?.showModal();
+  const closeModal=id=>document.getElementById(id)?.close();
+  const eqi=(a,b)=>(a||'').trim().toLowerCase()===(b||'').trim().toLowerCase();
+  const nowISO=()=>new Date().toISOString();
+  const fmt=(iso)=>{try{const d=new Date(iso);return isNaN(d)?(iso||''):d.toLocaleString();}catch(e){return iso||'';}};
+  const fmtDate=(s)=>{ if(!s) return '-'; try{ return new Date(s+'T00:00:00').toLocaleDateString(); }catch(e){ return s; } };
+  let currentUser=null;
+
+  // Fechar modais por [data-close]
+  document.addEventListener('click', (e)=>{
+    const btn = e.target.closest('[data-close]');
+    if(btn){
+      const id = btn.getAttribute('data-close');
+      if(id) closeModal(id);
+    }
+  });
+
+  // Chips de cargos no greeting
+  function roleKey(c){
+    const k=(c||'').trim().toLowerCase();
+    if(['administrador','administrator','diretor','gerente'].includes(k)) return 'prata';
+    if(k==='trafego') return 'verde';
+    if(k==='layout') return 'roxo';
+    if(k==='digitador') return 'azul';
+    if(k==='diagramador') return 'laranja';
+    if(k==='revisor') return 'rosa';
+    if(k==='encerramento') return 'amarelo';
+    if(k==='site') return 'roxoclaro';
+    return '';
+  }
+  const roleChip = c => c ? `<span class="role-chip role-${roleKey(c)}">${c}</span>` : '';
+
+  function showLogin(){qs('#loginView').style.display='grid';qs('#dashView').style.display='none';}
+  function showDash(user){
+    qs('#loginView').style.display='none'; qs('#dashView').style.display='block';
+    currentUser=user;
+    const chips=[user.cargoPrin,user.cargoSec].filter(Boolean).map(roleChip).join('<span class="muted"> / </span>');
+    qs('#greet').innerHTML=`Olá, seja bem vindo ${user.nome}: ${chips || '<span class="muted">Usuário</span>'}`;
+    qs('#emailHint').textContent=user.email?`Login: ${user.email}`:'';
+    setActiveRegional(REGIONAIS[0]);
+    refreshUsersCache();
+    initialLoadJobs(); // carrega jobs/encerrados ao entrar
+  }
+  const isAdminish=()=>['administrador','administrator','diretor','gerente','trafego'].some(r=>eqi(currentUser?.cargoPrin,r)||eqi(currentUser?.cargoSec,r));
+  const canFinalize=()=>['site','administrador','administrator','diretor','gerente','trafego'].some(r=>eqi(currentUser?.cargoPrin,r)||eqi(currentUser?.cargoSec,r));
+  const canDelete=()=>isAdminish();
+
+  // ===== CSV helpers =====
+  const U_HEADER=['nome','email','senha','cargo_principal','cargo_secundaria','criado_em'];
+  const J_HEADER=['id','os','regional','tipo_loja','tipo_job','acao_nacional','tabloide_nome','complemento','tamanho_pagina','qtd_paginas','estado_filiais','observacao','vai_dashboard','status','status_step','workflow','criado_em','atualizado_em'];
+  const C_HEADER=[...J_HEADER,'finalizado_em'];
+
+  const csvEsc=v=>{v=v==null?'':String(v);return /[",\n]/.test(v)?`"${v.replace(/"/g,'""')}"`:v;};
+  const toCsvLine=a=>a.map(csvEsc).join(',');
+  const parseCsv=t=>{if(!t)return[];const r=[];let row=[],cur='',q=false;for(let i=0;i<t.length;i++){const c=t[i];if(q){if(c=='"'){if(t[i+1]=='"'){cur+='"';i++;}else q=false;}else cur+=c;}else{if(c=='"')q=true;else if(c==','){row.push(cur);cur='';}else if(c=='\r'){}else if(c=='\n'){row.push(cur);r.push(row);row=[];cur='';}else cur+=c;}}if(cur.length>0||row.length>0){row.push(cur);r.push(row);}return r;};
+  const csvToObjects=t=>{const rows=parseCsv(t);if(!rows.length)return[];const h=rows[0];const out=[];for(let i=1;i<rows.length;i++){const rr=rows[i];if(!rr||(rr.length===1&&rr[0]===''))continue;const o={};for(let j=0;j<h.length;j++)o[h[j]]=rr[j]||'';out.push(o);}return out;};
+  const objectsToCsv=(H,objs)=>H.join(',')+'\n'+objs.map(o=>toCsvLine(H.map(h=>o[h]??''))).join('\n')+'\n';
+
+  // =================== GitHub API (rápido: cache SHA + fila) ===================
+  const GH_API_VER = '2022-11-28';
+  const gh = { ...GH_PRESET }; // começa com presets
+
+  // carrega overrides salvos
+  (function ghLoad(){
+    try{
+      const s = localStorage.getItem('wv_gh_cfg');
+      if(!s) return;
+      const j = JSON.parse(s);
+      Object.assign(gh, j);
+      if(!gh.token && GH_PRESET.token) gh.token = GH_PRESET.token;
+    }catch(e){}
+  })();
+  function ghSave(remember){
+    const clone = {...gh};
+    if(!remember) clone.token = '';
+    localStorage.setItem('wv_gh_cfg', JSON.stringify(clone));
+  }
+  const ghHeaders=()=>({
+    'Accept':'application/vnd.github+json',
+    'X-GitHub-Api-Version': GH_API_VER,
+    ...(gh.token ? {'Authorization':`Bearer ${gh.token}`} : {})
+  });
+  const ghOn=()=>gh.enabled && gh.owner && gh.repo && gh.branch;
+
+  // overlay
+  const setBusy=(v,msg)=>{const o=qs('#busy'); if(!o) return; o.style.display=v?'grid':'none'; if(msg) o.querySelector('.box').textContent=msg; };
+
+  // cache de SHA por caminho
+  const ghCache = { sha: {} };
+
+  // fila de salvamentos (evita concorrência)
+  let saveQ = Promise.resolve();
+  function queued(fn){ saveQ = saveQ.then(fn).catch(e=>{console.error(e); throw e;}); return saveQ; }
+
+  // helpers base64
+  function utf8ToB64(str){
+    const bytes = new TextEncoder().encode(str);
+    let bin = ''; for (let i=0;i<bytes.length;i++) bin += String.fromCharCode(bytes[i]);
+    return btoa(bin);
+  }
+  function b64ToUtf8(b64){
+    const bin = atob(b64);
+    const bytes = new Uint8Array(bin.length);
+    for(let i=0;i<bin.length;i++) bytes[i] = bin.charCodeAt(i);
+    return new TextDecoder().decode(bytes);
+  }
+
+  // GET file (guarda SHA)
+  async function ghGetFile(path){
+    if(!ghOn()) throw new Error('GitHub não configurado.');
+    const url = `https://api.github.com/repos/${gh.owner}/${gh.repo}/contents/${encodeURIComponent(path)}?ref=${encodeURIComponent(gh.branch)}`;
+    const r = await fetch(url, { headers: ghHeaders() });
+    if (r.status === 404) return { text:'', sha:null };
+    if (!r.ok) throw new Error('GitHub GET falhou: '+r.status);
+    const j = await r.json();
+    const content = Array.isArray(j) ? '' : b64ToUtf8(j.content || '');
+    const sha = Array.isArray(j) ? null : (j.sha || null);
+    if (sha) ghCache.sha[path] = sha;
+    return { text: content, sha };
+  }
+
+  // PUT file (usa SHA do cache; tenta 1 retry em 409)
+  async function ghPutFile(path, newText, message){
+    if(!gh.token) throw new Error('Token GitHub não configurado.');
+    const url = `https://api.github.com/repos/${gh.owner}/${gh.repo}/contents/${encodeURIComponent(path)}`;
+    const baseBody = {
+      message: message || `update: ${path}`,
+      content: utf8ToB64(newText),
+      branch: gh.branch
+    };
+    const attempt = async (sha)=> {
+      const body = { ...baseBody, ...(sha ? {sha} : {}) };
+      const r = await fetch(url, { method:'PUT', headers: { ...ghHeaders(), 'Content-Type':'application/json' }, body: JSON.stringify(body) });
+      const txt = await r.text();
+      if (!r.ok) throw new Error('GitHub PUT falhou: '+r.status+' '+txt);
+      try {
+        const j = JSON.parse(txt);
+        const newSha = j?.content?.sha || null;
+        if (newSha) ghCache.sha[path] = newSha;
+        return newSha;
+      } catch { return ghCache.sha[path]; }
+    };
+
+    try {
+      const sha = ghCache.sha[path];
+      return await attempt(sha);
+    } catch (e){
+      if (String(e).includes('409')) {
+        const cur = await ghGetFile(path);
+        return await attempt(cur.sha);
+      }
+      throw e;
+    }
+  }
+
+  // I/O CSV (carrega/guarda com fila + overlay)
+  async function ghLoadCsv(path){ const {text} = await ghGetFile(path); return text; }
+  async function ghSaveCsv(path, header, objs){
+    const csv = header.join(',')+'\n'+objs.map(o=>toCsvLine(header.map(h=>o[h]??''))).join('\n')+'\n';
+    await ghPutFile(path, csv, `chore(csv): update ${path} via Workflow Vector`);
+  }
+
+  // wrappers específicos com overlay e fila
+  async function saveUsersCsv(objs){ setBusy(true,'Salvando usuários…'); await queued(()=>ghSaveCsv(gh.paths.users, U_HEADER, objs)); setBusy(false); }
+  async function saveJobs(objs){ setBusy(true,'Salvando jobs…'); await queued(()=>ghSaveCsv(gh.paths.jobs, J_HEADER, objs)); setBusy(false); }
+  async function saveClosed(objs){ setBusy(true,'Salvando encerrados…'); await queued(()=>ghSaveCsv(gh.paths.closed, C_HEADER, objs)); setBusy(false); }
+
+  // =================== Users (GitHub) ===================
+  const getUsersList=async()=>{
+    const txt = await ghLoadCsv(gh.paths.users);
+    return csvToObjects(txt).map(u=>({
+      nome:u.nome,email:u.email,senha:u.senha,cargo_principal:u.cargo_principal||u.cargo||'',cargo_secundaria:u.cargo_secundaria||'',criado_em:u.criado_em
+    }));
+  };
+  let usersCache=[];
+  async function refreshUsersCache(){ try{ usersCache = await getUsersList(); }catch(e){ usersCache=[]; console.error(e); } }
+  const usersByCargo=c=>usersCache.filter(u=>eqi(u.cargo_principal,c)||eqi(u.cargo_secundaria,c));
+  const adminUsers=()=>usersCache.filter(u=>['administrador','administrator','diretor','gerente'].some(r=>eqi(u.cargo_principal,r)||eqi(u.cargo_secundaria,r)));
+  const usersForStepCargo=c=>{
+    const base=usersByCargo(c);
+    const admins=adminUsers();
+    const seen=new Set(); const out=[];
+    [...base, ...admins].forEach(u=>{const k=(u.email||u.nome); if(!seen.has(k)){seen.add(k); out.push(u);} });
+    return out;
+  }
+  const displayRole=u=> (u.cargo_principal&&u.cargo_secundaria)?`${u.cargo_principal}/${u.cargo_secundaria}`:(u.cargo_principal||u.cargo_secundaria||'');
+
+  // ===== Login / Cadastro / Reset =====
+  qs('#btnCfg').onclick=()=>{ // preencher modal com cfg atual
+    qs('#cfgOwner').value = gh.owner||'';
+    qs('#cfgRepo').value = gh.repo||'';
+    qs('#cfgBranch').value = gh.branch||'main';
+    qs('#cfgUsers').value = gh.paths?.users||'users.csv';
+    qs('#cfgJobs').value = gh.paths?.jobs||'jobs.csv';
+    qs('#cfgClosed').value = gh.paths?.closed||'jobs_encerrados.csv';
+    qs('#cfgToken').value = gh.token||'';
+    qs('#cfgRemember').checked = true;
+    openModal('modalCfg');
+  };
+  qs('#btnCfgSalvar').onclick=()=>{
+    gh.owner = qs('#cfgOwner').value.trim();
+    gh.repo = qs('#cfgRepo').value.trim();
+    gh.branch = qs('#cfgBranch').value.trim()||'main';
+    gh.paths = {
+      users: qs('#cfgUsers').value.trim()||'users.csv',
+      jobs: qs('#cfgJobs').value.trim()||'jobs.csv',
+      closed: qs('#cfgClosed').value.trim()||'jobs_encerrados.csv',
+    };
+    gh.token = qs('#cfgToken').value.trim();
+    gh.enabled = true;
+    ghSave(qs('#cfgRemember').checked);
+    closeModal('modalCfg');
+    toast('Configurações GitHub salvas.');
+  };
+
+  qs('#btnCadastrar').onclick=()=>openModal('modalCadastro');
+  qs('#btnEsqueci').onclick=()=>{qs('#formReset').reset();qs('#resetNovaSenhaWrap').style.display='none';qs('#btnResetAtualizar').style.display='none';openModal('modalReset');};
+  qs('#btnLimparCadastro').onclick=()=>qs('#formCadastro').reset();
+
+  let _resetIndex=-1, _resetUsers=[];
+  qs('#btnResetValidar').onclick=async()=>{
+    try{
+      const nome=qs('#resetNome').value.trim(),email=qs('#resetEmail').value.trim(),cargo=qs('#resetCargo').value.trim();
+      if(!nome||!email||!cargo){toast('Preencha Nome, E-mail e Cargo.');return;}
+      if(!ghOn()){toast('Configure o GitHub (⚙).');return;}
+      _resetUsers = await getUsersList();
+      _resetIndex=_resetUsers.findIndex(u=>eqi(u.nome,nome)&&eqi(u.email,email)&&(eqi(u.cargo_principal,cargo)||eqi(u.cargo_secundaria,cargo)));
+      if(_resetIndex===-1){toast('Nome/E-mail/Cargo não correspondente.');qs('#resetNovaSenhaWrap').style.display='none';qs('#btnResetAtualizar').style.display='none';}
+      else{qs('#resetNovaSenhaWrap').style.display='block';qs('#btnResetAtualizar').style.display='inline-block';}
+    }catch(e){toast('Erro ao validar.');console.error(e);}
+  };
+  qs('#btnResetAtualizar').onclick=async()=>{
+    const nova=qs('#resetNovaSenha').value.trim(); if(!nova){toast('Digite a nova senha.');return;}
+    _resetUsers[_resetIndex].senha=nova;
+    await saveUsersCsv(_resetUsers);
+    toast('Senha atualizada!');closeModal('modalReset');
+  };
+
+  qs('#btnDoCadastrar').onclick=async()=>{
+    try{
+      const nome=qs('#cadNome').value.trim(),email=qs('#cadEmail').value.trim(),senha=qs('#cadSenha').value.trim(),cargoP=qs('#cadCargoP').value.trim(),cargoS=qs('#cadCargoS').value.trim();
+      if(!nome||!email||!senha||!cargoP){toast('Preencha Nome, E-mail, Senha e Cargo PRINCIPAL.');return;}
+      if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){toast('E-mail inválido.');return;}
+      if(!ghOn()){toast('Configure o GitHub (⚙).');return;}
+      const us=await getUsersList();
+      if(us.some(u=>eqi(u.email,email))){toast('E-mail já cadastrado.');return;}
+      us.push({nome,email,senha,cargo_principal:cargoP,cargo_secundaria:cargoS,criado_em:nowISO()});
+      await saveUsersCsv(us);
+      await refreshUsersCache();
+      toast('Cadastro salvo.');qs('#formCadastro').reset();closeModal('modalCadastro');
+    }catch(e){toast('Erro ao cadastrar.');console.error(e);}
+  };
+
+  qs('#btnLogin').onclick=doLogin;document.addEventListener('keydown',e=>{if(e.key==='Enter'&&qs('#loginView').style.display!=='none')doLogin();});
+  async function doLogin(){
+    const email=qs('#email').value.trim(),senha=qs('#senha').value.trim();
+    if(!email||!senha){toast('Informe e-mail e senha.');return;}
+    if(!ghOn()){toast('Configure o GitHub (⚙).');return;}
+    try{
+      const us=await getUsersList();
+      const f=us.find(u=>eqi(u.email,email)&&u.senha===senha);
+      if(f){
+        toast('Login OK.');
+        showDash({nome:f.nome||email.split('@')[0],email,cargoPrin:f.cargo_principal,cargoSec:f.cargo_secundaria});
+      }else toast('Credenciais inválidas.');
+    }catch(e){toast('Falha ao ler users.csv');console.error(e);}
+  }
+  qs('#btnLogout').onclick=showLogin;
+  qs('#btnResetLimpar').onclick=()=>qs('#formReset').reset();
+
+  // ===== JOBS (GitHub) =====
+  const REGIONAIS=['REGIONAL BA - SE','REGIONAL DF - GO - TO','REGIONAL MG','REGIONAL MS','REGIONAL MT - RO - AC','REGIONAL NORDESTE 1','REGIONAL NORDESTE 2','REGIONAL NORTE','REGIONAL PR','REGIONAL RJ - ES','REGIONAL RS','REGIONAL SP','REGIONAL SC','ESPECIAL NACIONAL'];
+  const ESTADOS_BR=['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MG','MS','MT','PA','PB','PR','PE','PI','RJ','RN','RO','RR','RS','SC','SE','SP','TO'];
+  let jobs=[], activeRegional=null, closedJobs=[];
+  let selectedJobId=null, selectedRow=null;
+
+  function buildTabs(){const w=qs('#tabs');w.innerHTML='';REGIONAIS.forEach(r=>{const b=document.createElement('button');b.className='tab';b.textContent=r;b.onclick=()=>setActiveRegional(r);w.appendChild(b);});}
+  function setActiveRegional(r){activeRegional=r;qsa('.tab').forEach(t=>t.classList.toggle('active',t.textContent===r));renderJobs();}
+
+  async function initialLoadJobs(){
+    try{
+      setBusy(true,'Carregando jobs…');
+      const txt = await ghLoadCsv(gh.paths.jobs);
+      jobs = csvToObjects(txt);
+      const txt2 = await ghLoadCsv(gh.paths.closed);
+      closedJobs = csvToObjects(txt2);
+      renderJobs();
+    }catch(e){console.error(e);toast('Falha ao carregar jobs.');}
+    finally{ setBusy(false); }
+  }
+
+  function statusBadge(step,text){
+    const map={novo:'st-novo',lista:'st-azulclaro',layout:'st-roxo',digitacao:'st-azulescuro',diagramacao:'st-laranja',revisao:'st-rosa',aprovacao:'st-verde',encerramento:'st-amarelo',site:'st-rosa',cancelado:'st-vermelho'};
+    return `<span class="status-badge ${(map[step||'novo']||'st-novo')}">${text||'Novo'}</span>`;
+  }
+
+  function setSelected(tr, id){
+    if(selectedRow) selectedRow.classList.remove('sel');
+    selectedRow = tr; selectedJobId = id;
+    if(tr) tr.classList.add('sel');
+  }
+
+  function renderJobs(){
+    selectedJobId=null; selectedRow=null;
+    const tb=qs('#jobsBody');tb.innerHTML='';
+    if(!activeRegional) return;
+    const list=jobs.filter(j=>j.regional===activeRegional && (j.vai_dashboard||'Sim')==='Sim');
+    list.forEach(j=>{
+      const tr=document.createElement('tr');
+      const can=canFinalize();
+      tr.innerHTML=`
+        <td>${j.id||''}</td>
+        <td>${j.os||''}</td>
+        <td>${j.tabloide_nome||''}</td>
+        <td>${j.regional||''}</td>
+        <td>${j.tipo_job||''}</td>
+        <td>${statusBadge(j.status_step,j.status)}</td>
+        <td>${j.criado_em?fmt(j.criado_em):''}</td>
+        <td><button class="btn" data-edit="${j.id}">Editar</button></td>
+        <td><button class="btn" data-ver="${j.id}">Visualizar</button></td>
+        <td><button class="btn" data-fin="${j.id}" ${can?'':'disabled title="Sem permissão"'}>Finalizar Job</button></td>
+      `;
+      tr.addEventListener('click', (e)=>{ if(e.target.closest('button')) return; setSelected(tr, j.id); });
+      tb.appendChild(tr);
+    });
+    tb.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>openEtapasModal(b.dataset.edit));
+    tb.querySelectorAll('[data-ver]').forEach(b=>b.onclick=()=>openVisualizar(b.dataset.ver));
+    tb.querySelectorAll('[data-fin]').forEach(b=>b.onclick=()=>finalizeFromList(b.dataset.fin));
+  }
+
+  // Excluir Job (toolbar) — otimista + fila
+  qs('#btnExcluirJob').onclick=async()=>{
+    if(!selectedJobId){toast('Selecione um JOB na lista.');return;}
+    if(!canDelete()){toast('Sem permissão para excluir (somente Administrador/Diretor/Gerente/Trafego).');return;}
+    const j=jobs.find(x=>x.id===selectedJobId);
+    if(!j){toast('JOB não encontrado.');return;}
+    if(!confirm(`Excluir JOB #${j.id} – "${j.tabloide_nome}"?`)) return;
+
+    const idx=jobs.findIndex(x=>x.id===selectedJobId);
+    if(idx>-1){
+      jobs.splice(idx,1);
+      renderJobs();           // otimista
+      await saveJobs(jobs);   // persistir
+      toast('JOB excluído.');
+    }
+  };
+
+  // Estados & Filiais (com datas)
+  function addEstadoRow(data){
+    const w=qs('#estadoList');
+    const r=document.createElement('div'); r.className='estado-row';
+    r.innerHTML=`
+      <select class="estadoSel">${ESTADOS_BR.map(s=>`<option>${s}</option>`).join('')}</select>
+      <input class="filialInp" type="text" placeholder="Filial (ex.: 001, 002...)" />
+      <input class="dataIni" type="date" title="Data inicial" />
+      <input class="dataFim" type="date" title="Data término" />
+      <button type="button" class="btn iconbtn" title="Excluir">🗑</button>`;
+    w.appendChild(r);
+    const sel=r.querySelector('.estadoSel'),
+          inp=r.querySelector('.filialInp'),
+          di=r.querySelector('.dataIni'),
+          df=r.querySelector('.dataFim'),
+          del=r.querySelector('.iconbtn');
+    if(data){
+      if(data.estado) sel.value=data.estado;
+      if(data.filial) inp.value=data.filial;
+      if(data.ini) di.value=data.ini;
+      if(data.fim) df.value=data.fim;
+    }
+    del.onclick=()=>r.remove();
+  }
+  function collectEstados(){
+    return Array.from(qs('#estadoList').children).map(r=>({
+      estado:r.querySelector('.estadoSel').value,
+      filial:(r.querySelector('.filialInp').value||'').trim(),
+      ini:(r.querySelector('.dataIni').value||'').trim(),
+      fim:(r.querySelector('.dataFim').value||'').trim(),
+    })).filter(x=>x.estado&&x.filial);
+  }
+  function setEstados(l){qs('#estadoList').innerHTML='';(l||[]).forEach(addEstadoRow);}
+  qs('#btnAddEstado').onclick=()=>addEstadoRow();
+
+  function fillRegionSelect(selVal){const s=qs('#jobRegional');s.innerHTML=REGIONAIS.map(r=>`<option>${r}</option>`).join('');s.value=selVal||REGIONAIS[0];}
+
+  // Novo JOB — otimista + fila
+  qs('#btnNovoJob').onclick=async()=>{fillRegionSelect(activeRegional||REGIONAIS[0]);qs('#jobModalTitle').textContent='Novo JOB';qs('#formJob').reset();setEstados([]);qs('#jobDashboard').value='Sim';openModal('modalJob');};
+  qs('#btnJobLimpar').onclick=()=>{qs('#formJob').reset();setEstados([]);fillRegionSelect(activeRegional||REGIONAIS[0]);};
+  qs('#btnJobLancar').onclick=async()=>{
+    if(!ghOn()){toast('Configure o GitHub (⚙).');return;}
+    const estados=collectEstados(); if(!estados.length){toast('Adicione pelo menos uma linha de Estado & Filial.');return;}
+    const rec={
+      id:'',os:'WV-'+nowISO().replace(/[-:T.Z]/g,'').slice(0,14),
+      regional:qs('#jobRegional').value,
+      tipo_loja:qs('#jobTipoLoja').value,
+      tipo_job:qs('#jobTipo').value,
+      acao_nacional:qs('#jobAcaoNacional').value,
+      tabloide_nome:qs('#jobTabloide').value,
+      complemento:qs('#jobComplemento').value,
+      tamanho_pagina:qs('#jobTamanho').value,
+      qtd_paginas:qs('#jobQtdPag').value,
+      estado_filiais:JSON.stringify(estados),
+      observacao:qs('#jobObs').value,
+      vai_dashboard:qs('#jobDashboard').value,
+      status:'Novo',status_step:'novo',
+      workflow:JSON.stringify(initWorkflow(estados))
+    };
+    if(!rec.regional||!rec.tipo_loja||!rec.tipo_job||!rec.tabloide_nome){toast('Informe Regional, Tipo da loja, Tipo do JOB e Nome do tabloide.');return;}
+
+    // garante ter lista local (se abriu o app e ainda não carregou)
+    if(!jobs.length){
+      try{ jobs = csvToObjects(await ghLoadCsv(gh.paths.jobs)); }catch(e){ jobs=[]; }
+    }
+
+    const now=nowISO();
+    const nextId=String((jobs.reduce((m,x)=>Math.max(m,parseInt(x.id||'0',10)||0),0)+1));
+    const full = {...rec,id:nextId,criado_em:now,atualizado_em:now};
+
+    jobs.push(full);
+    setActiveRegional(full.regional); // garante aba correta
+    renderJobs(); // mostra já
+    closeModal('modalJob');
+
+    await saveJobs(jobs); // persiste no GitHub
+    toast('JOB lançado.');
+  };
+
+  function initWorkflow(estados){
+    return (estados||[]).map(e=>({
+      estado:e.estado, filial:e.filial, ini:e.ini||'', fim:e.fim||'',
+      logs:{lista:[],layout:[],digitacao:[],diagramacao:[],revisao:[],aprovacao:[],encerramento:[],site:[],cancelado:[]}
+    }));
+  }
+
+  // ===== Editar (colunas) =====
+  const STEP_META={
+    lista:{label:'Lista',status:'Lista recebida',step:'lista',color:'azulclaro',mode:'manual'},
+    layout:{label:'Layout',status:'Criando Layout',step:'layout',color:'roxo',cargo:'Layout',mode:'auto'},
+    digitacao:{label:'Digitação',status:'Em produção',step:'digitacao',color:'azulescuro',cargo:'Digitador',mode:'auto'},
+    diagramacao:{label:'Diagramação',status:'Em produção',step:'diagramacao',color:'laranja',cargo:'Diagramador',mode:'auto'},
+    revisao:{label:'Revisão',status:'Revisando',step:'revisao',color:'rosa',cargo:'Revisor',mode:'auto'},
+    aprovacao:{label:'Aprovação',status:'Aprovado',step:'aprovacao',color:'verde',mode:'manual'},
+    encerramento:{label:'Encerramento',status:'Encerrando',step:'encerramento',color:'amarelo',cargo:'Encerramento',mode:'auto'},
+    site:{label:'Site',status:'Site',step:'site',color:'rosa',cargo:'Site',mode:'auto'}, // terá link PDF opcional
+    cancelado:{label:'Cancelado',status:'Cancelado',step:'cancelado',color:'vermelho',mode:'manual'}
+  };
+  const STEP_ORDER=['lista','layout','digitacao','diagramacao','revisao','aprovacao','encerramento','site','cancelado'];
+  let editJob=null, editIndex=-1, addCtx={blkIdx:-1,step:''};
+
+  async function openEtapasModal(jobId){
+    try{
+      // garante que jobs[] esteja atualizado (mas sem bloquear duas vezes)
+      if(!jobs.length){
+        const txt = await ghLoadCsv(gh.paths.jobs);
+        jobs = csvToObjects(txt);
+      }
+      editIndex=jobs.findIndex(j=>j.id===jobId);
+      if(editIndex===-1){toast('JOB não encontrado.');return;}
+      editJob=JSON.parse(JSON.stringify(jobs[editIndex]));
+      let estados=[];try{estados=JSON.parse(editJob.estado_filiais||'[]')||[];}catch(e){}
+      let wf=[];try{wf=JSON.parse(editJob.workflow||'[]')||[];}catch(e){}
+      if(!Array.isArray(wf)||!wf.length){wf=initWorkflow(estados);}
+      wf.forEach(b=>{b.logs=b.logs||{};STEP_ORDER.forEach(k=>{if(!Array.isArray(b.logs[k]))b.logs[k]=[];});});
+      editJob.workflow=JSON.stringify(wf);
+
+      qs('#etapasTitle').textContent=`Etapas do JOB #${editJob.id} — ${editJob.tabloide_nome||''}`;
+      qs('#etapasHead').textContent=`Regional: ${editJob.regional} • Tipo: ${editJob.tipo_job} • Loja: ${editJob.tipo_loja} • OS: ${editJob.os}`;
+      renderEtapasBlocks();
+      openModal('modalEtapas');
+    }catch(e){console.error(e);toast('Erro ao abrir edição.');}
+  }
+
+  function renderEtapasBlocks(){
+    const container=qs('#etapasBlocks'); container.innerHTML='';
+    const wf=JSON.parse(editJob.workflow||'[]');
+    if(!wf.length){container.innerHTML='<p class="muted">(Sem estados/filiais)</p>';return;}
+    wf.forEach((blk,idx)=>{
+      const wrap=document.createElement('div'); wrap.className='block';
+      const head=document.createElement('h4');
+      const vig = (blk.ini||blk.fim) ? ` — Vigência: ${fmtDate(blk.ini)} a ${fmtDate(blk.fim)}` : '';
+      head.innerHTML=`Estado: <strong>${blk.estado}</strong> • Filial: <strong>${blk.filial}</strong>${vig}`;
+      wrap.appendChild(head);
+
+      const cols=document.createElement('div'); cols.className='cols';
+      const inner=document.createElement('div'); inner.className='colsInner';
+
+      STEP_ORDER.forEach(step=>{
+        const meta=STEP_META[step];
+        const col=document.createElement('div'); col.className='col';
+        const h5=document.createElement('h5');
+        const title=document.createElement('span'); title.textContent=meta.label;
+        const btn=document.createElement('button'); btn.className='btn'; btn.type='button'; btn.textContent='+'; btn.onclick=()=>openAddEvento(idx,step);
+        h5.appendChild(title); h5.appendChild(btn);
+        col.appendChild(h5);
+
+        const list=document.createElement('div'); list.className='list';
+        const items=(blk.logs?.[step]||[]);
+        if(!items.length){const i=document.createElement('div');i.className='muted';i.textContent='(sem registros)';list.appendChild(i);}
+        else{
+          items.slice().reverse().forEach(ev=>{
+            const i=document.createElement('div');i.className='item';
+            if(step==='site' && ev.link){
+              i.innerHTML = `${ev.nome} — ${fmt(ev.ts)} — <a href="${ev.link}" target="_blank" rel="noopener">PDF</a>`;
+            }else{
+              i.textContent=`${ev.nome} — ${fmt(ev.ts)}`;
+            }
+            list.appendChild(i);
+          });
+        }
+        col.appendChild(list);
+        inner.appendChild(col);
+      });
+
+      cols.appendChild(inner);
+      wrap.appendChild(cols);
+      container.appendChild(wrap);
+    });
+  }
+
+  // Modal "Adicionar evento" — inclui Admin/Diretor/Gerente
+  function populateSelect(sel, users){
+    sel.innerHTML='';
+    if(!users.length){
+      const o=document.createElement('option'); o.value=''; o.textContent='— sem usuários —'; sel.appendChild(o);
+    }else{
+      const o0=document.createElement('option'); o0.value=''; o0.textContent='— selecione —'; sel.appendChild(o0);
+      users.forEach(u=>{
+        const o=document.createElement('option');
+        o.value=u.nome; o.textContent=`${u.nome} (${displayRole(u)})`;
+        sel.appendChild(o);
+      });
+    }
+  }
+
+  function openAddEvento(blkIdx,step){
+    addCtx={blkIdx,step}; const meta=STEP_META[step];
+    qs('#addEvtTitle').textContent=`Adicionar: ${meta.label}`;
+    const box=qs('#addEvtFields'); box.innerHTML='';
+
+    if(meta.mode==='auto'&&meta.cargo){
+      const users=usersForStepCargo(meta.cargo); // inclui admins/dir/gerente
+      if(users.length>0){
+        const f=document.createElement('div');f.className='field';
+        f.innerHTML=`<label>Responsável (${meta.label})</label><select id="addSelUser"></select><div class="muted">Hora será registrada automaticamente ao confirmar.</div>`;
+        box.appendChild(f); const sel=f.querySelector('#addSelUser'); populateSelect(sel,users);
+      }else{
+        const f=document.createElement('div');f.className='field';
+        f.innerHTML=`<label>Responsável (${meta.label})</label><input id="addNomeAuto" type="text" placeholder="Digite o nome (sem usuários nesse cargo)" /><div class="muted">Hora será registrada automaticamente ao confirmar.</div>`;
+        box.appendChild(f);
+      }
+
+      // campo extra para "Site": link PDF
+      if(step==='site'){
+        const f2=document.createElement('div');f2.className='field';
+        f2.innerHTML=`<label>Link do PDF (opcional)</label><input id="addLinkPdf" type="url" placeholder="https://..." />`;
+        box.appendChild(f2);
+      }
+
+    }else{
+      const f1=document.createElement('div');f1.className='field';f1.innerHTML=`<label>Responsável</label><input id="addNome" type="text" placeholder="Nome" />`;box.appendChild(f1);
+      const row=document.createElement('div');row.className='row';
+      const f2=document.createElement('div');f2.className='field';f2.innerHTML=`<label>Dia</label><input id="addDia" type="date" />`;row.appendChild(f2);
+      const f3=document.createElement('div');f3.className='field';f3.innerHTML=`<label>Hora</label><input id="addHora" type="time" />`;row.appendChild(f3);
+      box.appendChild(row);
+    }
+    openModal('modalAddEvt');
+  }
+
+  qs('#btnAddEvtCancelar').onclick=()=>closeModal('modalAddEvt');
+  qs('#btnAddEvtOk').onclick=()=>{
+    const meta=STEP_META[addCtx.step];
+    const wf=JSON.parse(editJob.workflow||'[]');
+    const blk=wf[addCtx.blkIdx]; if(!blk){toast('Bloco inválido.');return;}
+    let nome='',ts='',link='';
+    if(meta.mode==='auto'&&meta.cargo){
+      const sel=qs('#addSelUser'); const inp=qs('#addNomeAuto');
+      nome = sel ? (sel.value||'').trim() : '';
+      if(!nome && inp) nome = (inp.value||'').trim();
+      if(!nome){toast('Informe o responsável.');return;}
+      ts=nowISO(); // hora automática
+      if(addCtx.step==='site'){ link = (qs('#addLinkPdf')?.value||'').trim(); }
+    }else{
+      nome=(qs('#addNome')?.value||'').trim();
+      const d=(qs('#addDia')?.value||'').trim(),h=(qs('#addHora')?.value||'').trim();
+      if(!nome||!d||!h){toast('Preencha Nome, Dia e Hora.');return;}
+      ts=new Date(`${d}T${h}:00`).toISOString();
+    }
+    blk.logs[addCtx.step]=blk.logs[addCtx.step]||[];
+    const ev = {nome,ts};
+    if(link) ev.link = link;
+    blk.logs[addCtx.step].push(ev);
+    editJob.status=meta.status; editJob.status_step=meta.step; editJob.atualizado_em=nowISO(); editJob.workflow=JSON.stringify(wf);
+    closeModal('modalAddEvt'); renderEtapasBlocks();
+  };
+
+  // Salvar / Cancelar no modal de etapas — OTIMISTA
+  qs('#btnEtapasCancelar').onclick=()=>closeModal('modalEtapas');
+  qs('#btnEtapasSalvar').onclick=async()=>{
+    if(editIndex<0){toast('Nada para salvar.');return;}
+    jobs[editIndex]={...jobs[editIndex],...editJob,atualizado_em:nowISO()};
+    renderJobs();               // render otimista
+    await saveJobs(jobs);       // commit no GitHub (fila)
+    closeModal('modalEtapas');
+    toast('Atualizado.');
+  };
+
+  // Finalizar direto na lista — OTIMISTA
+  async function finalizeFromList(jobId){
+    const job=jobs.find(j=>j.id===jobId);
+    if(!job){toast('JOB não encontrado.');return;}
+    await finalizeJob(job);
+  }
+  async function finalizeJob(job){
+    if(!canFinalize()){toast('Sem permissão para finalizar.');return;}
+    // garante closedJobs em memória
+    if(!closedJobs.length){ try{ closedJobs = csvToObjects(await ghLoadCsv(gh.paths.closed)); }catch(e){ closedJobs=[]; } }
+
+    const finISO=nowISO();
+    const finRec={...job,status:'Finalizado',status_step:'site',finalizado_em:finISO,atualizado_em:finISO};
+
+    closedJobs.push(finRec);
+    jobs = jobs.filter(j=>j.id!==job.id);
+    renderJobs(); // otimista
+
+    await queued(async()=>{
+      await saveClosed(closedJobs);
+      await saveJobs(jobs);
+    });
+
+    closeModal('modalEtapas');
+    toast('JOB finalizado e movido para encerrados.');
+  }
+
+  // ===== Visualizar (read-only) =====
+  function openVisualizar(jobId){
+    const j=jobs.find(x=>x.id===jobId); if(!j){toast('JOB não encontrado.');return;}
+    renderVerJob(j); openModal('modalVer');
+  }
+  function renderVerJob(j){
+    qs('#verTitle').textContent=`JOB #${j.id} — ${j.tabloide_nome||''}`;
+    const wf=(()=>{try{return JSON.parse(j.workflow||'[]')||[];}catch(e){return[];}})();
+    const estados=(()=>{try{return JSON.parse(j.estado_filiais||'[]')||[];}catch(e){return[];}})();
+    const estadosTxt = estados.map(e=>{
+      const vig = (e.ini||e.fim) ? ` (${fmtDate(e.ini)} → ${fmtDate(e.fim)})` : '';
+      return `${e.estado}-${e.filial}${vig}`;
+    }).join(', ') || '(nenhum)';
+
+    const div=document.createElement('div'); div.innerHTML=`
+      <div class="field"><strong>OS:</strong> ${j.os||''}</div>
+      <div class="field"><strong>Regional:</strong> ${j.regional||''} • <strong>Tipo:</strong> ${j.tipo_job||''} • <strong>Loja:</strong> ${j.tipo_loja||''}</div>
+      <div class="field"><strong>Tabloide:</strong> ${j.tabloide_nome||''} • <strong>Complemento:</strong> ${j.complemento||''}</div>
+      <div class="field"><strong>Tamanho:</strong> ${j.tamanho_pagina||'-'} • <strong>Páginas:</strong> ${j.qtd_paginas||'-'}</div>
+      <div class="field"><strong>Status:</strong> ${j.status||'Novo'}</div>
+      <div class="field"><strong>Observação:</strong> ${j.observacao||''}</div>
+      <div class="sep"></div>
+      <div><strong>Estados & Filiais:</strong> ${estadosTxt}</div>
+      <div class="sep"></div>
+    `;
+    wf.forEach(blk=>{
+      const b=document.createElement('div'); b.className='block';
+      const vig = (blk.ini||blk.fim) ? ` — Vigência: ${fmtDate(blk.ini)} a ${fmtDate(blk.fim)}` : '';
+      const h=document.createElement('h4'); h.innerHTML=`Estado: <strong>${blk.estado}</strong> • Filial: <strong>${blk.filial}</strong>${vig}`; b.appendChild(h);
+      const cols=document.createElement('div'); cols.className='cols'; const inner=document.createElement('div'); inner.className='colsInner';
+      STEP_ORDER.forEach(step=>{
+        const meta=STEP_META[step];
+        const col=document.createElement('div'); col.className='col';
+        const h5=document.createElement('h5'); h5.textContent=meta.label; col.appendChild(h5);
+        const list=document.createElement('div'); list.className='list';
+        const items=(blk.logs?.[step]||[]);
+        if(!items.length){const i=document.createElement('div');i.className='muted';i.textContent='(sem registros)';list.appendChild(i);}
+        else{
+          items.slice().reverse().forEach(ev=>{
+            const i=document.createElement('div');i.className='item';
+            if(step==='site' && ev.link){
+              i.innerHTML = `${ev.nome} — ${fmt(ev.ts)} — <a href="${ev.link}" target="_blank" rel="noopener">PDF</a>`;
+            }else{
+              i.textContent=`${ev.nome} — ${fmt(ev.ts)}`;
+            }
+            list.appendChild(i);
+          });
+        }
+        col.appendChild(list); inner.appendChild(col);
+      });
+      cols.appendChild(inner); b.appendChild(cols); div.appendChild(b);
+    });
+    const body=qs('#verBody'); body.innerHTML=''; body.appendChild(div);
+  }
+  qs('#btnVerFechar').onclick=()=>closeModal('modalVer');
+
+  // ===== Encerrados =====
+  qs('#btnVerEncerrados').onclick=()=>{fillEncFiltro();qs('#encList').innerHTML='';openModal('modalEncerrados');};
+  function fillEncFiltro(){const sel=qs('#encFiltroRegional'); sel.innerHTML=REGIONAIS.map(r=>`<option>${r}</option>`).join(''); sel.value=activeRegional||REGIONAIS[0];}
+  qs('#btnEncCarregar').onclick=async()=>{
+    try{
+      const txt = await ghLoadCsv(gh.paths.closed);
+      closedJobs = csvToObjects(txt);
+      const reg=qs('#encFiltroRegional').value;
+      const list=closedJobs.filter(j=>j.regional===reg);
+      const box=qs('#encList'); box.innerHTML='';
+      if(!list.length){box.innerHTML='<p class="muted">(Sem encerrados nessa regional)</p>';return;}
+      list.forEach(j=>{
+        const row=document.createElement('div'); row.className='block';
+        row.innerHTML=`<div><strong>${j.tabloide_nome||''}</strong> — OS: ${j.os||''} • Finalizado: ${fmt(j.finalizado_em||j.atualizado_em)}</div>`;
+        const b=document.createElement('button'); b.className='btn'; b.textContent='Ver';
+        b.onclick=()=>{renderVerJob(j);openModal('modalVer');};
+        row.appendChild(b); box.appendChild(row);
+      });
+    }catch(e){console.error(e);toast('Falha ao carregar encerrados.');}
+  };
+  qs('#btnEncFechar').onclick=()=>closeModal('modalEncerrados');
+
+  // ===== Dashboard (Chart.js) =====
+  let charts={};
+  function destroyCharts(){
+    Object.values(charts).forEach(ch=>{ try{ ch.destroy(); }catch(e){} });
+    charts={};
+  }
+
+  qs('#btnVerDashboard').onclick=async()=>{
+    try{
+      const txt = await ghLoadCsv(gh.paths.closed);
+      closedJobs = csvToObjects(txt);
+      // filtro combo
+      const sel=qs('#dashFiltroRegional');
+      sel.innerHTML = ['(Todas)', ...REGIONAIS].map(r=>`<option>${r}</option>`).join('');
+      sel.value='(Todas)';
+      renderDashboardCharts('(Todas)');
+      openModal('modalDash');
+    }catch(e){console.error(e);toast('Falha ao carregar dashboard.');}
+  };
+  qs('#btnDashFechar').onclick=()=>closeModal('modalDash');
+  qs('#btnDashAplicar').onclick=()=>{ renderDashboardCharts(qs('#dashFiltroRegional').value); };
+
+  function computeDashboard(list){
+    const total=list.length;
+    const porColab = { layout:{}, digitacao:{}, diagramacao:{}, revisao:{}, site:{} };
+    const porEstado={};
+    list.forEach(j=>{
+      let wf=[];try{wf=JSON.parse(j.workflow||'[]')||[];}catch(e){}
+      wf.forEach(blk=>{
+        porEstado[blk.estado]=(porEstado[blk.estado]||0)+1;
+        (blk.logs?.layout||[]).forEach(ev=>porColab.layout[ev.nome]=(porColab.layout[ev.nome]||0)+1);
+        (blk.logs?.digitacao||[]).forEach(ev=>porColab.digitacao[ev.nome]=(porColab.digitacao[ev.nome]||0)+1);
+        (blk.logs?.diagramacao||[]).forEach(ev=>porColab.diagramacao[ev.nome]=(porColab.diagramacao[ev.nome]||0)+1);
+        (blk.logs?.revisao||[]).forEach(ev=>porColab.revisao[ev.nome]=(porColab.revisao[ev.nome]||0)+1);
+        (blk.logs?.site||[]).forEach(ev=>porColab.site[ev.nome]=(porColab.site[ev.nome]||0)+1);
+      });
+    });
+    return {total,porColab,porEstado};
+  }
+
+  function renderDashboardCharts(reg){
+    let data = closedJobs;
+    if(reg && reg!=='(Todas)'){ data = data.filter(j=>j.regional===reg); }
+    const stats=computeDashboard(data);
+
+    // total
+    qs('#dashTotal').textContent = String(stats.total);
+
+    // tabela estado
+    const tb=qs('#dashEstado tbody'); tb.innerHTML='';
+    Object.entries(stats.porEstado).sort().forEach(([uf,qt])=>{
+      const tr=document.createElement('tr');
+      tr.innerHTML = `<td style="padding:6px 8px">${uf}</td><td style="padding:6px 8px">${qt}</td>`;
+      tb.appendChild(tr);
+    });
+
+    // helper para montar gráfico
+    const mkBar = (canvasId, obj) => {
+      const ctx = qs('#'+canvasId).getContext('2d');
+      const labels = Object.keys(obj);
+      const values = labels.map(k=>obj[k]);
+      if(charts[canvasId]) charts[canvasId].destroy();
+      charts[canvasId] = new Chart(ctx, {
+        type: 'bar',
+        data: { labels, datasets: [{ label: 'Quantidade', data: values }] },
+        options: {
+          responsive: true,
+          plugins: { legend: { display:false } },
+          scales: { x: { ticks: { autoSkip:false, maxRotation:45, minRotation:0 }}, y: { beginAtZero:true, precision:0 } }
+        }
+      });
+    };
+
+    mkBar('chartLayout',      stats.porColab.layout);
+    mkBar('chartDigitacao',   stats.porColab.digitacao);
+    mkBar('chartDiagramacao', stats.porColab.diagramacao);
+    mkBar('chartRevisao',     stats.porColab.revisao);
+    mkBar('chartSite',        stats.porColab.site);
+  }
+
+  // ===== Inicialização =====
+  (function init(){
+    showLogin();
+    buildTabs();
+  })();
+</script>
+</body>
+</html>
