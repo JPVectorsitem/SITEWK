@@ -22,9 +22,8 @@
     display:grid;place-items:center; padding:24px;
   }
 
-  /* Login (compacto) */
+  /* Login compacto; Dash ocupa tela inteira */
   .app{width:min(1300px,100%); display:grid; gap:18px;}
-  /* Dashboard ocupa a tela toda */
   .app.full{width:100%; max-width:none; height:calc(100vh - 48px);}
 
   .title{text-align:center; line-height:1.2}
@@ -298,6 +297,7 @@
           <button class="btn" id="btnExcluirJob">Excluir Job</button>
           <button class="btn" id="btnVerEncerrados">Visualizar encerrados</button>
           <button class="btn" id="btnVerDashboard">Ver Dashboard</button>
+          <button class="btn" id="btnVerMassa">Visualizar em massa</button>
         </div>
 
         <div class="tabs" id="tabs"></div>
@@ -399,7 +399,7 @@
     </form>
   </dialog>
 
-  <!-- ===== MODAIS ETAPAS/ADD EVT/VER/ENCERRADOS/DASH ===== -->
+  <!-- ===== ETAPAS / ADD EVT / VER / ENCERRADOS / DASH ===== -->
   <dialog id="modalEtapas">
     <div class="modal">
       <h3 id="etapasTitle">Etapas do JOB</h3>
@@ -498,6 +498,44 @@
       </div>
     </div>
   </dialog>
+
+  <!-- ===== NOVO: VISUALIZAR EM MASSA ===== -->
+  <dialog id="modalMassa">
+    <div class="modal">
+      <h3>Visualizar em massa</h3>
+      <div class="row" style="gap:12px;align-items:flex-end">
+        <div class="field" style="min-width:260px">
+          <label>Status</label>
+          <select id="massaStatus"></select>
+        </div>
+        <button class="btn" id="btnMassaAplicar" type="button">Aplicar</button>
+      </div>
+
+      <div class="tableWrap" style="margin-top:10px; max-height:65vh">
+        <table aria-label="Todos os JOBs">
+          <thead>
+            <tr>
+              <th style="width:70px">ID</th>
+              <th style="width:140px">OS</th>
+              <th style="width:260px">Título</th>
+              <th style="width:160px">Regional</th>
+              <th style="width:140px">Tipo JOB</th>
+              <th style="width:160px">Status</th>
+              <th style="width:190px">Criado Em</th>
+              <th style="width:160px">Link pasta</th>
+              <th style="width:120px">Editar</th>
+              <th style="width:120px">Visualizar</th>
+              <th style="width:140px">Finalizar Job</th>
+            </tr>
+          </thead>
+          <tbody id="massaBody"></tbody>
+        </table>
+      </div>
+      <div class="actions">
+        <button class="btn" type="button" id="btnMassaFechar">Fechar</button>
+      </div>
+    </div>
+  </dialog>
 </div>
 
 <div id="busy"><div class="box">Sincronizando com GitHub…</div></div>
@@ -512,7 +550,6 @@
     paths: { users: 'users.csv', jobs: 'jobs.csv', closed: 'jobs_encerrados.csv' },
     token: ''
   };
-  // Senha de liberação do cadastro (atenção: fica no front-end)
   const CAD_GATE = 'WKflvec104tp1408';
 
   const qs=s=>document.querySelector(s); const qsa=s=>Array.from(document.querySelectorAll(s));
@@ -576,7 +613,6 @@
     refreshUsersCache();
     initialLoadJobs();
 
-    // Permissão para criar novo job
     const btnNovo = qs('#btnNovoJob');
     if(!canCreateJob()){
       btnNovo.disabled = true;
@@ -610,7 +646,7 @@
   const csvEsc=v=>{v=v==null?'':String(v);return /[",\n]/.test(v)?`"${v.replace(/"/g,'""')}"`:v;};
   const toCsvLine=a=>a.map(csvEsc).join(',');
   const parseCsv=t=>{if(!t)return[];const r=[];let row=[],cur='',q=false;for(let i=0;i<t.length;i++){const c=t[i];if(q){if(c=='"'){if(t[i+1]=='"'){cur+='"';i++;}else q=false;}else cur+=c;}else{if(c=='"')q=true;else if(c==','){row.push(cur);cur='';}else if(c=='\r'){}else if(c=='\n'){row.push(cur);r.push(row);row=[];cur='';}else cur+=c;}}if(cur.length>0||row.length>0){row.push(cur);r.push(row);}return r;};
-  const csvToObjects=t=>{const rows=parseCsv(t);if(!rows.length)return[];const h=rows[0];const out=[];for(let i=1;i<h.length?rows.length:0;i++){const rr=rows[i];if(!rr||(rr.length===1&&rr[0]===''))continue;const o={};for(let j=0;j<h.length;j++)o[h[j]]=rr[j]||'';out.push(o);}return out;};
+  const csvToObjects=t=>{const rows=parseCsv(t);if(!rows.length)return[];const h=rows[0];const out=[];for(let i=1;i<rows.length;i++){const rr=rows[i];if(!rr||(rr.length===1&&rr[0]===''))continue;const o={};for(let j=0;j<h.length;j++)o[h[j]]=rr[j]||'';out.push(o);}return out;};
   const objectsToCsv=(H,objs)=>H.join(',')+'\n'+objs.map(o=>toCsvLine(H.map(h=>o[h]??''))).join('\n')+'\n';
 
   // ===== GitHub =====
@@ -1287,7 +1323,7 @@
   }
   qs('#btnVerFechar').onclick=()=>closeModal('modalVer');
 
-  // Encerrados / Dashboard
+  // Encerrados
   qs('#btnVerEncerrados').onclick=()=>{fillEncFiltro();qs('#encList').innerHTML='';openModal('modalEncerrados');};
   function fillEncFiltro(){const sel=qs('#encFiltroRegional'); sel.innerHTML=REGIONAIS.map(r=>`<option>${r}</option>`).join(''); sel.value=activeRegional||REGIONAIS[0];}
   qs('#btnEncCarregar').onclick=async()=>{
@@ -1309,7 +1345,9 @@
   };
   qs('#btnEncFechar').onclick=()=>closeModal('modalEncerrados');
 
+  // Dashboard
   let charts={};
+  const destroyChart=(id)=>{ if(charts[id]){ try{charts[id].destroy();}catch(_){} delete charts[id]; } };
   qs('#btnVerDashboard').onclick=async()=>{
     try{
       const txt = await ghLoadCsv(gh.paths.closed);
@@ -1360,7 +1398,7 @@
       const ctx = qs('#'+canvasId).getContext('2d');
       const labels = Object.keys(obj);
       const values = labels.map(k=>obj[k]);
-      if(charts[canvasId]) charts[canvasId].destroy();
+      destroyChart(canvasId);
       charts[canvasId] = new Chart(ctx, {
         type: 'bar',
         data: { labels, datasets: [{ label: 'Quantidade', data: values }] },
@@ -1378,6 +1416,72 @@
     mkBar('chartRevisao',     stats.porColab.revisao);
     mkBar('chartSite',        stats.porColab.site);
   }
+
+  // ===== VISUALIZAR EM MASSA =====
+  const STATUS_KEYS = ['(Todos)','novo',...STEP_ORDER];
+  function fillMassaStatus(){
+    const sel=qs('#massaStatus');
+    sel.innerHTML = STATUS_KEYS.map(k=>{
+      if(k==='(Todos)') return `<option>(Todos)</option>`;
+      const lbl = (k==='novo')?'Novo':(STEP_META[k]?.label||k);
+      return `<option value="${k}">${lbl}</option>`;
+    }).join('');
+    sel.value='(Todos)';
+  }
+  function renderMassa(){
+    const sel = qs('#massaStatus').value || '(Todos)';
+    const body = qs('#massaBody');
+    body.innerHTML='';
+    let list = jobs.slice();
+    if(sel && sel!=='(Todos)'){
+      list = list.filter(j=>(j.status_step||'novo')===sel);
+    }
+    list.forEach(j=>{
+      const tr=document.createElement('tr');
+      const can=canFinalize();
+      tr.innerHTML=`
+        <td>${j.id||''}</td>
+        <td>${j.os||''}</td>
+        <td>${j.tabloide_nome||''}</td>
+        <td>${j.regional||''}</td>
+        <td>${j.tipo_job||''}</td>
+        <td>${statusBadge(j.status_step,j.status)}</td>
+        <td>${j.criado_em?fmt(j.criado_em):''}</td>
+        <td>${
+          j.pasta_link
+            ? `<button class="btn" data-copy="${encodeURIComponent(j.pasta_link)}" title="Copiar link">Copiar</button>`
+            : '<span class="muted">—</span>'
+        }</td>
+        <td><button class="btn" data-edit="${j.id}">Editar</button></td>
+        <td><button class="btn" data-ver="${j.id}">Visualizar</button></td>
+        <td><button class="btn" data-fin="${j.id}" ${can?'':'disabled title="Sem permissão"'}>Finalizar Job</button></td>
+      `;
+      body.appendChild(tr);
+    });
+  }
+  qs('#massaBody').addEventListener('click', async (e)=>{
+    const t = e.target;
+    const btnEdit = t.closest('[data-edit]');
+    const btnVer  = t.closest('[data-ver]');
+    const btnFin  = t.closest('[data-fin]');
+    const btnCopy = t.closest('[data-copy]');
+    if(btnEdit){ openEtapasModal(btnEdit.dataset.edit); return; }
+    if(btnVer){ openVisualizar(btnVer.dataset.ver); return; }
+    if(btnFin){ await finalizeFromList(btnFin.dataset.fin); return; }
+    if(btnCopy){
+      const raw = decodeURIComponent(btnCopy.dataset.copy||'');
+      if(raw){ await copyToClipboard(raw); toast('Caminho copiado para a área de transferência.'); }
+      return;
+    }
+  });
+  qs('#btnVerMassa').onclick=async()=>{
+    if(!jobs.length){ try{ jobs = csvToObjects(await ghLoadCsv(gh.paths.jobs)); }catch(e){ jobs=[]; } }
+    fillMassaStatus();
+    renderMassa();
+    openModal('modalMassa');
+  };
+  qs('#btnMassaAplicar').onclick=renderMassa;
+  qs('#btnMassaFechar').onclick=()=>closeModal('modalMassa');
 
   (function init(){
     showLogin();
