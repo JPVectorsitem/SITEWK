@@ -105,7 +105,7 @@
   .st-laranja{background:rgba(255,170,86,.25); border-color:rgba(255,255,255,.4)}
   .st-rosa{background:rgba(255,140,200,.25); border-color:rgba(255,140,200,.4)}
   .st-verde{background:rgba(130,230,150,.25); border-color:rgba(130,230,150,.4)}
-  .st-amarelo{background:rgba(255,220,120,.3); border-color:rgba(255,220,120,.5)}
+  .st-amarelo{background:rgba(255,220,120,.3); border-color:rgba(255,255,255,.5)}
   .st-vermelho{background:rgba(255,120,120,.28); border-color:rgba(255,120,120,.45)}
 
   .cols{overflow:auto; padding-bottom:6px}
@@ -132,7 +132,7 @@
   .role-azul{background:rgba(129,199,245,.22); border-color:rgba(129,199,245,.35)}
   .role-laranja{background:rgba(255,170,86,.25); border-color:rgba(255,255,255,.4)}
   .role-rosa{background:rgba(255,140,200,.25); border-color:rgba(255,140,200,.4)}
-  .role-amarelo{background:rgba(255,220,120,.3); border-color:rgba(255,220,120,.5)}
+  .role-amarelo{background:rgba(255,220,120,.3); border-color:rgba(255,255,255,.5)}
   .role-roxoclaro{background:rgba(192,132,252,.25); border-color:rgba(192,132,252,.4)}
 
   #busy{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;place-items:center;z-index:99999}
@@ -233,6 +233,13 @@
         </div>
       </div>
 
+      <!-- Senha de liberação do cadastro -->
+      <div class="field">
+        <label for="cadGate">Senha de liberação do cadastro</label>
+        <input id="cadGate" type="password" placeholder="Informe a senha para autorizar o cadastro" />
+        <div class="muted">Somente quem souber esta senha consegue concluir o cadastro.</div>
+      </div>
+
       <div class="actions">
         <button class="btn" type="button" id="btnLimparCadastro">Limpar</button>
         <button class="btn" type="button" data-close="modalCadastro">Cancelar</button>
@@ -287,7 +294,7 @@
 
       <section class="frame" id="frameBox">
         <div class="toolbar">
-          <button class="btn primary" id="btnNovoJob">Novo JOB</button>
+          <button class="btn primary" id="btnNovoJob" title="Criar novo JOB">Novo JOB</button>
           <button class="btn" id="btnExcluirJob">Excluir Job</button>
           <button class="btn" id="btnVerEncerrados">Visualizar encerrados</button>
           <button class="btn" id="btnVerDashboard">Ver Dashboard</button>
@@ -496,6 +503,7 @@
 <div id="busy"><div class="box">Sincronizando com GitHub…</div></div>
 
 <script>
+  // ===== Configs =====
   const GH_PRESET = {
     enabled: true,
     owner: 'JPVectorsitem',
@@ -504,6 +512,8 @@
     paths: { users: 'users.csv', jobs: 'jobs.csv', closed: 'jobs_encerrados.csv' },
     token: ''
   };
+  // Senha de liberação do cadastro (atenção: fica no front-end)
+  const CAD_GATE = 'WKflvec104tp1408';
 
   const qs=s=>document.querySelector(s); const qsa=s=>Array.from(document.querySelectorAll(s));
   const toast=(m)=>{const d=document.createElement('div');d.textContent=m;d.style.cssText='position:fixed;left:50%;top:22px;transform:translateX(-50%);background:#1f2a44;color:#eaf0ff;padding:10px 14px;border:1px solid rgba(255,255,255,.16);border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,.5);z-index:9999';document.body.appendChild(d);setTimeout(()=>d.remove(),2300);};
@@ -551,7 +561,6 @@
     qs('#loginView').style.display='grid';
     qs('#dashView').style.display='none';
     document.getElementById('appRoot').classList.remove('full');
-    // garante overlay off
     setBusy(false);
   }
   function showDash(user){
@@ -566,9 +575,27 @@
     setActiveRegional(REGIONAIS[0]);
     refreshUsersCache();
     initialLoadJobs();
+
+    // Permissão para criar novo job
+    const btnNovo = qs('#btnNovoJob');
+    if(!canCreateJob()){
+      btnNovo.disabled = true;
+      btnNovo.title = 'Sem permissão (somente Administrador/Diretor/Gerente/Trafego)';
+      btnNovo.classList.add('ghost');
+    }else{
+      btnNovo.disabled = false;
+      btnNovo.title = 'Criar novo JOB';
+      btnNovo.classList.remove('ghost');
+    }
   }
-  const isAdminish=()=>['administrador','administrator','diretor','gerente','trafego'].some(r=>eqi(currentUser?.cargoPrin,r)||eqi(currentUser?.cargoSec,r));
-  const canFinalize=()=>['site','administrador','administrator','diretor','gerente','trafego'].some(r=>eqi(currentUser?.cargoPrin,r)||eqi(currentUser?.cargoSec,r));
+
+  // Permissões
+  const canCreateJob=()=>['administrador','administrator','diretor','gerente','trafego']
+    .some(r=>eqi(currentUser?.cargoPrin,r)||eqi(currentUser?.cargoSec,r));
+  const isAdminish=()=>['administrador','administrator','diretor','gerente','trafego']
+    .some(r=>eqi(currentUser?.cargoPrin,r)||eqi(currentUser?.cargoSec,r));
+  const canFinalize=()=>['site','administrador','administrator','diretor','gerente','trafego']
+    .some(r=>eqi(currentUser?.cargoPrin,r)||eqi(currentUser?.cargoSec,r));
   const canDelete=()=>isAdminish();
 
   // ===== CSV =====
@@ -583,7 +610,7 @@
   const csvEsc=v=>{v=v==null?'':String(v);return /[",\n]/.test(v)?`"${v.replace(/"/g,'""')}"`:v;};
   const toCsvLine=a=>a.map(csvEsc).join(',');
   const parseCsv=t=>{if(!t)return[];const r=[];let row=[],cur='',q=false;for(let i=0;i<t.length;i++){const c=t[i];if(q){if(c=='"'){if(t[i+1]=='"'){cur+='"';i++;}else q=false;}else cur+=c;}else{if(c=='"')q=true;else if(c==','){row.push(cur);cur='';}else if(c=='\r'){}else if(c=='\n'){row.push(cur);r.push(row);row=[];cur='';}else cur+=c;}}if(cur.length>0||row.length>0){row.push(cur);r.push(row);}return r;};
-  const csvToObjects=t=>{const rows=parseCsv(t);if(!rows.length)return[];const h=rows[0];const out=[];for(let i=1;i<rows.length;i++){const rr=rows[i];if(!rr||(rr.length===1&&rr[0]===''))continue;const o={};for(let j=0;j<h.length;j++)o[h[j]]=rr[j]||'';out.push(o);}return out;};
+  const csvToObjects=t=>{const rows=parseCsv(t);if(!rows.length)return[];const h=rows[0];const out=[];for(let i=1;i<h.length?rows.length:0;i++){const rr=rows[i];if(!rr||(rr.length===1&&rr[0]===''))continue;const o={};for(let j=0;j<h.length;j++)o[h[j]]=rr[j]||'';out.push(o);}return out;};
   const objectsToCsv=(H,objs)=>H.join(',')+'\n'+objs.map(o=>toCsvLine(H.map(h=>o[h]??''))).join('\n')+'\n';
 
   // ===== GitHub =====
@@ -752,12 +779,22 @@
     toast('Senha atualizada!');closeModal('modalReset');
   };
 
+  // Cadastro com senha de liberação
   qs('#btnDoCadastrar').onclick=async()=>{
     try{
-      const nome=qs('#cadNome').value.trim(),email=qs('#cadEmail').value.trim(),senha=qs('#cadSenha').value.trim(),cargoP=qs('#cadCargoP').value.trim(),cargoS=qs('#cadCargoS').value.trim();
+      const nome=qs('#cadNome').value.trim(),
+            email=qs('#cadEmail').value.trim(),
+            senha=qs('#cadSenha').value.trim(),
+            cargoP=qs('#cadCargoP').value.trim(),
+            cargoS=qs('#cadCargoS').value.trim(),
+            gate=qs('#cadGate').value.trim();
+
       if(!nome||!email||!senha||!cargoP){toast('Preencha Nome, E-mail, Senha e Cargo PRINCIPAL.');return;}
+      if(!gate){toast('Informe a senha de liberação do cadastro.');return;}
+      if(gate !== CAD_GATE){toast('Senha de liberação inválida.');return;}
       if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){toast('E-mail inválido.');return;}
       if(!ghOn()){toast('Configure o GitHub (⚙).');return;}
+
       const us=await getUsersList();
       if(us.some(u=>eqi(u.email,email))){toast('E-mail já cadastrado.');return;}
       us.push({nome,email,senha,cargo_principal:cargoP,cargo_secundaria:cargoS,criado_em:nowISO()});
@@ -913,10 +950,19 @@
 
   function fillRegionSelect(selVal){const s=qs('#jobRegional');s.innerHTML=REGIONAIS.map(r=>`<option>${r}</option>`).join('');s.value=selVal||REGIONAIS[0];}
 
-  // Novo JOB
-  qs('#btnNovoJob').onclick=async()=>{fillRegionSelect(activeRegional||REGIONAIS[0]);qs('#jobModalTitle').textContent='Novo JOB';qs('#formJob').reset();setEstados([]);qs('#jobDashboard').value='Sim';openModal('modalJob');};
+  // Novo JOB (com permissão)
+  qs('#btnNovoJob').onclick=async()=>{
+    if(!canCreateJob()){toast('Sem permissão para criar novo JOB.');return;}
+    fillRegionSelect(activeRegional||REGIONAIS[0]);
+    qs('#jobModalTitle').textContent='Novo JOB';
+    qs('#formJob').reset();
+    setEstados([]);
+    qs('#jobDashboard').value='Sim';
+    openModal('modalJob');
+  };
   qs('#btnJobLimpar').onclick=()=>{qs('#formJob').reset();setEstados([]);fillRegionSelect(activeRegional||REGIONAIS[0]);};
   qs('#btnJobLancar').onclick=async()=>{
+    if(!canCreateJob()){toast('Sem permissão para criar novo JOB.');return;}
     if(!ghOn()){toast('Configure o GitHub (⚙).');return;}
     const estados=collectEstados(); if(!estados.length){toast('Adicione pelo menos uma linha de Estado & Filial.');return;}
     const rec={
@@ -1144,7 +1190,7 @@
     toast('Atualizado.');
   };
 
-  // Finalizar (corrigido: sem fila aninhada)
+  // Finalizar
   async function finalizeFromList(jobId){
     const job=jobs.find(j=>j.id===jobId);
     if(!job){toast('JOB não encontrado.');return;}
@@ -1163,7 +1209,6 @@
       jobs = jobs.filter(j=>j.id!==job.id);
       renderJobs();
 
-      // grava direto, sem usar "queued" aqui (evita deadlock)
       await ghSaveCsv(gh.paths.closed, C_HEADER, closedJobs);
       await ghSaveCsv(gh.paths.jobs, J_HEADER, jobs);
 
