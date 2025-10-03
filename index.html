@@ -23,8 +23,11 @@
     display:grid;place-items:center; padding:24px;
   }
 
-  /* ⬇️ AJUSTE: agora ocupa a página toda */
-  .app{width:100%; max-width:none; display:grid; gap:18px;}
+  /* Login como antes (compacto) */
+  .app{width:min(1300px,100%); display:grid; gap:18px;}
+
+  /* Apenas no dashboard ocupa a tela toda */
+  .app.full{width:100%; max-width:none; height:calc(100vh - 48px);} /* 48px = padding 24px x 2 */
 
   .title{text-align:center; line-height:1.2}
   .title h1{margin:.2rem 0;font-size:clamp(22px,4vw,34px)}
@@ -70,9 +73,9 @@
   .modal h3{margin:0 0 8px 0}
   .modal .actions{display:flex; justify-content:flex-end; gap:10px; margin-top:10px}
 
-  /* DASH */
-  .dash{display:none}
-  .wrap{padding:16px 20px;}
+  /* DASH — preparado para ocupar toda a altura quando .app.full */
+  .dash{display:none; height:100%;}
+  .wrap{padding:16px 20px; height:100%; display:flex; flex-direction:column;}
   .toprow{display:flex; align-items:center; gap:12px;}
   .topbar{
     display:flex; align-items:center; gap:14px;
@@ -84,13 +87,14 @@
   .hello{font-size:1rem; line-height:1.2}
   .hello .muted{color:var(--muted); font-size:.9rem}
   .right{margin-left:auto}
-  .frame{margin-top:16px; border:1px dashed rgba(255,255,255,.25); background:rgba(0,0,0,.15); border-radius:12px; padding:14px;}
+  .frame{margin-top:16px; border:1px dashed rgba(255,255,255,.25); background:rgba(0,0,0,.15); border-radius:12px; padding:14px;
+    display:flex; flex-direction:column; flex:1; min-height:0;}
   .toolbar{display:flex; gap:10px; flex-wrap:wrap}
   .tabs{display:flex; gap:8px; overflow:auto; margin:12px 0 10px 0; padding-bottom:4px}
   .tab{padding:8px 12px; border-radius:999px; border:1px solid rgba(255,255,255,.18); background:#0d1628; cursor:pointer; white-space:nowrap}
   .tab.active{background:linear-gradient(180deg, #2a60ff, #1b47c9); border-color:transparent}
 
-  .tableWrap{overflow:auto; border:1px solid rgba(255,255,255,.12); border-radius:12px}
+  .tableWrap{overflow:auto; border:1px solid rgba(255,255,255,.12); border-radius:12px; flex:1; min-height:0;}
   table{width:100%; border-collapse:collapse; font-size:.95rem}
   th, td{padding:10px 12px; border-bottom:1px solid rgba(255,255,255,.08); vertical-align:middle}
   th{position:sticky; top:0; background:#0f182b; text-align:left}
@@ -142,7 +146,7 @@
 </style>
 </head>
 <body>
-<div class="app">
+<div class="app" id="appRoot">
   <div class="title">
     <h1>Workflow Vector</h1>
     <p>Seja bem vindo ao Wrokflow Vector, uma plataforma de lançamentos de JOBS.</p>
@@ -180,6 +184,7 @@
     </aside>
   </section>
 
+  <!-- MODAIS (config/cadastro/reset) ... permanecem iguais -->
   <!-- MODAL: CONFIG GITHUB -->
   <dialog id="modalCfg">
     <form method="dialog" class="modal" id="formCfg">
@@ -323,6 +328,7 @@
     </div>
   </section>
 
+  <!-- Demais modais (Job, Etapas, AddEvt, Ver, Encerrados, Dashboard) permanecem iguais ao seu código -->
   <!-- MODAL: NOVO JOB -->
   <dialog id="modalJob">
     <form method="dialog" class="modal" id="formJob">
@@ -501,7 +507,6 @@
 
 <script>
   // =================== PRESETS GitHub ===================
-  // Edite os valores padrão abaixo se quiser vir preenchido:
   const GH_PRESET = {
     enabled: true,
     owner: 'JPVectorsitem',
@@ -546,9 +551,16 @@
   }
   const roleChip = c => c ? `<span class="role-chip role-${roleKey(c)}">${c}</span>` : '';
 
-  function showLogin(){qs('#loginView').style.display='grid';qs('#dashView').style.display='none';}
+  function showLogin(){
+    qs('#loginView').style.display='grid';
+    qs('#dashView').style.display='none';
+    document.getElementById('appRoot').classList.remove('full'); // ⬅️ volta ao modo compacto
+  }
   function showDash(user){
-    qs('#loginView').style.display='none'; qs('#dashView').style.display='block';
+    qs('#loginView').style.display='none';
+    qs('#dashView').style.display='block';
+    document.getElementById('appRoot').classList.add('full'); // ⬅️ ocupa a tela toda
+
     currentUser=user;
     const chips=[user.cargoPrin,user.cargoSec].filter(Boolean).map(roleChip).join('<span class="muted"> / </span>');
     qs('#greet').innerHTML=`Olá, seja bem vindo ${user.nome}: ${chips || '<span class="muted">Usuário</span>'}`;
@@ -572,11 +584,10 @@
   const csvToObjects=t=>{const rows=parseCsv(t);if(!rows.length)return[];const h=rows[0];const out=[];for(let i=1;i<rows.length;i++){const rr=rows[i];if(!rr||(rr.length===1&&rr[0]===''))continue;const o={};for(let j=0;j<h.length;j++)o[h[j]]=rr[j]||'';out.push(o);}return out;};
   const objectsToCsv=(H,objs)=>H.join(',')+'\n'+objs.map(o=>toCsvLine(H.map(h=>o[h]??''))).join('\n')+'\n';
 
-  // =================== GitHub API (rápido: cache SHA + fila) ===================
+  // =================== GitHub API ===================
   const GH_API_VER = '2022-11-28';
-  const gh = { ...GH_PRESET }; // começa com presets
+  const gh = { ...GH_PRESET };
 
-  // carrega overrides salvos
   (function ghLoad(){
     try{
       const s = localStorage.getItem('wv_gh_cfg');
@@ -598,17 +609,12 @@
   });
   const ghOn=()=>gh.enabled && gh.owner && gh.repo && gh.branch;
 
-  // overlay
   const setBusy=(v,msg)=>{const o=qs('#busy'); if(!o) return; o.style.display=v?'grid':'none'; if(msg) o.querySelector('.box').textContent=msg; };
 
-  // cache de SHA por caminho
   const ghCache = { sha: {} };
-
-  // fila de salvamentos (evita concorrência)
   let saveQ = Promise.resolve();
   function queued(fn){ saveQ = saveQ.then(fn).catch(e=>{console.error(e); throw e;}); return saveQ; }
 
-  // helpers base64
   function utf8ToB64(str){
     const bytes = new TextEncoder().encode(str);
     let bin = ''; for (let i=0;i<bytes.length;i++) bin += String.fromCharCode(bytes[i]);
@@ -621,7 +627,6 @@
     return new TextDecoder().decode(bytes);
   }
 
-  // GET file (guarda SHA)
   async function ghGetFile(path){
     if(!ghOn()) throw new Error('GitHub não configurado.');
     const url = `https://api.github.com/repos/${gh.owner}/${gh.repo}/contents/${encodeURIComponent(path)}?ref=${encodeURIComponent(gh.branch)}`;
@@ -635,15 +640,10 @@
     return { text: content, sha };
   }
 
-  // PUT file (usa SHA do cache; tenta 1 retry em 409)
   async function ghPutFile(path, newText, message){
     if(!gh.token) throw new Error('Token GitHub não configurado.');
     const url = `https://api.github.com/repos/${gh.owner}/${gh.repo}/contents/${encodeURIComponent(path)}`;
-    const baseBody = {
-      message: message || `update: ${path}`,
-      content: utf8ToB64(newText),
-      branch: gh.branch
-    };
+    const baseBody = { message: message || `update: ${path}`, content: utf8ToB64(newText), branch: gh.branch };
     const attempt = async (sha)=> {
       const body = { ...baseBody, ...(sha ? {sha} : {}) };
       const r = await fetch(url, { method:'PUT', headers: { ...ghHeaders(), 'Content-Type':'application/json' }, body: JSON.stringify(body) });
@@ -669,14 +669,12 @@
     }
   }
 
-  // I/O CSV (carrega/guarda com fila + overlay)
   async function ghLoadCsv(path){ const {text} = await ghGetFile(path); return text; }
   async function ghSaveCsv(path, header, objs){
     const csv = header.join(',')+'\n'+objs.map(o=>toCsvLine(header.map(h=>o[h]??''))).join('\n')+'\n';
     await ghPutFile(path, csv, `chore(csv): update ${path} via Workflow Vector`);
   }
 
-  // wrappers específicos com overlay e fila
   async function saveUsersCsv(objs){ setBusy(true,'Salvando usuários…'); await queued(()=>ghSaveCsv(gh.paths.users, U_HEADER, objs)); setBusy(false); }
   async function saveJobs(objs){ setBusy(true,'Salvando jobs…'); await queued(()=>ghSaveCsv(gh.paths.jobs, J_HEADER, objs)); setBusy(false); }
   async function saveClosed(objs){ setBusy(true,'Salvando encerrados…'); await queued(()=>ghSaveCsv(gh.paths.closed, C_HEADER, objs)); setBusy(false); }
@@ -702,7 +700,7 @@
   const displayRole=u=> (u.cargo_principal&&u.cargo_secundaria)?`${u.cargo_principal}/${u.cargo_secundaria}`:(u.cargo_principal||u.cargo_secundaria||'');
 
   // ===== Login / Cadastro / Reset =====
-  qs('#btnCfg').onclick=()=>{ // preencher modal com cfg atual
+  qs('#btnCfg').onclick=()=>{ 
     qs('#cfgOwner').value = gh.owner||'';
     qs('#cfgRepo').value = gh.repo||'';
     qs('#cfgBranch').value = gh.branch||'main';
@@ -844,7 +842,7 @@
     tb.querySelectorAll('[data-fin]').forEach(b=>b.onclick=()=>finalizeFromList(b.dataset.fin));
   }
 
-  // Excluir Job (toolbar) — otimista + fila
+  // Excluir Job (toolbar)
   qs('#btnExcluirJob').onclick=async()=>{
     if(!selectedJobId){toast('Selecione um JOB na lista.');return;}
     if(!canDelete()){toast('Sem permissão para excluir (somente Administrador/Diretor/Gerente/Trafego).');return;}
@@ -855,8 +853,8 @@
     const idx=jobs.findIndex(x=>x.id===selectedJobId);
     if(idx>-1){
       jobs.splice(idx,1);
-      renderJobs();           // otimista
-      await saveJobs(jobs);   // persistir
+      renderJobs();
+      await saveJobs(jobs);
       toast('JOB excluído.');
     }
   };
@@ -898,7 +896,7 @@
 
   function fillRegionSelect(selVal){const s=qs('#jobRegional');s.innerHTML=REGIONAIS.map(r=>`<option>${r}</option>`).join('');s.value=selVal||REGIONAIS[0];}
 
-  // Novo JOB — otimista + fila
+  // Novo JOB
   qs('#btnNovoJob').onclick=async()=>{fillRegionSelect(activeRegional||REGIONAIS[0]);qs('#jobModalTitle').textContent='Novo JOB';qs('#formJob').reset();setEstados([]);qs('#jobDashboard').value='Sim';openModal('modalJob');};
   qs('#btnJobLimpar').onclick=()=>{qs('#formJob').reset();setEstados([]);fillRegionSelect(activeRegional||REGIONAIS[0]);};
   qs('#btnJobLancar').onclick=async()=>{
@@ -922,7 +920,6 @@
     };
     if(!rec.regional||!rec.tipo_loja||!rec.tipo_job||!rec.tabloide_nome){toast('Informe Regional, Tipo da loja, Tipo do JOB e Nome do tabloide.');return;}
 
-    // garante ter lista local (se abriu o app e ainda não carregou)
     if(!jobs.length){
       try{ jobs = csvToObjects(await ghLoadCsv(gh.paths.jobs)); }catch(e){ jobs=[]; }
     }
@@ -932,11 +929,11 @@
     const full = {...rec,id:nextId,criado_em:now,atualizado_em:now};
 
     jobs.push(full);
-    setActiveRegional(full.regional); // garante aba correta
-    renderJobs(); // mostra já
+    setActiveRegional(full.regional);
+    renderJobs();
     closeModal('modalJob');
 
-    await saveJobs(jobs); // persiste no GitHub
+    await saveJobs(jobs);
     toast('JOB lançado.');
   };
 
@@ -956,7 +953,7 @@
     revisao:{label:'Revisão',status:'Revisando',step:'revisao',color:'rosa',cargo:'Revisor',mode:'auto'},
     aprovacao:{label:'Aprovação',status:'Aprovado',step:'aprovacao',color:'verde',mode:'manual'},
     encerramento:{label:'Encerramento',status:'Encerrando',step:'encerramento',color:'amarelo',cargo:'Encerramento',mode:'auto'},
-    site:{label:'Site',status:'Site',step:'site',color:'rosa',cargo:'Site',mode:'auto'}, // terá link PDF opcional
+    site:{label:'Site',status:'Site',step:'site',color:'rosa',cargo:'Site',mode:'auto'},
     cancelado:{label:'Cancelado',status:'Cancelado',step:'cancelado',color:'vermelho',mode:'manual'}
   };
   const STEP_ORDER=['lista','layout','digitacao','diagramacao','revisao','aprovacao','encerramento','site','cancelado'];
@@ -964,7 +961,6 @@
 
   async function openEtapasModal(jobId){
     try{
-      // garante que jobs[] esteja atualizado (mas sem bloquear duas vezes)
       if(!jobs.length){
         const txt = await ghLoadCsv(gh.paths.jobs);
         jobs = csvToObjects(txt);
@@ -1032,94 +1028,16 @@
     });
   }
 
-  // Modal "Adicionar evento" — inclui Admin/Diretor/Gerente
-  function populateSelect(sel, users){
-    sel.innerHTML='';
-    if(!users.length){
-      const o=document.createElement('option'); o.value=''; o.textContent='— sem usuários —'; sel.appendChild(o);
-    }else{
-      const o0=document.createElement('option'); o0.value=''; o0.textContent='— selecione —'; sel.appendChild(o0);
-      users.forEach(u=>{
-        const o=document.createElement('option');
-        o.value=u.nome; o.textContent=`${u.nome} (${displayRole(u)})`;
-        sel.appendChild(o);
-      });
-    }
-  }
-
-  function openAddEvento(blkIdx,step){
-    addCtx={blkIdx,step}; const meta=STEP_META[step];
-    qs('#addEvtTitle').textContent=`Adicionar: ${meta.label}`;
-    const box=qs('#addEvtFields'); box.innerHTML='';
-
-    if(meta.mode==='auto'&&meta.cargo){
-      const users=usersForStepCargo(meta.cargo); // inclui admins/dir/gerente
-      if(users.length>0){
-        const f=document.createElement('div');f.className='field';
-        f.innerHTML=`<label>Responsável (${meta.label})</label><select id="addSelUser"></select><div class="muted">Hora será registrada automaticamente ao confirmar.</div>`;
-        box.appendChild(f); const sel=f.querySelector('#addSelUser'); populateSelect(sel,users);
-      }else{
-        const f=document.createElement('div');f.className='field';
-        f.innerHTML=`<label>Responsável (${meta.label})</label><input id="addNomeAuto" type="text" placeholder="Digite o nome (sem usuários nesse cargo)" /><div class="muted">Hora será registrada automaticamente ao confirmar.</div>`;
-        box.appendChild(f);
-      }
-
-      // campo extra para "Site": link PDF
-      if(step==='site'){
-        const f2=document.createElement('div');f2.className='field';
-        f2.innerHTML=`<label>Link do PDF (opcional)</label><input id="addLinkPdf" type="url" placeholder="https://..." />`;
-        box.appendChild(f2);
-      }
-
-    }else{
-      const f1=document.createElement('div');f1.className='field';f1.innerHTML=`<label>Responsável</label><input id="addNome" type="text" placeholder="Nome" />`;box.appendChild(f1);
-      const row=document.createElement('div');row.className='row';
-      const f2=document.createElement('div');f2.className='field';f2.innerHTML=`<label>Dia</label><input id="addDia" type="date" />`;row.appendChild(f2);
-      const f3=document.createElement('div');f3.className='field';f3.innerHTML=`<label>Hora</label><input id="addHora" type="time" />`;row.appendChild(f3);
-      box.appendChild(row);
-    }
-    openModal('modalAddEvt');
-  }
-
-  qs('#btnAddEvtCancelar').onclick=()=>closeModal('modalAddEvt');
-  qs('#btnAddEvtOk').onclick=()=>{
-    const meta=STEP_META[addCtx.step];
-    const wf=JSON.parse(editJob.workflow||'[]');
-    const blk=wf[addCtx.blkIdx]; if(!blk){toast('Bloco inválido.');return;}
-    let nome='',ts='',link='';
-    if(meta.mode==='auto'&&meta.cargo){
-      const sel=qs('#addSelUser'); const inp=qs('#addNomeAuto');
-      nome = sel ? (sel.value||'').trim() : '';
-      if(!nome && inp) nome = (inp.value||'').trim();
-      if(!nome){toast('Informe o responsável.');return;}
-      ts=nowISO(); // hora automática
-      if(addCtx.step==='site'){ link = (qs('#addLinkPdf')?.value||'').trim(); }
-    }else{
-      nome=(qs('#addNome')?.value||'').trim();
-      const d=(qs('#addDia')?.value||'').trim(),h=(qs('#addHora')?.value||'').trim();
-      if(!nome||!d||!h){toast('Preencha Nome, Dia e Hora.');return;}
-      ts=new Date(`${d}T${h}:00`).toISOString();
-    }
-    blk.logs[addCtx.step]=blk.logs[addCtx.step]||[];
-    const ev = {nome,ts};
-    if(link) ev.link = link;
-    blk.logs[addCtx.step].push(ev);
-    editJob.status=meta.status; editJob.status_step=meta.step; editJob.atualizado_em=nowISO(); editJob.workflow=JSON.stringify(wf);
-    closeModal('modalAddEvt'); renderEtapasBlocks();
-  };
-
-  // Salvar / Cancelar no modal de etapas — OTIMISTA
   qs('#btnEtapasCancelar').onclick=()=>closeModal('modalEtapas');
   qs('#btnEtapasSalvar').onclick=async()=>{
     if(editIndex<0){toast('Nada para salvar.');return;}
     jobs[editIndex]={...jobs[editIndex],...editJob,atualizado_em:nowISO()};
-    renderJobs();               // render otimista
-    await saveJobs(jobs);       // commit no GitHub (fila)
+    renderJobs();
+    await saveJobs(jobs);
     closeModal('modalEtapas');
     toast('Atualizado.');
   };
 
-  // Finalizar direto na lista — OTIMISTA
   async function finalizeFromList(jobId){
     const job=jobs.find(j=>j.id===jobId);
     if(!job){toast('JOB não encontrado.');return;}
@@ -1127,7 +1045,6 @@
   }
   async function finalizeJob(job){
     if(!canFinalize()){toast('Sem permissão para finalizar.');return;}
-    // garante closedJobs em memória
     if(!closedJobs.length){ try{ closedJobs = csvToObjects(await ghLoadCsv(gh.paths.closed)); }catch(e){ closedJobs=[]; } }
 
     const finISO=nowISO();
@@ -1135,7 +1052,7 @@
 
     closedJobs.push(finRec);
     jobs = jobs.filter(j=>j.id!==job.id);
-    renderJobs(); // otimista
+    renderJobs();
 
     await queued(async()=>{
       await saveClosed(closedJobs);
@@ -1146,7 +1063,6 @@
     toast('JOB finalizado e movido para encerrados.');
   }
 
-  // ===== Visualizar (read-only) =====
   function openVisualizar(jobId){
     const j=jobs.find(x=>x.id===jobId); if(!j){toast('JOB não encontrado.');return;}
     renderVerJob(j); openModal('modalVer');
@@ -1235,7 +1151,6 @@
     try{
       const txt = await ghLoadCsv(gh.paths.closed);
       closedJobs = csvToObjects(txt);
-      // filtro combo
       const sel=qs('#dashFiltroRegional');
       sel.innerHTML = ['(Todas)', ...REGIONAIS].map(r=>`<option>${r}</option>`).join('');
       sel.value='(Todas)';
@@ -1269,10 +1184,8 @@
     if(reg && reg!=='(Todas)'){ data = data.filter(j=>j.regional===reg); }
     const stats=computeDashboard(data);
 
-    // total
     qs('#dashTotal').textContent = String(stats.total);
 
-    // tabela estado
     const tb=qs('#dashEstado tbody'); tb.innerHTML='';
     Object.entries(stats.porEstado).sort().forEach(([uf,qt])=>{
       const tr=document.createElement('tr');
@@ -1280,7 +1193,6 @@
       tb.appendChild(tr);
     });
 
-    // helper para montar gráfico
     const mkBar = (canvasId, obj) => {
       const ctx = qs('#'+canvasId).getContext('2d');
       const labels = Object.keys(obj);
@@ -1304,7 +1216,6 @@
     mkBar('chartSite',        stats.porColab.site);
   }
 
-  // ===== Inicialização =====
   (function init(){
     showLogin();
     buildTabs();
