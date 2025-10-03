@@ -4,7 +4,6 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Workflow Vector – Login & Dashboard</title>
-<!-- Chart.js para os gráficos do Dashboard -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
   :root{
@@ -23,11 +22,10 @@
     display:grid;place-items:center; padding:24px;
   }
 
-  /* Login como antes (compacto) */
+  /* Login (compacto) */
   .app{width:min(1300px,100%); display:grid; gap:18px;}
-
-  /* Apenas no dashboard ocupa a tela toda */
-  .app.full{width:100%; max-width:none; height:calc(100vh - 48px);} /* 48px = padding 24px x 2 */
+  /* Dashboard ocupa a tela toda */
+  .app.full{width:100%; max-width:none; height:calc(100vh - 48px);}
 
   .title{text-align:center; line-height:1.2}
   .title h1{margin:.2rem 0;font-size:clamp(22px,4vw,34px)}
@@ -73,7 +71,7 @@
   .modal h3{margin:0 0 8px 0}
   .modal .actions{display:flex; justify-content:flex-end; gap:10px; margin-top:10px}
 
-  /* DASH — preparado para ocupar toda a altura quando .app.full */
+  /* DASH */
   .dash{display:none; height:100%;}
   .wrap{padding:16px 20px; height:100%; display:flex; flex-direction:column;}
   .toprow{display:flex; align-items:center; gap:12px;}
@@ -104,13 +102,12 @@
   .st-azulclaro{background:rgba(129,199,245,.22); border-color:rgba(129,199,245,.35)}
   .st-roxo{background:rgba(150,114,255,.22); border-color:rgba(150,114,255,.35)}
   .st-azulescuro{background:rgba(95,158,255,.22); border-color:rgba(95,158,255,.35)}
-  .st-laranja{background:rgba(255,170,86,.25); border-color:rgba(255,170,86,.4)}
+  .st-laranja{background:rgba(255,170,86,.25); border-color:rgba(255,255,255,.4)}
   .st-rosa{background:rgba(255,140,200,.25); border-color:rgba(255,140,200,.4)}
   .st-verde{background:rgba(130,230,150,.25); border-color:rgba(130,230,150,.4)}
   .st-amarelo{background:rgba(255,220,120,.3); border-color:rgba(255,220,120,.5)}
   .st-vermelho{background:rgba(255,120,120,.28); border-color:rgba(255,120,120,.45)}
 
-  /* EDITAR: colunas */
   .cols{overflow:auto; padding-bottom:6px}
   .colsInner{ display:grid; grid-auto-flow:column; grid-auto-columns: minmax(230px,1fr); gap:12px; align-items:start; }
   .col{ border:1px solid rgba(255,255,255,.12); border-radius:12px; padding:10px; background:rgba(0,0,0,.18); min-height:160px; }
@@ -120,7 +117,6 @@
   .col .muted{color:var(--muted)}
   .sep{height:1px;background:rgba(255,255,255,.08); margin:10px 0}
 
-  /* estados & filiais em novo job (com datas) */
   .estado-row{
     display:grid;
     grid-template-columns: 120px 1fr 160px 160px auto;
@@ -128,19 +124,17 @@
   }
   .estado-row .iconbtn{padding:8px 10px; border-radius:10px}
 
-  /* chips de cargo coloridos */
   .role-chip{ display:inline-block; padding:4px 8px; border-radius:999px; font-size:.8rem; font-weight:700;
     border:1px solid rgba(255,255,255,.18); margin:0 2px }
   .role-prata{background:linear-gradient(180deg,#d1d5db,#9ca3af); color:#111827}
   .role-verde{background:rgba(130,230,150,.25); border-color:rgba(130,230,150,.4)}
   .role-roxo{background:rgba(150,114,255,.22); border-color:rgba(150,114,255,.35)}
   .role-azul{background:rgba(129,199,245,.22); border-color:rgba(129,199,245,.35)}
-  .role-laranja{background:rgba(255,170,86,.25); border-color:rgba(255,170,86,.4)}
+  .role-laranja{background:rgba(255,170,86,.25); border-color:rgba(255,255,255,.4)}
   .role-rosa{background:rgba(255,140,200,.25); border-color:rgba(255,140,200,.4)}
   .role-amarelo{background:rgba(255,220,120,.3); border-color:rgba(255,220,120,.5)}
   .role-roxoclaro{background:rgba(192,132,252,.25); border-color:rgba(192,132,252,.4)}
 
-  /* busy overlay */
   #busy{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;place-items:center;z-index:99999}
   #busy .box{background:#0e1730;border:1px solid rgba(255,255,255,.12);padding:14px 16px;border-radius:12px}
 </style>
@@ -184,8 +178,7 @@
     </aside>
   </section>
 
-  <!-- MODAIS (config/cadastro/reset) ... permanecem iguais -->
-  <!-- MODAL: CONFIG GITHUB -->
+  <!-- ===== MODAIS PADRÃO ===== -->
   <dialog id="modalCfg">
     <form method="dialog" class="modal" id="formCfg">
       <h3>Configurar GitHub</h3>
@@ -210,7 +203,6 @@
     </form>
   </dialog>
 
-  <!-- MODAL: CADASTRO -->
   <dialog id="modalCadastro">
     <form method="dialog" class="modal" id="formCadastro">
       <h3>Novo cadastro</h3>
@@ -249,7 +241,6 @@
     </form>
   </dialog>
 
-  <!-- MODAL: ESQUECI / ATUALIZAR SENHA -->
   <dialog id="modalReset">
     <form method="dialog" class="modal" id="formReset">
       <h3>Atualizar senha</h3>
@@ -315,6 +306,7 @@
                 <th style="width:140px">Tipo JOB</th>
                 <th style="width:160px">Status</th>
                 <th style="width:190px">Criado Em</th>
+                <th style="width:160px">Link pasta</th>
                 <th style="width:120px">Editar</th>
                 <th style="width:120px">Visualizar</th>
                 <th style="width:140px">Finalizar Job</th>
@@ -328,8 +320,7 @@
     </div>
   </section>
 
-  <!-- Demais modais (Job, Etapas, AddEvt, Ver, Encerrados, Dashboard) permanecem iguais ao seu código -->
-  <!-- MODAL: NOVO JOB -->
+  <!-- ===== MODAL: NOVO JOB ===== -->
   <dialog id="modalJob">
     <form method="dialog" class="modal" id="formJob">
       <h3 id="jobModalTitle">Novo JOB</h3>
@@ -361,6 +352,10 @@
         <div class="field" style="flex:1; min-width:240px">
           <label for="jobComplemento">Complemento</label>
           <input id="jobComplemento" type="text" placeholder="Texto complementar opcional" />
+        </div>
+        <div class="field" style="flex:1; min-width:260px">
+          <label for="jobPasta">Link da pasta (Windows/UNC/HTTP) — opcional</label>
+          <input id="jobPasta" type="text" placeholder="C:\Projetos\OS1234 ou \\servidor\share\pasta" />
         </div>
       </div>
 
@@ -397,7 +392,7 @@
     </form>
   </dialog>
 
-  <!-- MODAL: EDITAR (colunas) -->
+  <!-- ===== MODAIS ETAPAS/ADD EVT/VER/ENCERRADOS/DASH ===== -->
   <dialog id="modalEtapas">
     <div class="modal">
       <h3 id="etapasTitle">Etapas do JOB</h3>
@@ -410,7 +405,6 @@
     </div>
   </dialog>
 
-  <!-- MODAL: ADD EVENTO -->
   <dialog id="modalAddEvt">
     <form method="dialog" class="modal" id="formAddEvt">
       <h3 id="addEvtTitle">Adicionar evento</h3>
@@ -422,7 +416,6 @@
     </form>
   </dialog>
 
-  <!-- MODAL: VISUALIZAR (read-only) -->
   <dialog id="modalVer">
     <div class="modal">
       <h3 id="verTitle">Detalhes do JOB</h3>
@@ -433,7 +426,6 @@
     </div>
   </dialog>
 
-  <!-- MODAL: ENCERRADOS -->
   <dialog id="modalEncerrados">
     <div class="modal">
       <h3>Visualizar encerrados</h3>
@@ -451,7 +443,6 @@
     </div>
   </dialog>
 
-  <!-- MODAL: DASHBOARD (com gráficos) -->
   <dialog id="modalDash">
     <div class="modal">
       <h3>Dashboard — Materiais finalizados</h3>
@@ -502,21 +493,18 @@
   </dialog>
 </div>
 
-<!-- Overlay busy -->
 <div id="busy"><div class="box">Sincronizando com GitHub…</div></div>
 
 <script>
-  // =================== PRESETS GitHub ===================
   const GH_PRESET = {
     enabled: true,
     owner: 'JPVectorsitem',
     repo: 'LINKS-img',
     branch: 'main',
     paths: { users: 'users.csv', jobs: 'jobs.csv', closed: 'jobs_encerrados.csv' },
-    token: '' // deixe vazio; configure pelo botão ⚙ e marque "Lembrar token"
+    token: ''
   };
 
-  // ===== Utils =====
   const qs=s=>document.querySelector(s); const qsa=s=>Array.from(document.querySelectorAll(s));
   const toast=(m)=>{const d=document.createElement('div');d.textContent=m;d.style.cssText='position:fixed;left:50%;top:22px;transform:translateX(-50%);background:#1f2a44;color:#eaf0ff;padding:10px 14px;border:1px solid rgba(255,255,255,.16);border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,.5);z-index:9999';document.body.appendChild(d);setTimeout(()=>d.remove(),2300);};
   const openModal=id=>document.getElementById(id)?.showModal();
@@ -527,7 +515,16 @@
   const fmtDate=(s)=>{ if(!s) return '-'; try{ return new Date(s+'T00:00:00').toLocaleDateString(); }catch(e){ return s; } };
   let currentUser=null;
 
-  // Fechar modais por [data-close]
+  // copiar p/ clipboard
+  async function copyToClipboard(text){
+    try{ await navigator.clipboard.writeText(text); }
+    catch(e){
+      const ta=document.createElement('textarea'); ta.value=text; ta.style.position='fixed'; ta.style.left='-9999px';
+      document.body.appendChild(ta); ta.focus(); ta.select(); try{ document.execCommand('copy'); }catch(_){}
+      ta.remove();
+    }
+  }
+
   document.addEventListener('click', (e)=>{
     const btn = e.target.closest('[data-close]');
     if(btn){
@@ -536,7 +533,6 @@
     }
   });
 
-  // Chips de cargos no greeting
   function roleKey(c){
     const k=(c||'').trim().toLowerCase();
     if(['administrador','administrator','diretor','gerente'].includes(k)) return 'prata';
@@ -554,12 +550,14 @@
   function showLogin(){
     qs('#loginView').style.display='grid';
     qs('#dashView').style.display='none';
-    document.getElementById('appRoot').classList.remove('full'); // ⬅️ volta ao modo compacto
+    document.getElementById('appRoot').classList.remove('full');
+    // garante overlay off
+    setBusy(false);
   }
   function showDash(user){
     qs('#loginView').style.display='none';
     qs('#dashView').style.display='block';
-    document.getElementById('appRoot').classList.add('full'); // ⬅️ ocupa a tela toda
+    document.getElementById('appRoot').classList.add('full');
 
     currentUser=user;
     const chips=[user.cargoPrin,user.cargoSec].filter(Boolean).map(roleChip).join('<span class="muted"> / </span>');
@@ -567,15 +565,19 @@
     qs('#emailHint').textContent=user.email?`Login: ${user.email}`:'';
     setActiveRegional(REGIONAIS[0]);
     refreshUsersCache();
-    initialLoadJobs(); // carrega jobs/encerrados ao entrar
+    initialLoadJobs();
   }
   const isAdminish=()=>['administrador','administrator','diretor','gerente','trafego'].some(r=>eqi(currentUser?.cargoPrin,r)||eqi(currentUser?.cargoSec,r));
   const canFinalize=()=>['site','administrador','administrator','diretor','gerente','trafego'].some(r=>eqi(currentUser?.cargoPrin,r)||eqi(currentUser?.cargoSec,r));
   const canDelete=()=>isAdminish();
 
-  // ===== CSV helpers =====
+  // ===== CSV =====
   const U_HEADER=['nome','email','senha','cargo_principal','cargo_secundaria','criado_em'];
-  const J_HEADER=['id','os','regional','tipo_loja','tipo_job','acao_nacional','tabloide_nome','complemento','tamanho_pagina','qtd_paginas','estado_filiais','observacao','vai_dashboard','status','status_step','workflow','criado_em','atualizado_em'];
+  const J_HEADER=[
+    'id','os','regional','tipo_loja','tipo_job','acao_nacional','tabloide_nome','complemento',
+    'tamanho_pagina','qtd_paginas','estado_filiais','observacao','pasta_link',
+    'vai_dashboard','status','status_step','workflow','criado_em','atualizado_em'
+  ];
   const C_HEADER=[...J_HEADER,'finalizado_em'];
 
   const csvEsc=v=>{v=v==null?'':String(v);return /[",\n]/.test(v)?`"${v.replace(/"/g,'""')}"`:v;};
@@ -584,7 +586,7 @@
   const csvToObjects=t=>{const rows=parseCsv(t);if(!rows.length)return[];const h=rows[0];const out=[];for(let i=1;i<rows.length;i++){const rr=rows[i];if(!rr||(rr.length===1&&rr[0]===''))continue;const o={};for(let j=0;j<h.length;j++)o[h[j]]=rr[j]||'';out.push(o);}return out;};
   const objectsToCsv=(H,objs)=>H.join(',')+'\n'+objs.map(o=>toCsvLine(H.map(h=>o[h]??''))).join('\n')+'\n';
 
-  // =================== GitHub API ===================
+  // ===== GitHub =====
   const GH_API_VER = '2022-11-28';
   const gh = { ...GH_PRESET };
 
@@ -675,11 +677,11 @@
     await ghPutFile(path, csv, `chore(csv): update ${path} via Workflow Vector`);
   }
 
-  async function saveUsersCsv(objs){ setBusy(true,'Salvando usuários…'); await queued(()=>ghSaveCsv(gh.paths.users, U_HEADER, objs)); setBusy(false); }
-  async function saveJobs(objs){ setBusy(true,'Salvando jobs…'); await queued(()=>ghSaveCsv(gh.paths.jobs, J_HEADER, objs)); setBusy(false); }
-  async function saveClosed(objs){ setBusy(true,'Salvando encerrados…'); await queued(()=>ghSaveCsv(gh.paths.closed, C_HEADER, objs)); setBusy(false); }
+  async function saveUsersCsv(objs){ setBusy(true,'Salvando usuários…'); try{ await queued(()=>ghSaveCsv(gh.paths.users, U_HEADER, objs)); } finally { setBusy(false); } }
+  async function saveJobs(objs){ setBusy(true,'Salvando jobs…'); try{ await queued(()=>ghSaveCsv(gh.paths.jobs, J_HEADER, objs)); } finally { setBusy(false); } }
+  async function saveClosed(objs){ setBusy(true,'Salvando encerrados…'); try{ await queued(()=>ghSaveCsv(gh.paths.closed, C_HEADER, objs)); } finally { setBusy(false); } }
 
-  // =================== Users (GitHub) ===================
+  // ===== Users =====
   const getUsersList=async()=>{
     const txt = await ghLoadCsv(gh.paths.users);
     return csvToObjects(txt).map(u=>({
@@ -782,7 +784,7 @@
   qs('#btnLogout').onclick=showLogin;
   qs('#btnResetLimpar').onclick=()=>qs('#formReset').reset();
 
-  // ===== JOBS (GitHub) =====
+  // ===== JOBS =====
   const REGIONAIS=['REGIONAL BA - SE','REGIONAL DF - GO - TO','REGIONAL MG','REGIONAL MS','REGIONAL MT - RO - AC','REGIONAL NORDESTE 1','REGIONAL NORDESTE 2','REGIONAL NORTE','REGIONAL PR','REGIONAL RJ - ES','REGIONAL RS','REGIONAL SP','REGIONAL SC','ESPECIAL NACIONAL'];
   const ESTADOS_BR=['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MG','MS','MT','PA','PB','PR','PE','PI','RJ','RN','RO','RR','RS','SC','SE','SP','TO'];
   let jobs=[], activeRegional=null, closedJobs=[];
@@ -830,6 +832,11 @@
         <td>${j.tipo_job||''}</td>
         <td>${statusBadge(j.status_step,j.status)}</td>
         <td>${j.criado_em?fmt(j.criado_em):''}</td>
+        <td>${
+          j.pasta_link
+            ? `<button class="btn" data-copy="${encodeURIComponent(j.pasta_link)}" title="Copiar link">Copiar</button>`
+            : '<span class="muted">—</span>'
+        }</td>
         <td><button class="btn" data-edit="${j.id}">Editar</button></td>
         <td><button class="btn" data-ver="${j.id}">Visualizar</button></td>
         <td><button class="btn" data-fin="${j.id}" ${can?'':'disabled title="Sem permissão"'}>Finalizar Job</button></td>
@@ -837,12 +844,22 @@
       tr.addEventListener('click', (e)=>{ if(e.target.closest('button')) return; setSelected(tr, j.id); });
       tb.appendChild(tr);
     });
+
     tb.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>openEtapasModal(b.dataset.edit));
     tb.querySelectorAll('[data-ver]').forEach(b=>b.onclick=()=>openVisualizar(b.dataset.ver));
     tb.querySelectorAll('[data-fin]').forEach(b=>b.onclick=()=>finalizeFromList(b.dataset.fin));
+    tb.querySelectorAll('[data-copy]').forEach(b=>{
+      b.onclick = async (e)=>{
+        e.stopPropagation();
+        const raw = decodeURIComponent(b.dataset.copy||'');
+        if(!raw) return;
+        await copyToClipboard(raw);
+        toast('Caminho copiado para a área de transferência.');
+      };
+    });
   }
 
-  // Excluir Job (toolbar)
+  // Excluir Job
   qs('#btnExcluirJob').onclick=async()=>{
     if(!selectedJobId){toast('Selecione um JOB na lista.');return;}
     if(!canDelete()){toast('Sem permissão para excluir (somente Administrador/Diretor/Gerente/Trafego).');return;}
@@ -859,7 +876,7 @@
     }
   };
 
-  // Estados & Filiais (com datas)
+  // Estados & Filiais
   function addEstadoRow(data){
     const w=qs('#estadoList');
     const r=document.createElement('div'); r.className='estado-row';
@@ -914,6 +931,7 @@
       qtd_paginas:qs('#jobQtdPag').value,
       estado_filiais:JSON.stringify(estados),
       observacao:qs('#jobObs').value,
+      pasta_link:qs('#jobPasta').value,
       vai_dashboard:qs('#jobDashboard').value,
       status:'Novo',status_step:'novo',
       workflow:JSON.stringify(initWorkflow(estados))
@@ -944,7 +962,7 @@
     }));
   }
 
-  // ===== Editar (colunas) =====
+  // Editar (colunas)
   const STEP_META={
     lista:{label:'Lista',status:'Lista recebida',step:'lista',color:'azulclaro',mode:'manual'},
     layout:{label:'Layout',status:'Criando Layout',step:'layout',color:'roxo',cargo:'Layout',mode:'auto'},
@@ -1000,7 +1018,12 @@
         const col=document.createElement('div'); col.className='col';
         const h5=document.createElement('h5');
         const title=document.createElement('span'); title.textContent=meta.label;
-        const btn=document.createElement('button'); btn.className='btn'; btn.type='button'; btn.textContent='+'; btn.onclick=()=>openAddEvento(idx,step);
+        const btn=document.createElement('button'); 
+        btn.className='btn'; 
+        btn.type='button'; 
+        btn.textContent='+';
+        btn.setAttribute('data-add-step', step);
+        btn.setAttribute('data-blk', String(idx));
         h5.appendChild(title); h5.appendChild(btn);
         col.appendChild(h5);
 
@@ -1028,6 +1051,89 @@
     });
   }
 
+  // Listener delegado para todos os botões "+"
+  qs('#etapasBlocks').addEventListener('click', (e)=>{
+    const b = e.target.closest('button[data-add-step]');
+    if(!b) return;
+    const blkIdx = parseInt(b.getAttribute('data-blk'),10);
+    const step = b.getAttribute('data-add-step');
+    if(Number.isFinite(blkIdx) && step) openAddEvento(blkIdx, step);
+  });
+
+  // Modal "Adicionar evento"
+  function populateSelect(sel, users){
+    sel.innerHTML='';
+    if(!users.length){
+      const o=document.createElement('option'); o.value=''; o.textContent='— sem usuários —'; sel.appendChild(o);
+    }else{
+      const o0=document.createElement('option'); o0.value=''; o0.textContent='— selecione —'; sel.appendChild(o0);
+      users.forEach(u=>{
+        const o=document.createElement('option');
+        o.value=u.nome; o.textContent=`${u.nome} (${displayRole(u)})`;
+        sel.appendChild(o);
+      });
+    }
+  }
+
+  function openAddEvento(blkIdx,step){
+    addCtx={blkIdx,step}; const meta=STEP_META[step];
+    qs('#addEvtTitle').textContent=`Adicionar: ${meta.label}`;
+    const box=qs('#addEvtFields'); box.innerHTML='';
+
+    if(meta.mode==='auto'&&meta.cargo){
+      const users=usersForStepCargo(meta.cargo);
+      if(users.length>0){
+        const f=document.createElement('div');f.className='field';
+        f.innerHTML=`<label>Responsável (${meta.label})</label><select id="addSelUser"></select><div class="muted">Hora será registrada automaticamente ao confirmar.</div>`;
+        box.appendChild(f); const sel=f.querySelector('#addSelUser'); populateSelect(sel,users);
+      }else{
+        const f=document.createElement('div');f.className='field';
+        f.innerHTML=`<label>Responsável (${meta.label})</label><input id="addNomeAuto" type="text" placeholder="Digite o nome (sem usuários nesse cargo)" /><div class="muted">Hora será registrada automaticamente ao confirmar.</div>`;
+        box.appendChild(f);
+      }
+      if(step==='site'){
+        const f2=document.createElement('div');f2.className='field';
+        f2.innerHTML=`<label>Link do PDF (opcional)</label><input id="addLinkPdf" type="url" placeholder="https://..." />`;
+        box.appendChild(f2);
+      }
+    }else{
+      const f1=document.createElement('div');f1.className='field';f1.innerHTML=`<label>Responsável</label><input id="addNome" type="text" placeholder="Nome" />`;box.appendChild(f1);
+      const row=document.createElement('div');row.className='row';
+      const f2=document.createElement('div');f2.className='field';f2.innerHTML=`<label>Dia</label><input id="addDia" type="date" />`;row.appendChild(f2);
+      const f3=document.createElement('div');f3.className='field';f3.innerHTML=`<label>Hora</label><input id="addHora" type="time" />`;row.appendChild(f3);
+      box.appendChild(row);
+    }
+    openModal('modalAddEvt');
+  }
+
+  qs('#btnAddEvtCancelar').onclick=()=>closeModal('modalAddEvt');
+  qs('#btnAddEvtOk').onclick=()=>{
+    const meta=STEP_META[addCtx.step];
+    const wf=JSON.parse(editJob.workflow||'[]');
+    const blk=wf[addCtx.blkIdx]; if(!blk){toast('Bloco inválido.');return;}
+    let nome='',ts='',link='';
+    if(meta.mode==='auto'&&meta.cargo){
+      const sel=qs('#addSelUser'); const inp=qs('#addNomeAuto');
+      nome = sel ? (sel.value||'').trim() : '';
+      if(!nome && inp) nome = (inp.value||'').trim();
+      if(!nome){toast('Informe o responsável.');return;}
+      ts=nowISO();
+      if(addCtx.step==='site'){ link = (qs('#addLinkPdf')?.value||'').trim(); }
+    }else{
+      nome=(qs('#addNome')?.value||'').trim();
+      const d=(qs('#addDia')?.value||'').trim(),h=(qs('#addHora')?.value||'').trim();
+      if(!nome||!d||!h){toast('Preencha Nome, Dia e Hora.');return;}
+      ts=new Date(`${d}T${h}:00`).toISOString();
+    }
+    blk.logs[addCtx.step]=blk.logs[addCtx.step]||[];
+    const ev = {nome,ts};
+    if(link) ev.link = link;
+    blk.logs[addCtx.step].push(ev);
+    editJob.status=meta.status; editJob.status_step=meta.step; editJob.atualizado_em=nowISO(); editJob.workflow=JSON.stringify(wf);
+    closeModal('modalAddEvt'); renderEtapasBlocks();
+  };
+
+  // Salvar / Cancelar no modal de etapas
   qs('#btnEtapasCancelar').onclick=()=>closeModal('modalEtapas');
   qs('#btnEtapasSalvar').onclick=async()=>{
     if(editIndex<0){toast('Nada para salvar.');return;}
@@ -1038,6 +1144,7 @@
     toast('Atualizado.');
   };
 
+  // Finalizar (corrigido: sem fila aninhada)
   async function finalizeFromList(jobId){
     const job=jobs.find(j=>j.id===jobId);
     if(!job){toast('JOB não encontrado.');return;}
@@ -1045,22 +1152,28 @@
   }
   async function finalizeJob(job){
     if(!canFinalize()){toast('Sem permissão para finalizar.');return;}
-    if(!closedJobs.length){ try{ closedJobs = csvToObjects(await ghLoadCsv(gh.paths.closed)); }catch(e){ closedJobs=[]; } }
+    setBusy(true,'Movendo para encerrados…');
+    try{
+      if(!closedJobs.length){ try{ closedJobs = csvToObjects(await ghLoadCsv(gh.paths.closed)); }catch(e){ closedJobs=[]; } }
 
-    const finISO=nowISO();
-    const finRec={...job,status:'Finalizado',status_step:'site',finalizado_em:finISO,atualizado_em:finISO};
+      const finISO=nowISO();
+      const finRec={...job,status:'Finalizado',status_step:'site',finalizado_em:finISO,atualizado_em:finISO};
 
-    closedJobs.push(finRec);
-    jobs = jobs.filter(j=>j.id!==job.id);
-    renderJobs();
+      closedJobs.push(finRec);
+      jobs = jobs.filter(j=>j.id!==job.id);
+      renderJobs();
 
-    await queued(async()=>{
-      await saveClosed(closedJobs);
-      await saveJobs(jobs);
-    });
+      // grava direto, sem usar "queued" aqui (evita deadlock)
+      await ghSaveCsv(gh.paths.closed, C_HEADER, closedJobs);
+      await ghSaveCsv(gh.paths.jobs, J_HEADER, jobs);
 
-    closeModal('modalEtapas');
-    toast('JOB finalizado e movido para encerrados.');
+      closeModal('modalEtapas');
+      toast('JOB finalizado e movido para encerrados.');
+    }catch(e){
+      console.error(e); toast('Falha ao finalizar.');
+    }finally{
+      setBusy(false);
+    }
   }
 
   function openVisualizar(jobId){
@@ -1076,10 +1189,12 @@
       return `${e.estado}-${e.filial}${vig}`;
     }).join(', ') || '(nenhum)';
 
+    const pasta = j.pasta_link || '';
     const div=document.createElement('div'); div.innerHTML=`
       <div class="field"><strong>OS:</strong> ${j.os||''}</div>
       <div class="field"><strong>Regional:</strong> ${j.regional||''} • <strong>Tipo:</strong> ${j.tipo_job||''} • <strong>Loja:</strong> ${j.tipo_loja||''}</div>
       <div class="field"><strong>Tabloide:</strong> ${j.tabloide_nome||''} • <strong>Complemento:</strong> ${j.complemento||''}</div>
+      <div class="field"><strong>Pasta:</strong> ${pasta ? `<span style="word-break:break-all">${pasta}</span> <button class="btn" data-copy-link="${encodeURIComponent(pasta)}">Copiar</button>` : '—'}</div>
       <div class="field"><strong>Tamanho:</strong> ${j.tamanho_pagina||'-'} • <strong>Páginas:</strong> ${j.qtd_paginas||'-'}</div>
       <div class="field"><strong>Status:</strong> ${j.status||'Novo'}</div>
       <div class="field"><strong>Observação:</strong> ${j.observacao||''}</div>
@@ -1087,12 +1202,22 @@
       <div><strong>Estados & Filiais:</strong> ${estadosTxt}</div>
       <div class="sep"></div>
     `;
+    const body=qs('#verBody'); body.innerHTML=''; body.appendChild(div);
+
+    const copyBtn = div.querySelector('[data-copy-link]');
+    if(copyBtn){
+      copyBtn.onclick = async ()=>{
+        const raw = decodeURIComponent(copyBtn.getAttribute('data-copy-link')||'');
+        await copyToClipboard(raw);
+        toast('Caminho copiado para a área de transferência.');
+      };
+    }
     wf.forEach(blk=>{
       const b=document.createElement('div'); b.className='block';
       const vig = (blk.ini||blk.fim) ? ` — Vigência: ${fmtDate(blk.ini)} a ${fmtDate(blk.fim)}` : '';
       const h=document.createElement('h4'); h.innerHTML=`Estado: <strong>${blk.estado}</strong> • Filial: <strong>${blk.filial}</strong>${vig}`; b.appendChild(h);
       const cols=document.createElement('div'); cols.className='cols'; const inner=document.createElement('div'); inner.className='colsInner';
-      STEP_ORDER.forEach(step=>{
+      ['lista','layout','digitacao','diagramacao','revisao','aprovacao','encerramento','site','cancelado'].forEach(step=>{
         const meta=STEP_META[step];
         const col=document.createElement('div'); col.className='col';
         const h5=document.createElement('h5'); h5.textContent=meta.label; col.appendChild(h5);
@@ -1112,13 +1237,12 @@
         }
         col.appendChild(list); inner.appendChild(col);
       });
-      cols.appendChild(inner); b.appendChild(cols); div.appendChild(b);
+      cols.appendChild(inner); b.appendChild(cols); body.appendChild(b);
     });
-    const body=qs('#verBody'); body.innerHTML=''; body.appendChild(div);
   }
   qs('#btnVerFechar').onclick=()=>closeModal('modalVer');
 
-  // ===== Encerrados =====
+  // Encerrados / Dashboard
   qs('#btnVerEncerrados').onclick=()=>{fillEncFiltro();qs('#encList').innerHTML='';openModal('modalEncerrados');};
   function fillEncFiltro(){const sel=qs('#encFiltroRegional'); sel.innerHTML=REGIONAIS.map(r=>`<option>${r}</option>`).join(''); sel.value=activeRegional||REGIONAIS[0];}
   qs('#btnEncCarregar').onclick=async()=>{
@@ -1140,13 +1264,7 @@
   };
   qs('#btnEncFechar').onclick=()=>closeModal('modalEncerrados');
 
-  // ===== Dashboard (Chart.js) =====
   let charts={};
-  function destroyCharts(){
-    Object.values(charts).forEach(ch=>{ try{ ch.destroy(); }catch(e){} });
-    charts={};
-  }
-
   qs('#btnVerDashboard').onclick=async()=>{
     try{
       const txt = await ghLoadCsv(gh.paths.closed);
