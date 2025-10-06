@@ -22,7 +22,6 @@
     display:grid;place-items:center; padding:24px;
   }
 
-  /* Login compacto; Dash ocupa tela inteira */
   .app{width:min(1300px,100%); display:grid; gap:18px;}
   .app.full{width:100%; max-width:none; height:calc(100vh - 48px);}
 
@@ -32,7 +31,6 @@
   .card{background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.02));
     border:1px solid rgba(255,255,255,.08); border-radius:16px; box-shadow:0 10px 30px rgba(0,0,0,.45); overflow:hidden}
 
-  /* LOGIN */
   .login{display:grid; grid-template-columns: 1.1fr .9fr; gap:0; min-height:380px}
   @media (max-width:920px){.login{grid-template-columns:1fr}.side{display:none}}
   .panel{padding:28px}
@@ -46,7 +44,6 @@
     background:conic-gradient(from 180deg at 50% 50%, var(--accent), var(--accent-2));
     display:grid;place-items:center;font-weight:800;font-size:3.3rem; color:#fff}
 
-  /* FORM */
   .field{display:grid; gap:6px; margin:10px 0}
   label{font-size:.9rem;color:var(--muted)}
   input,select,textarea{
@@ -70,7 +67,6 @@
   .modal h3{margin:0 0 8px 0}
   .modal .actions{display:flex; justify-content:flex-end; gap:10px; margin-top:10px}
 
-  /* DASH */
   .dash{display:none; height:100%;}
   .wrap{padding:16px 20px; height:100%; display:flex; flex-direction:column;}
   .toprow{display:flex; align-items:center; gap:12px;}
@@ -88,7 +84,7 @@
     display:flex; flex-direction:column; flex:1; min-height:0;}
   .toolbar{display:flex; gap:10px; flex-wrap:wrap}
   .tabs{display:flex; gap:8px; overflow:auto; margin:12px 0 10px 0; padding-bottom:4px}
-  .tab{padding:8px 12px; border-radius:999px; border:1px solid rgba(255,255,255,.18); background:#0d1628; cursor:pointer; white-space:nowrap}
+  .tab{padding:8px 12px; border-radius:999px; border:1px solid rgba(255,255,255,.18); background:#0d1628; cursor:pointer; white-space:nowrap; color:#fff;}
   .tab.active{background:linear-gradient(180deg, #2a60ff, #1b47c9); border-color:transparent}
 
   .tableWrap{overflow:auto; border:1px solid rgba(255,255,255,.12); border-radius:12px; flex:1; min-height:0;}
@@ -105,7 +101,7 @@
   .st-rosa{background:rgba(255,140,200,.25); border-color:rgba(255,140,200,.4)}
   .st-verde{background:rgba(130,230,150,.25); border-color:rgba(130,230,150,.4)}
   .st-amarelo{background:rgba(255,220,120,.3); border-color:rgba(255,255,255,.5)}
-  .st-vermelho{background:rgba(255,120,120,.28); border-color:rgba(255,120,120,.45)}
+  .st-vermelho{background:rgba(255,120,120,.28); border-color:rgba(255,255,255,.45)}
 
   .cols{overflow:auto; padding-bottom:6px}
   .colsInner{ display:grid; grid-auto-flow:column; grid-auto-columns: minmax(230px,1fr); gap:12px; align-items:start; }
@@ -180,20 +176,19 @@
   <!-- ===== MODAIS PADRÃO ===== -->
   <dialog id="modalCfg">
     <form method="dialog" class="modal" id="formCfg">
-      <h3>Configurar GitHub</h3>
-      <div class="row" style="gap:16px;flex-wrap:wrap">
-        <div class="field" style="min-width:220px"><label>Owner</label><input id="cfgOwner" placeholder="ex.: JPVectorsitem" /></div>
-        <div class="field" style="min-width:220px"><label>Repo</label><input id="cfgRepo" placeholder="ex.: LINKS-img" /></div>
-        <div class="field" style="min-width:160px"><label>Branch</label><input id="cfgBranch" placeholder="main" /></div>
+      <h3>Definir Token do GitHub</h3>
+      <div class="field">
+        <label>TOKEN (GitHub Personal Access Token)</label>
+        <input id="cfgToken" type="password" placeholder="ghp_xxx..." />
+        <div class="muted">
+          Gere um token com acesso a <strong>Contents: read &amp; write</strong> no repositório configurado.
+        </div>
       </div>
-      <div class="row" style="gap:16px;flex-wrap:wrap">
-        <div class="field" style="min-width:260px"><label>users.csv (caminho)</label><input id="cfgUsers" placeholder="users.csv" /></div>
-        <div class="field" style="min-width:260px"><label>jobs.csv (caminho)</label><input id="cfgJobs" placeholder="jobs.csv" /></div>
-        <div class="field" style="min-width:260px"><label>jobs_encerrados.csv (caminho)</label><input id="cfgClosed" placeholder="jobs_encerrados.csv" /></div>
-      </div>
-      <div class="field"><label>TOKEN (GitHub Personal Access Token)</label><input id="cfgToken" type="password" placeholder="ghp_xxx..." /></div>
       <div class="row" style="align-items:center">
-        <label style="display:flex;gap:8px;align-items:center"><input id="cfgRemember" type="checkbox" checked /> Lembrar token neste navegador</label>
+        <label style="display:flex;gap:8px;align-items:center">
+          <input id="cfgRemember" type="checkbox" checked />
+          Lembrar token neste navegador
+        </label>
       </div>
       <div class="actions">
         <button class="btn" type="button" data-close="modalCfg">Cancelar</button>
@@ -232,7 +227,6 @@
         </div>
       </div>
 
-      <!-- Senha de liberação do cadastro -->
       <div class="field">
         <label for="cadGate">Senha de liberação do cadastro</label>
         <input id="cadGate" type="password" placeholder="Informe a senha para autorizar o cadastro" />
@@ -458,6 +452,15 @@
           <label>Filtro por Regional</label>
           <select id="dashFiltroRegional"></select>
         </div>
+        <!-- NOVO: Filtro por período -->
+        <div class="field" style="min-width:180px">
+          <label>De</label>
+          <input id="dashDe" type="date" />
+        </div>
+        <div class="field" style="min-width:180px">
+          <label>Até</label>
+          <input id="dashAte" type="date" />
+        </div>
         <button class="btn" id="btnDashAplicar" type="button">Aplicar</button>
       </div>
 
@@ -594,6 +597,8 @@
   }
   const roleChip = c => c ? `<span class="role-chip role-${roleKey(c)}">${c}</span>` : '';
 
+  function setBusy(v,msg){const o=qs('#busy'); if(!o) return; o.style.display=v?'grid':'none'; if(msg) o.querySelector('.box').textContent=msg; }
+
   function showLogin(){
     qs('#loginView').style.display='grid';
     qs('#dashView').style.display='none';
@@ -632,12 +637,14 @@
     .some(r=>eqi(currentUser?.cargoPrin,r)||eqi(currentUser?.cargoSec,r));
   const canFinalize=()=>['site','administrador','administrator','diretor','gerente','trafego']
     .some(r=>eqi(currentUser?.cargoPrin,r)||eqi(currentUser?.cargoSec,r));
-  const canDelete=()=>isAdminish();
+  // Excluir: Admin, Diretor, Gerente, Tráfego e Layout
+  const canDelete=()=>['administrador','administrator','diretor','gerente','trafego','layout']
+    .some(r=>eqi(currentUser?.cargoPrin,r)||eqi(currentUser?.cargoSec,r));
 
   // ===== CSV =====
   const U_HEADER=['nome','email','senha','cargo_principal','cargo_secundaria','criado_em'];
   const J_HEADER=[
-    'id','os','regional','tipo_loja','tipo_job','acao_nacional','tabloide_nome','complemento',
+    'id','os','regional','regional_tab','tipo_loja','tipo_job','acao_nacional','tabloide_nome','complemento',
     'tamanho_pagina','qtd_paginas','estado_filiais','observacao','pasta_link',
     'vai_dashboard','status','status_step','workflow','criado_em','atualizado_em'
   ];
@@ -658,23 +665,20 @@
       const s = localStorage.getItem('wv_gh_cfg');
       if(!s) return;
       const j = JSON.parse(s);
-      Object.assign(gh, j);
-      if(!gh.token && GH_PRESET.token) gh.token = GH_PRESET.token;
+      if (j && typeof j.token === 'string') gh.token = j.token;
     }catch(e){}
   })();
   function ghSave(remember){
-    const clone = {...gh};
-    if(!remember) clone.token = '';
-    localStorage.setItem('wv_gh_cfg', JSON.stringify(clone));
+    const payload = { token: remember ? (gh.token || '') : '' };
+    localStorage.setItem('wv_gh_cfg', JSON.stringify(payload));
   }
+
   const ghHeaders=()=>({
     'Accept':'application/vnd.github+json',
     'X-GitHub-Api-Version': GH_API_VER,
     ...(gh.token ? {'Authorization':`Bearer ${gh.token}`} : {})
   });
   const ghOn=()=>gh.enabled && gh.owner && gh.repo && gh.branch;
-
-  const setBusy=(v,msg)=>{const o=qs('#busy'); if(!o) return; o.style.display=v?'grid':'none'; if(msg) o.querySelector('.box').textContent=msg; };
 
   const ghCache = { sha: {} };
   let saveQ = Promise.resolve();
@@ -766,30 +770,16 @@
 
   // ===== Login / Cadastro / Reset =====
   qs('#btnCfg').onclick=()=>{ 
-    qs('#cfgOwner').value = gh.owner||'';
-    qs('#cfgRepo').value = gh.repo||'';
-    qs('#cfgBranch').value = gh.branch||'main';
-    qs('#cfgUsers').value = gh.paths?.users||'users.csv';
-    qs('#cfgJobs').value = gh.paths?.jobs||'jobs.csv';
-    qs('#cfgClosed').value = gh.paths?.closed||'jobs_encerrados.csv';
     qs('#cfgToken').value = gh.token||'';
     qs('#cfgRemember').checked = true;
     openModal('modalCfg');
   };
   qs('#btnCfgSalvar').onclick=()=>{
-    gh.owner = qs('#cfgOwner').value.trim();
-    gh.repo = qs('#cfgRepo').value.trim();
-    gh.branch = qs('#cfgBranch').value.trim()||'main';
-    gh.paths = {
-      users: qs('#cfgUsers').value.trim()||'users.csv',
-      jobs: qs('#cfgJobs').value.trim()||'jobs.csv',
-      closed: qs('#cfgClosed').value.trim()||'jobs_encerrados.csv',
-    };
-    gh.token = qs('#cfgToken').value.trim();
+    gh.token = (qs('#cfgToken').value||'').trim();
     gh.enabled = true;
     ghSave(qs('#cfgRemember').checked);
     closeModal('modalCfg');
-    toast('Configurações GitHub salvas.');
+    toast('Token salvo.');
   };
 
   qs('#btnCadastrar').onclick=()=>openModal('modalCadastro');
@@ -860,6 +850,25 @@
   // ===== JOBS =====
   const REGIONAIS=['REGIONAL BA - SE','REGIONAL DF - GO - TO','REGIONAL MG','REGIONAL MS','REGIONAL MT - RO - AC','REGIONAL NORDESTE 1','REGIONAL NORDESTE 2','REGIONAL NORTE','REGIONAL PR','REGIONAL RJ - ES','REGIONAL RS','REGIONAL SP','REGIONAL SC','ESPECIAL NACIONAL'];
   const ESTADOS_BR=['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MG','MS','MT','PA','PB','PR','PE','PI','RJ','RN','RO','RR','RS','SC','SE','SP','TO'];
+
+  // Mapa de regionais -> estados (para NOVO JOB)
+  const REGIONAL_STATES = {
+    'REGIONAL BA - SE': ['BA','SE'],
+    'REGIONAL DF - GO - TO': ['DF','GO','TO'],
+    'REGIONAL MG': ['MG'],
+    'REGIONAL MS': ['MS'],
+    'REGIONAL MT - RO - AC': ['MT','RO','AC'],
+    'REGIONAL NORDESTE 1': ['AL','PB','PE','RN'],
+    'REGIONAL NORDESTE 2': ['CE','PI','MA'],
+    'REGIONAL NORTE': ['AM','AP','PA','RR'],
+    'REGIONAL PR': ['PR'],
+    'REGIONAL RJ - ES': ['RJ','ES'],
+    'REGIONAL RS': ['RS'],
+    'REGIONAL SP': ['SP'],
+    'REGIONAL SC': ['SC'],
+    'ESPECIAL NACIONAL': ESTADOS_BR.slice()
+  };
+
   let jobs=[], activeRegional=null, closedJobs=[];
   let selectedJobId=null, selectedRow=null;
 
@@ -893,7 +902,7 @@
     selectedJobId=null; selectedRow=null;
     const tb=qs('#jobsBody');tb.innerHTML='';
     if(!activeRegional) return;
-    const list=jobs.filter(j=>j.regional===activeRegional && (j.vai_dashboard||'Sim')==='Sim');
+    const list=jobs.filter(j=>((j.regional_tab||j.regional)===activeRegional) && (j.vai_dashboard||'Sim')==='Sim');
     list.forEach(j=>{
       const tr=document.createElement('tr');
       const can=canFinalize();
@@ -935,10 +944,10 @@
   // Excluir Job
   qs('#btnExcluirJob').onclick=async()=>{
     if(!selectedJobId){toast('Selecione um JOB na lista.');return;}
-    if(!canDelete()){toast('Sem permissão para excluir (somente Administrador/Diretor/Gerente/Trafego).');return;}
+    if(!canDelete()){toast('Sem permissão para excluir (somente Administrador/Diretor/Gerente/Trafego/Layout).');return;}
     const j=jobs.find(x=>x.id===selectedJobId);
     if(!j){toast('JOB não encontrado.');return;}
-    if(!confirm(`Excluir JOB #${j.id} – "${j.tabloide_nome}"?`)) return;
+    if(!confirm(`Excluir JOB #${j.id} – \"${j.tabloide_nome}\"?`)) return;
 
     const idx=jobs.findIndex(x=>x.id===selectedJobId);
     if(idx>-1){
@@ -949,24 +958,46 @@
     }
   };
 
-  // Estados & Filiais
+  // ======== NOVO JOB: Estados & Filiais com filtro por Regional/Ação ========
+
+  function makeEstadoOptions(list, selected){
+    const arr = (list && list.length ? list : ESTADOS_BR);
+    return arr.map(s=>`<option ${s===selected?'selected':''}>${s}</option>`).join('');
+  }
+
+  function getAllowedStatesForNewJob(){
+    const isNacional = (qs('#jobAcaoNacional')?.value||'Não') === 'Sim';
+    if(isNacional) return ESTADOS_BR.slice();
+    const reg = qs('#jobRegional')?.value || REGIONAIS[0];
+    return REGIONAL_STATES[reg] ? REGIONAL_STATES[reg].slice() : [];
+  }
+
+  function refreshEstadoRowsForSelection(){
+    const allowed = getAllowedStatesForNewJob();
+    Array.from(qs('#estadoList').children).forEach(r=>{
+      const sel = r.querySelector('.estadoSel');
+      const current = sel?.value || '';
+      sel.innerHTML = makeEstadoOptions(allowed, allowed.includes(current)?current:allowed[0]);
+    });
+  }
+
   function addEstadoRow(data){
     const w=qs('#estadoList');
+    const allowed = getAllowedStatesForNewJob();
+    const chosen = (data && data.estado && allowed.includes(data.estado)) ? data.estado : (allowed[0]||'');
     const r=document.createElement('div'); r.className='estado-row';
     r.innerHTML=`
-      <select class="estadoSel">${ESTADOS_BR.map(s=>`<option>${s}</option>`).join('')}</select>
-      <input class="filialInp" type="text" placeholder="Filial (ex.: 001, 002...)" />
-      <input class="dataIni" type="date" title="Data inicial" />
-      <input class="dataFim" type="date" title="Data término" />
-      <button type="button" class="btn iconbtn" title="Excluir">🗑</button>`;
+      <select class=\"estadoSel\">${makeEstadoOptions(allowed, chosen)}</select>
+      <input class=\"filialInp\" type=\"text\" placeholder=\"Filial (ex.: 001, 002...)\" />
+      <input class=\"dataIni\" type=\"date\" title=\"Data inicial\" />
+      <input class=\"dataFim\" type=\"date\" title=\"Data término\" />
+      <button type=\"button\" class=\"btn iconbtn\" title=\"Excluir\">🗑</button>`;
     w.appendChild(r);
-    const sel=r.querySelector('.estadoSel'),
-          inp=r.querySelector('.filialInp'),
+    const inp=r.querySelector('.filialInp'),
           di=r.querySelector('.dataIni'),
           df=r.querySelector('.dataFim'),
           del=r.querySelector('.iconbtn');
     if(data){
-      if(data.estado) sel.value=data.estado;
       if(data.filial) inp.value=data.filial;
       if(data.ini) di.value=data.ini;
       if(data.fim) df.value=data.fim;
@@ -984,29 +1015,48 @@
   function setEstados(l){qs('#estadoList').innerHTML='';(l||[]).forEach(addEstadoRow);}
   qs('#btnAddEstado').onclick=()=>addEstadoRow();
 
-  function fillRegionSelect(selVal){const s=qs('#jobRegional');s.innerHTML=REGIONAIS.map(r=>`<option>${r}</option>`).join('');s.value=selVal||REGIONAIS[0];}
+  function fillRegionSelect(selVal){
+    const s=qs('#jobRegional');
+    const list = REGIONAIS.filter(r=>r!=='ESPECIAL NACIONAL');
+    s.innerHTML=list.map(r=>`<option>${r}</option>`).join('');
+    s.value = list.includes(selVal)?selVal:list[0];
+    refreshEstadoRowsForSelection();
+  }
 
-  // Novo JOB (com permissão)
+  document.addEventListener('change', (e)=>{
+    if(e.target && (e.target.id==='jobRegional' || e.target.id==='jobAcaoNacional')){
+      refreshEstadoRowsForSelection();
+    }
+  });
+
   qs('#btnNovoJob').onclick=async()=>{
     if(!canCreateJob()){toast('Sem permissão para criar novo JOB.');return;}
-    fillRegionSelect(activeRegional||REGIONAIS[0]);
     qs('#jobModalTitle').textContent='Novo JOB';
     qs('#formJob').reset();
+    fillRegionSelect(activeRegional&&activeRegional!=='ESPECIAL NACIONAL'?activeRegional:undefined);
     setEstados([]);
     qs('#jobDashboard').value='Sim';
     openModal('modalJob');
   };
-  qs('#btnJobLimpar').onclick=()=>{qs('#formJob').reset();setEstados([]);fillRegionSelect(activeRegional||REGIONAIS[0]);};
+  qs('#btnJobLimpar').onclick=()=>{qs('#formJob').reset();fillRegionSelect(activeRegional&&activeRegional!=='ESPECIAL NACIONAL'?activeRegional:undefined);setEstados([]);};
+
   qs('#btnJobLancar').onclick=async()=>{
     if(!canCreateJob()){toast('Sem permissão para criar novo JOB.');return;}
     if(!ghOn()){toast('Configure o GitHub (⚙).');return;}
     const estados=collectEstados(); if(!estados.length){toast('Adicione pelo menos uma linha de Estado & Filial.');return;}
+
+    // regional exibida x aba onde aparece
+    const regionalOrig = qs('#jobRegional').value;
+    const acaoNacional = qs('#jobAcaoNacional').value;
+    const regionalTab = (acaoNacional === 'Sim') ? 'ESPECIAL NACIONAL' : regionalOrig;
+
     const rec={
       id:'',os:'WV-'+nowISO().replace(/[-:T.Z]/g,'').slice(0,14),
-      regional:qs('#jobRegional').value,
+      regional:regionalOrig,
+      regional_tab:regionalTab,
       tipo_loja:qs('#jobTipoLoja').value,
       tipo_job:qs('#jobTipo').value,
-      acao_nacional:qs('#jobAcaoNacional').value,
+      acao_nacional:acaoNacional,
       tabloide_nome:qs('#jobTabloide').value,
       complemento:qs('#jobComplemento').value,
       tamanho_pagina:qs('#jobTamanho').value,
@@ -1029,7 +1079,7 @@
     const full = {...rec,id:nextId,criado_em:now,atualizado_em:now};
 
     jobs.push(full);
-    setActiveRegional(full.regional);
+    setActiveRegional(full.regional_tab || full.regional);
     renderJobs();
     closeModal('modalJob');
 
@@ -1054,7 +1104,7 @@
     aprovacao:{label:'Aprovação',status:'Aprovado',step:'aprovacao',color:'verde',mode:'manual'},
     encerramento:{label:'Encerramento',status:'Encerrando',step:'encerramento',color:'amarelo',cargo:'Encerramento',mode:'auto'},
     site:{label:'Site',status:'Site',step:'site',color:'rosa',cargo:'Site',mode:'auto'},
-    cancelado:{label:'Cancelado',status:'Cancelado',step:'cancelado',color:'vermelho',mode:'manual'}
+    cancelado:{label:'Cancelado',status:'Cancelado',step:'cancelado',mode:'manual'}
   };
   const STEP_ORDER=['lista','layout','digitacao','diagramacao','revisao','aprovacao','encerramento','site','cancelado'];
   let editJob=null, editIndex=-1, addCtx={blkIdx:-1,step:''};
@@ -1084,7 +1134,7 @@
   function renderEtapasBlocks(){
     const container=qs('#etapasBlocks'); container.innerHTML='';
     const wf=JSON.parse(editJob.workflow||'[]');
-    if(!wf.length){container.innerHTML='<p class="muted">(Sem estados/filiais)</p>';return;}
+    if(!wf.length){container.innerHTML='<p class=\"muted\">(Sem estados/filiais)</p>';return;}
     wf.forEach((blk,idx)=>{
       const wrap=document.createElement('div'); wrap.className='block';
       const head=document.createElement('h4');
@@ -1116,7 +1166,7 @@
           items.slice().reverse().forEach(ev=>{
             const i=document.createElement('div');i.className='item';
             if(step==='site' && ev.link){
-              i.innerHTML = `${ev.nome} — ${fmt(ev.ts)} — <a href="${ev.link}" target="_blank" rel="noopener">PDF</a>`;
+              i.innerHTML = `${ev.nome} — ${fmt(ev.ts)} — <a href=\"${ev.link}\" target=\"_blank\" rel=\"noopener\">PDF</a>`;
             }else{
               i.textContent=`${ev.nome} — ${fmt(ev.ts)}`;
             }
@@ -1166,23 +1216,23 @@
       const users=usersForStepCargo(meta.cargo);
       if(users.length>0){
         const f=document.createElement('div');f.className='field';
-        f.innerHTML=`<label>Responsável (${meta.label})</label><select id="addSelUser"></select><div class="muted">Hora será registrada automaticamente ao confirmar.</div>`;
+        f.innerHTML=`<label>Responsável (${meta.label})</label><select id=\"addSelUser\"></select><div class=\"muted\">Hora será registrada automaticamente ao confirmar.</div>`;
         box.appendChild(f); const sel=f.querySelector('#addSelUser'); populateSelect(sel,users);
       }else{
         const f=document.createElement('div');f.className='field';
-        f.innerHTML=`<label>Responsável (${meta.label})</label><input id="addNomeAuto" type="text" placeholder="Digite o nome (sem usuários nesse cargo)" /><div class="muted">Hora será registrada automaticamente ao confirmar.</div>`;
+        f.innerHTML=`<label>Responsável (${meta.label})</label><input id=\"addNomeAuto\" type=\"text\" placeholder=\"Digite o nome (sem usuários nesse cargo)\" /><div class=\"muted\">Hora será registrada automaticamente ao confirmar.</div>`;
         box.appendChild(f);
       }
       if(step==='site'){
         const f2=document.createElement('div');f2.className='field';
-        f2.innerHTML=`<label>Link do PDF (opcional)</label><input id="addLinkPdf" type="url" placeholder="https://..." />`;
+        f2.innerHTML=`<label>Link do PDF (opcional)</label><input id=\"addLinkPdf\" type=\"url\" placeholder=\"https://...\" />`;
         box.appendChild(f2);
       }
     }else{
-      const f1=document.createElement('div');f1.className='field';f1.innerHTML=`<label>Responsável</label><input id="addNome" type="text" placeholder="Nome" />`;box.appendChild(f1);
+      const f1=document.createElement('div');f1.className='field';f1.innerHTML=`<label>Responsável</label><input id=\"addNome\" type=\"text\" placeholder=\"Nome\" />`;box.appendChild(f1);
       const row=document.createElement('div');row.className='row';
-      const f2=document.createElement('div');f2.className='field';f2.innerHTML=`<label>Dia</label><input id="addDia" type="date" />`;row.appendChild(f2);
-      const f3=document.createElement('div');f3.className='field';f3.innerHTML=`<label>Hora</label><input id="addHora" type="time" />`;row.appendChild(f3);
+      const f2=document.createElement('div');f2.className='field';f2.innerHTML=`<label>Dia</label><input id=\"addDia\" type=\"date\" />`;row.appendChild(f2);
+      const f3=document.createElement('div');f3.className='field';f3.innerHTML=`<label>Hora</label><input id=\"addHora\" type=\"time\" />`;row.appendChild(f3);
       box.appendChild(row);
     }
     openModal('modalAddEvt');
@@ -1272,16 +1322,16 @@
 
     const pasta = j.pasta_link || '';
     const div=document.createElement('div'); div.innerHTML=`
-      <div class="field"><strong>OS:</strong> ${j.os||''}</div>
-      <div class="field"><strong>Regional:</strong> ${j.regional||''} • <strong>Tipo:</strong> ${j.tipo_job||''} • <strong>Loja:</strong> ${j.tipo_loja||''}</div>
-      <div class="field"><strong>Tabloide:</strong> ${j.tabloide_nome||''} • <strong>Complemento:</strong> ${j.complemento||''}</div>
-      <div class="field"><strong>Pasta:</strong> ${pasta ? `<span style="word-break:break-all">${pasta}</span> <button class="btn" data-copy-link="${encodeURIComponent(pasta)}">Copiar</button>` : '—'}</div>
-      <div class="field"><strong>Tamanho:</strong> ${j.tamanho_pagina||'-'} • <strong>Páginas:</strong> ${j.qtd_paginas||'-'}</div>
-      <div class="field"><strong>Status:</strong> ${j.status||'Novo'}</div>
-      <div class="field"><strong>Observação:</strong> ${j.observacao||''}</div>
-      <div class="sep"></div>
+      <div class=\"field\"><strong>OS:</strong> ${j.os||''}</div>
+      <div class=\"field\"><strong>Regional:</strong> ${j.regional||''} • <strong>Tipo:</strong> ${j.tipo_job||''} • <strong>Loja:</strong> ${j.tipo_loja||''}</div>
+      <div class=\"field\"><strong>Tabloide:</strong> ${j.tabloide_nome||''} • <strong>Complemento:</strong> ${j.complemento||''}</div>
+      <div class=\"field\"><strong>Pasta:</strong> ${pasta ? `<span style=\"word-break:break-all\">${pasta}</span> <button class=\"btn\" data-copy-link=\"${encodeURIComponent(pasta)}\">Copiar</button>` : '—'}</div>
+      <div class=\"field\"><strong>Tamanho:</strong> ${j.tamanho_pagina||'-'} • <strong>Páginas:</strong> ${j.qtd_paginas||'-'}</div>
+      <div class=\"field\"><strong>Status:</strong> ${j.status||'Novo'}</div>
+      <div class=\"field\"><strong>Observação:</strong> ${j.observacao||''}</div>
+      <div class=\"sep\"></div>
       <div><strong>Estados & Filiais:</strong> ${estadosTxt}</div>
-      <div class="sep"></div>
+      <div class=\"sep\"></div>
     `;
     const body=qs('#verBody'); body.innerHTML=''; body.appendChild(div);
 
@@ -1309,7 +1359,7 @@
           items.slice().reverse().forEach(ev=>{
             const i=document.createElement('div');i.className='item';
             if(step==='site' && ev.link){
-              i.innerHTML = `${ev.nome} — ${fmt(ev.ts)} — <a href="${ev.link}" target="_blank" rel="noopener">PDF</a>`;
+              i.innerHTML = `${ev.nome} — ${fmt(ev.ts)} — <a href=\"${ev.link}\" target=\"_blank\" rel=\"noopener\">PDF</a>`;
             }else{
               i.textContent=`${ev.nome} — ${fmt(ev.ts)}`;
             }
@@ -1331,9 +1381,9 @@
       const txt = await ghLoadCsv(gh.paths.closed);
       closedJobs = csvToObjects(txt);
       const reg=qs('#encFiltroRegional').value;
-      const list=closedJobs.filter(j=>j.regional===reg);
+      const list=closedJobs.filter(j=>((j.regional_tab||j.regional)===reg));
       const box=qs('#encList'); box.innerHTML='';
-      if(!list.length){box.innerHTML='<p class="muted">(Sem encerrados nessa regional)</p>';return;}
+      if(!list.length){box.innerHTML='<p class=\"muted\">(Sem encerrados nessa regional)</p>';return;}
       list.forEach(j=>{
         const row=document.createElement('div'); row.className='block';
         row.innerHTML=`<div><strong>${j.tabloide_nome||''}</strong> — OS: ${j.os||''} • Finalizado: ${fmt(j.finalizado_em||j.atualizado_em)}</div>`;
@@ -1348,6 +1398,19 @@
   // Dashboard
   let charts={};
   const destroyChart=(id)=>{ if(charts[id]){ try{charts[id].destroy();}catch(_){} delete charts[id]; } };
+
+  // NOVO: helper para pegar a data final (YYYY-MM-DD) de um job finalizado
+  function jobFinalDateYMD(j){
+    const iso = j.finalizado_em || j.atualizado_em || j.criado_em || '';
+    if(!iso) return null;
+    try{
+      const d = new Date(iso);
+      if(isNaN(d)) return null;
+      // Normaliza para YYYY-MM-DD em UTC para comparação lexicográfica
+      return d.toISOString().slice(0,10);
+    }catch(e){ return null; }
+  }
+
   qs('#btnVerDashboard').onclick=async()=>{
     try{
       const txt = await ghLoadCsv(gh.paths.closed);
@@ -1355,12 +1418,22 @@
       const sel=qs('#dashFiltroRegional');
       sel.innerHTML = ['(Todas)', ...REGIONAIS].map(r=>`<option>${r}</option>`).join('');
       sel.value='(Todas)';
-      renderDashboardCharts('(Todas)');
+      // limpa período
+      const de=qs('#dashDe'), ate=qs('#dashAte');
+      if(de) de.value='';
+      if(ate) ate.value='';
+      renderDashboardCharts('(Todas)', '', '');
       openModal('modalDash');
     }catch(e){console.error(e);toast('Falha ao carregar dashboard.');}
   };
   qs('#btnDashFechar').onclick=()=>closeModal('modalDash');
-  qs('#btnDashAplicar').onclick=()=>{ renderDashboardCharts(qs('#dashFiltroRegional').value); };
+  qs('#btnDashAplicar').onclick=()=>{ 
+    const reg = qs('#dashFiltroRegional').value;
+    const de  = (qs('#dashDe')?.value||'').trim();
+    const ate = (qs('#dashAte')?.value||'').trim();
+    if(de && ate && ate < de){ toast('Período inválido: "Até" é anterior a "De".'); return; }
+    renderDashboardCharts(reg, de, ate); 
+  };
 
   function computeDashboard(list){
     const total=list.length;
@@ -1380,9 +1453,16 @@
     return {total,porColab,porEstado};
   }
 
-  function renderDashboardCharts(reg){
-    let data = closedJobs;
-    if(reg && reg!=='(Todas)'){ data = data.filter(j=>j.regional===reg); }
+  function renderDashboardCharts(reg, de, ate){
+    let data = closedJobs.slice();
+
+    // Filtro por regional
+    if(reg && reg!=='(Todas)'){ data = data.filter(j=>((j.regional_tab||j.regional)===reg)); }
+
+    // Filtro por período (inclusive) usando YYYY-MM-DD
+    if(de){ data = data.filter(j=>{ const ymd=jobFinalDateYMD(j); return ymd && ymd >= de; }); }
+    if(ate){ data = data.filter(j=>{ const ymd=jobFinalDateYMD(j); return ymd && ymd <= ate; }); }
+
     const stats=computeDashboard(data);
 
     qs('#dashTotal').textContent = String(stats.total);
@@ -1390,7 +1470,7 @@
     const tb=qs('#dashEstado tbody'); tb.innerHTML='';
     Object.entries(stats.porEstado).sort().forEach(([uf,qt])=>{
       const tr=document.createElement('tr');
-      tr.innerHTML = `<td style="padding:6px 8px">${uf}</td><td style="padding:6px 8px">${qt}</td>`;
+      tr.innerHTML = `<td style=\"padding:6px 8px\">${uf}</td><td style=\"padding:6px 8px\">${qt}</td>`;
       tb.appendChild(tr);
     });
 
@@ -1424,7 +1504,7 @@
     sel.innerHTML = STATUS_KEYS.map(k=>{
       if(k==='(Todos)') return `<option>(Todos)</option>`;
       const lbl = (k==='novo')?'Novo':(STEP_META[k]?.label||k);
-      return `<option value="${k}">${lbl}</option>`;
+      return `<option value=\"${k}\">${lbl}</option>`;
     }).join('');
     sel.value='(Todos)';
   }
@@ -1449,12 +1529,12 @@
         <td>${j.criado_em?fmt(j.criado_em):''}</td>
         <td>${
           j.pasta_link
-            ? `<button class="btn" data-copy="${encodeURIComponent(j.pasta_link)}" title="Copiar link">Copiar</button>`
-            : '<span class="muted">—</span>'
+            ? `<button class=\"btn\" data-copy=\"${encodeURIComponent(j.pasta_link)}\" title=\"Copiar link\">Copiar</button>`
+            : '<span class=\"muted\">—</span>'
         }</td>
-        <td><button class="btn" data-edit="${j.id}">Editar</button></td>
-        <td><button class="btn" data-ver="${j.id}">Visualizar</button></td>
-        <td><button class="btn" data-fin="${j.id}" ${can?'':'disabled title="Sem permissão"'}>Finalizar Job</button></td>
+        <td><button class=\"btn\" data-edit=\"${j.id}\">Editar</button></td>
+        <td><button class=\"btn\" data-ver=\"${j.id}\">Visualizar</button></td>
+        <td><button class=\"btn\" data-fin=\"${j.id}\" ${can?'':'disabled title=\"Sem permissão\"'}>Finalizar Job</button></td>
       `;
       body.appendChild(tr);
     });
@@ -1483,6 +1563,7 @@
   qs('#btnMassaAplicar').onclick=renderMassa;
   qs('#btnMassaFechar').onclick=()=>closeModal('modalMassa');
 
+  // Init
   (function init(){
     showLogin();
     buildTabs();
@@ -1490,6 +1571,3 @@
 </script>
 </body>
 </html>
-
-
-
