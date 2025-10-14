@@ -7688,5 +7688,628 @@
 
 <!// AJUTES - Botão ver lojas + duplicar selecionados (visualizar finalizados) FIM ---->
 
+<!// AJUTES - OT GLOBAL (Lançados e Finalizados) ---->
+
+<script>
+(function(){
+  "use strict";
+
+  /* ===========================
+   *  CONFIG DO FORMATO DA OT
+   * =========================== */
+  const OT_FMT = { prefix: 'OT-', pad: 5 }; // resultado: OT-00001, OT-00002, ...
+
+  /* ===========================
+   *  CONFIG GITHUB
+   *  (ajuste se seu owner/repo/branch forem outros)
+   * =========================== */
+  const GH = {
+    owner:  'JPVectorsitem',
+    repo:   'LINKS-img',
+    branch: 'main',
+    jobsPath: 'jobs.csv',
+    encPath:  'jobs_encerrados.csv',
+    counterPath: 'ot_counter.txt'
+  };
+
+  /* ===========================
+   *  HELPERS GERAIS
+   * =========================== */
+  const sleep = (ms)=> new Promise(r=> setTimeout(r, ms));
+
+  function getToken(){
+    try{
+      const saved = JSON.parse(localStorage.getItem('wv_gh_cfg')||'{}');
+      return (window.gh && window.gh.token) || saved.token || '';
+    }catch{
+      return (window.gh && window.gh.token) || '';
+    }
+  }
+  function ghHeaders(token, extra={}){
+    return {
+      'Accept':'application/vnd.github+json',
+      'X-GitHub-Api-Version':'2022-11-28',
+      ...(token ? {'Authorization':`Bearer ${token}`} : {}),
+      ...extra
+    };
+  }
+  function b64ToUtf8(b64){
+    const bin = atob(b64);
+    const bytes = new Uint8Array(bin.length);
+    for (let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
+    return new TextDecoder().decode(bytes);
+  }
+  function utf8ToB64(str){
+    const bytes = new TextEncoder().encode(str);
+    let bin=''; for(let i=0;i<bytes.length;i++) bin+=String.fromCharCode(bytes[i]);
+    return btoa(bin);
+  }
+  function formatOT(n){
+    const s = String(n).padStart(OT_FMT.pad, '0');
+    return `${OT_FMT.prefix}${s}`;
+  }
+  function numFromOT(ot){
+    // extrai só os dígitos (ex.: "OT-00012" => 12)
+    const m = String(ot||'').match(/(\d+)/);
+    return m ? parseInt(m[1],10) : NaN;
+  }
+
+  // CSV simples (rápido)
+  function parseCsv(text){
+    if (!text) return [];
+    const out=[]; let row=[], cur='', q=false;
+    for(let i=0;i<text.length;i++){
+      const c=text[i];
+      if(q){
+        if(c=='"'){ if(text[i+1]=='"'){cur+='"'; i++;} else q=false; }
+        else cur+=c;
+      }else{
+        if(c=='"') q=true;
+        else if(c==','){ row.push(cur); cur=''; }
+        else if(c=='\r'){ /* ignore */ }
+        else if(c=='\n'){ row.push(cur); out.push(row); row=[]; cur=''; }
+        else cur+=c;
+      }
+    }
+    if(cur.length>0 || row.length>0){ row.push(cur); out.push(row); }
+    return out;
+  }
+  function csvToObjs(text){
+    const rows = parseCsv(text);
+    if (!rows.length) return { head:[], rows:[] };
+    const head = rows[0];
+    const list=[];
+    for(let i=1;i<rows.length;i++){
+      const r=rows[i]; if(!r || (r.length===1 && r[0]==='')) continue;
+      const o={}; for(let j=0;j<head.length;j++) o[head[j]] = r[j] ?? '';
+      list.push(o);
+    }
+    return { head, rows:list };
+  }
+  const csvEsc = v => {
+    v = v==null ? '' : String(v);
+    return /[",\n]/.test(v) ? `"${v.replace(/"/g,'""')}"` : v;
+  };
+  function objsToCsv(head, rows){
+    const H = head.slice();
+    const body = rows.map(o => H.map(h => csvEsc(o[h] ?? '')).join(',')).join('\n');
+    return H.join(',') + '\n' + (body ? (body+'\n') : '');
+  }
+
+  /* ======================================================
+   *  FETCH ORIGINAL & GUARDA-CHUVA PRA EVITAR RECURSÃO
+   * ====================================================== */
+  const _origFetch = window.fetch.bind(window);
+  let _otHookInFlight = false; // evita loop quando usamos fetch internamente
+
+  async function ghGetContent(path, headers, branch){
+    const url = `https://api.github.com/repos/${encodeURIComponent(GH.owner)}/${encodeURIComponent(GH.repo)}/contents/${encodeURIComponent(path)}?ref=${encodeURIComponent(branch||GH.branch)}`;
+    const r = await _origFetch(url, { headers });
+    if (r.status === 404) return { text:'', sha:null };
+    if (!r.ok) throw new Error('GET '+path+' '+r.status);
+    const j = await r.json();
+    const text = j && j.content ? b64ToUtf8(j.content) : '';
+    return { text, sha: j.sha || null };
+  }
+  async function ghPutContent(path, newText, message, headers, branch, sha){
+    const url = `https://api.github.com/repos/${encodeURIComponent(GH.owner)}/${encodeURIComponent(GH.repo)}/contents/${encodeURIComponent(path)}`;
+    const body = {
+      message: message || `chore: update ${path}`,
+      content: utf8ToB64(newText),
+      branch: branch || GH.branch,
+      ...(sha ? { sha } : {})
+    };
+    const r = await _origFetch(url, {
+      method:'PUT',
+      headers: { ...headers, 'Content-Type':'application/json' },
+      body: JSON.stringify(body)
+    });
+    if (!r.ok) {
+      const t = await r.text();
+      throw new Error('PUT '+path+' '+r.status+': '+t);
+    }
+    const et = r.headers.get('ETag') || null;
+    let newSha=null; try{ const jj=await r.clone().json(); newSha = jj?.content?.sha || null; }catch{}
+    return { sha: newSha, etag: et };
+  }
+
+  /* ======================================================
+   *  COUNTER GLOBAL DE OT (ot_counter.txt)
+   *  - Se não existir, cria com base no maior OT dos CSVs
+   * ====================================================== */
+  async function ensureCounter(headers){
+    // tenta ler
+    try{
+      const { text, sha } = await ghGetContent(GH.counterPath, headers, GH.branch);
+      const n = parseInt((text||'').trim(), 10);
+      if (!isNaN(n)) return { value:n, sha };
+    }catch{ /* continua */ }
+
+    // não existe ou inválido -> calcular pelo maior OT nos dois CSVs
+    let maxN = 0;
+    try{
+      const { text: jobsT } = await ghGetContent(GH.jobsPath, headers, GH.branch);
+      const { text: encT  } = await ghGetContent(GH.encPath,  headers, GH.branch);
+      const both = [jobsT, encT].filter(Boolean);
+      for (const t of both){
+        const { rows, head } = csvToObjs(t);
+        const colOT = (head||[]).includes('ot') ? 'ot' : null;
+        if (!colOT) continue;
+        for (const r of rows){
+          const n = numFromOT(r.ot);
+          if (!isNaN(n) && n > maxN) maxN = n;
+        }
+      }
+    }catch{/* ignore */}
+
+    const initVal = maxN; // valor atual no arquivo; o próximo emitido será +1
+    const put = await ghPutContent(GH.counterPath, String(initVal), 'chore(ot): init counter', headers, GH.branch, null);
+    return { value: initVal, sha: put.sha || null };
+  }
+
+  async function reserveOTs(qty, headers, retries=3){
+    if (qty <= 0) return [];
+    let attempt = 0;
+    while (attempt <= retries){
+      attempt++;
+      try{
+        const { text, sha } = await ghGetContent(GH.counterPath, headers, GH.branch);
+        const cur = parseInt((text||'').trim(),10);
+        if (isNaN(cur)) throw new Error('counter invalid');
+        const start = cur + 1;
+        const end   = cur + qty;
+        // grava novo valor (end) atomizando
+        await ghPutContent(GH.counterPath, String(end), `chore(ot): reserve ${qty}`, headers, GH.branch, sha);
+        // retorna formatado
+        const arr=[]; for (let n=start;n<=end;n++) arr.push(formatOT(n));
+        return arr;
+      }catch(e){
+        // Se 404, cria
+        if (String(e).includes('404') || String(e).includes('counter invalid')){
+          await ensureCounter(headers);
+          continue; // tenta de novo
+        }
+        // conflito (409) ou intermitência -> espera e tenta
+        await sleep(250 + Math.random()*400);
+      }
+    }
+    throw new Error('Falha ao reservar OTs (concorrência).');
+  }
+
+  /* ======================================================
+   *  AJUSTE DO PUT DE jobs.csv:
+   *   - Intercepta PUT do GitHub API p/ jobs.csv
+   *   - Garante OTs únicas (gera para novas/duplicadas)
+   * ====================================================== */
+  function urlIsJobsPut(url, method){
+    if (String(method||'').toUpperCase() !== 'PUT') return false;
+    return /\/repos\/[^/]+\/[^/]+\/contents\/jobs\.csv(\?|$)/.test(String(url));
+  }
+
+  function decodePutBody(init){
+    const b = init && init.body;
+    if (!b) return null;
+    try{
+      const obj = (typeof b === 'string') ? JSON.parse(b) : (b instanceof Blob ? null : b);
+      if (!obj || !obj.content) return null;
+      return obj;
+    }catch{ return null; }
+  }
+
+  function cloneInitWithBody(init, bodyObj){
+    const newInit = { ...(init||{}) };
+    newInit.body = JSON.stringify(bodyObj);
+    return newInit;
+  }
+
+  function countBy(arr, getKey){
+    const m = new Map();
+    arr.forEach((x,i)=>{
+      const k = getKey(x,i);
+      m.set(k, (m.get(k)||0)+1);
+    });
+    return m;
+  }
+
+  async function fixJobsCsvBeforePut(url, init){
+    // headers do put original
+    const token = getToken();
+    const headers = ghHeaders(token, { 'Content-Type':'application/json' });
+
+    // 1) conteúdo novo pretendido
+    const putBody = decodePutBody(init);
+    if (!putBody) return init; // sem body json? deixa seguir
+    const newTextRaw = b64ToUtf8(putBody.content||'');
+    const { head: newHead, rows: newRows } = csvToObjs(newTextRaw);
+    if (!newHead.length || !newRows.length) return init;
+
+    // 2) carrega CSV atual (antes do PUT) e finalizados
+    const [{ text: curJobs }, { text: curEnc }] = await Promise.all([
+      ghGetContent(GH.jobsPath, headers, GH.branch).catch(()=>({text:''})),
+      ghGetContent(GH.encPath,  headers, GH.branch).catch(()=>({text:''}))
+    ]);
+    const { rows: oldRows } = csvToObjs(curJobs);
+    const { rows: encRows } = csvToObjs(curEnc);
+
+    const oldOTs = new Set(oldRows.map(r => String(r.ot||'')).filter(Boolean));
+    const encOTs = new Set(encRows.map(r => String(r.ot||'')).filter(Boolean));
+    const usedGlobal = new Set([...oldOTs, ...encOTs].filter(Boolean));
+
+    // 3) detectar linhas candidatas a receber OT nova
+    //    - sem OT
+    //    - duplicadas de OT *dentro do próprio novo arquivo* (segunda ocorrência em diante)
+    //    - com OT ainda não existente no jobs atual, mas que colide com enc (raro) => emitir nova
+    const counts = countBy(newRows, r => String(r.ot||''));
+    const needAssignIdx = []; // índices em newRows que precisam de OT
+    const seen = new Set();   // para identificar "segunda ocorrência"
+
+    for (let i=0;i<newRows.length;i++){
+      const r = newRows[i];
+      const ot = String(r.ot||'').trim();
+
+      if (!ot){ needAssignIdx.push(i); continue; }
+
+      // duplicado dentro do próprio arquivo novo?
+      const key = ot + '|' + (counts.get(ot)||0);
+      if (counts.get(ot) > 1){
+        // marca todas menos a 1ª ocorrência
+        if (seen.has(ot)) { needAssignIdx.push(i); continue; }
+        seen.add(ot);
+      }
+
+      // se ot não existia no jobs atual, mas existe em finalizados -> trocamos
+      if (!oldOTs.has(ot) && encOTs.has(ot)){
+        needAssignIdx.push(i); continue;
+      }
+      // Se já existia no jobs atual, assumimos ser edição -> mantém OT
+    }
+
+    if (!needAssignIdx.length){
+      // Nada a fazer; retorna init original
+      return init;
+    }
+
+    // 4) reservar OTs e aplicar
+    // garante counter
+    await ensureCounter(headers);
+    const freshOTs = await reserveOTs(needAssignIdx.length, headers);
+    needAssignIdx.forEach((idx, j)=> {
+      newRows[idx].ot = freshOTs[j];
+    });
+
+    // 5) reconstroi novo csv e reempacota body
+    const fixedText = objsToCsv(newHead, newRows);
+    const bodyObj = { ...putBody, content: utf8ToB64(fixedText) };
+    return cloneInitWithBody(init, bodyObj);
+  }
+
+  // ============ PATCH GLOBAL DO FETCH ============
+  window.fetch = async function(input, init){
+    try{
+      if (_otHookInFlight) {
+        return _origFetch(input, init); // chamadas internas do patch
+      }
+
+      const url = (typeof input === 'string') ? input : (input && input.url) || '';
+      const method = init && init.method;
+
+      // intercepta somente PUT de jobs.csv
+      if (urlIsJobsPut(url, method)) {
+        _otHookInFlight = true;
+        try{
+          const nextInit = await fixJobsCsvBeforePut(url, init);
+          return await _origFetch(input, nextInit);
+        } finally {
+          _otHookInFlight = false;
+        }
+      }
+
+      return await _origFetch(input, init);
+    }catch(e){
+      // fallback em caso de erro no patch
+      try{ return await _origFetch(input, init); } catch { throw e; }
+    }
+  };
+
+  /* ======================================================
+   *  API opcional (se quiser usar direto nos seus handlers)
+   *   window.getNextOT(): Promise<string>
+   *   window.reserveOTs(n): Promise<string[]>
+   * ====================================================== */
+  window.getNextOT = async function(){
+    const token = getToken();
+    const headers = ghHeaders(token);
+    await ensureCounter(headers);
+    const arr = await reserveOTs(1, headers);
+    return arr[0];
+  };
+  window.reserveOTs = async function(n){
+    const token = getToken();
+    const headers = ghHeaders(token);
+    await ensureCounter(headers);
+    return reserveOTs(n, headers);
+  };
+
+  // Aviso no console
+  console.log('[WV OT] Hook de OT global ativo: OTs únicas entre jobs.csv e jobs_encerrados.csv');
+
+})();
+</script>
+
+<!// AJUTES - OT GLOBAL (Lançados e Finalizados) FIM ---->
+
+
+<!// AJUTES - OT GLOBAL (OT sem zeros a esquerda)  ---->
+<script>
+(function(){
+  "use strict";
+
+  /* ===============================
+   * Config GitHub (ajuste se mudar)
+   * =============================== */
+  const GH = {
+    owner:  'JPVectorsitem',
+    repo:   'LINKS-img',
+    branch: 'main',
+    jobsPath: 'jobs.csv',
+    encPath:  'jobs_encerrados.csv'
+  };
+
+  /* ===============================
+   * Helpers gerais
+   * =============================== */
+  function getToken(){
+    try{
+      const saved = JSON.parse(localStorage.getItem('wv_gh_cfg')||'{}');
+      return (window.gh && window.gh.token) || saved.token || '';
+    }catch{ return (window.gh && window.gh.token) || ''; }
+  }
+  function ghHeaders(token, extra={}){
+    return {
+      'Accept':'application/vnd.github+json',
+      'X-GitHub-Api-Version':'2022-11-28',
+      ...(token ? {'Authorization':`Bearer ${token}`} : {}),
+      ...extra
+    };
+  }
+  function b64ToUtf8(b64){
+    const bin = atob(b64);
+    const bytes = new Uint8Array(bin.length);
+    for (let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
+    return new TextDecoder().decode(bytes);
+  }
+  function utf8ToB64(str){
+    const bytes = new TextEncoder().encode(str);
+    let bin=''; for(let i=0;i<bytes.length;i++) bin+=String.fromCharCode(bytes[i]);
+    return btoa(bin);
+  }
+  async function ghGet(path, branch){
+    const token = getToken();
+    if (!token) throw new Error('Token GitHub não configurado.');
+    const url = `https://api.github.com/repos/${encodeURIComponent(GH.owner)}/${encodeURIComponent(GH.repo)}/contents/${encodeURIComponent(path)}?ref=${encodeURIComponent(branch||GH.branch)}`;
+    const r = await fetch(url, { headers: ghHeaders(token) });
+    if (r.status === 404) return { text:'', sha:null };
+    if (!r.ok) throw new Error('GET '+path+' '+r.status);
+    const j = await r.json();
+    const text = j && j.content ? b64ToUtf8(j.content) : '';
+    return { text, sha: j.sha || null };
+  }
+  async function ghPut(path, newText, msg){
+    const token = getToken();
+    if (!token) throw new Error('Token GitHub não configurado.');
+    let sha = null;
+    try { const cur = await ghGet(path, GH.branch); sha = cur.sha; } catch {}
+    const url = `https://api.github.com/repos/${encodeURIComponent(GH.owner)}/${encodeURIComponent(GH.repo)}/contents/${encodeURIComponent(path)}`;
+    const body = { message: msg || `chore(csv): normalize OTs ${path}`, content: utf8ToB64(newText), branch: GH.branch, ...(sha?{sha}:{}) };
+    const r = await fetch(url, { method:'PUT', headers: { ...ghHeaders(token), 'Content-Type':'application/json' }, body: JSON.stringify(body) });
+    if (!r.ok) { const t = await r.text(); throw new Error('PUT '+path+' '+r.status+': '+t); }
+    return true;
+  }
+
+  /* ===============================
+   * CSV helpers leves
+   * =============================== */
+  function parseCsv(text){
+    if (!text) return [];
+    const out=[]; let row=[], cur='', q=false;
+    for(let i=0;i<text.length;i++){
+      const c=text[i];
+      if(q){
+        if(c=='"'){ if(text[i+1]=='"'){cur+='"'; i++;} else q=false; }
+        else cur+=c;
+      }else{
+        if(c=='"') q=true;
+        else if(c==','){ row.push(cur); cur=''; }
+        else if(c=='\r'){ /* ignore */ }
+        else if(c=='\n'){ row.push(cur); out.push(row); row=[]; cur=''; }
+        else cur+=c;
+      }
+    }
+    if(cur.length>0 || row.length>0){ row.push(cur); out.push(row); }
+    return out;
+  }
+  function csvToObjs(text){
+    const rows = parseCsv(text);
+    if (!rows.length) return { head:[], rows:[] };
+    const head = rows[0];
+    const list=[];
+    for(let i=1;i<rows.length;i++){
+      const r=rows[i]; if(!r || (r.length===1 && r[0]==='')) continue;
+      const o={}; for(let j=0;j<head.length;j++) o[head[j]] = r[j] ?? '';
+      list.push(o);
+    }
+    return { head, rows:list };
+  }
+  const csvEsc = v => {
+    v = v==null ? '' : String(v);
+    return /[",\n]/.test(v) ? `"${v.replace(/"/g,'""')}"` : v;
+  };
+  function objsToCsv(head, rows){
+    const H = head.slice();
+    const body = rows.map(o => H.map(h => csvEsc(o[h] ?? '')).join(',')).join('\n');
+    return H.join(',') + '\n' + (body ? (body+'\n') : '');
+  }
+
+  /* ===============================
+   * Trim de zeros à esquerda
+   * =============================== */
+  function trimOT(ot){
+    // Mantém prefixo se existir; extrai número; remove zeros à esquerda
+    if (!ot) return ot;
+    const s = String(ot);
+    const m = s.match(/^([A-Za-z\-]*)(\d+)$/) || s.match(/^([A-Za-z\-]*)(0*)(\d+)$/) || s.match(/^(.+?)-?0*(\d+)$/) || [];
+    // estratégia robusta: pega últimos dígitos
+    const md = s.match(/(\d+)\s*$/);
+    if (!md) return s;
+    const num = parseInt(md[1],10);
+    if (isNaN(num)) return s;
+    // prefixo é tudo até os dígitos começarem
+    const px = s.slice(0, s.lastIndexOf(md[1]));
+    const dash = px.endsWith('-') ? '' : (px ? '-' : '');
+    return `${px}${dash}${num}`;
+  }
+
+  // UI: sempre mostrar sem zeros (sem mexer em data-ot)
+  function displayTrimInCell(td){
+    if (!td) return;
+    const txt = (td.textContent || '').trim();
+    if (!txt) return;
+    const trimmed = trimOT(txt);
+    if (trimmed !== txt) td.textContent = trimmed;
+  }
+  function applyOTDisplayTrim(root){
+    const scope = root || document;
+    // tabela principal (OT está na 1ª coluna)
+    scope.querySelectorAll('#jobsBody tr[data-ot] td:nth-child(1)').forEach(displayTrimInCell);
+    // modais conhecidos (finalizar, finalizados, encerrar, duplicar) — 2ª col costuma ser OT
+    scope.querySelectorAll('#finList tr td:nth-child(2), #finzList tr td:nth-child(2), #encList tr td:nth-child(2), #dupList tr td:nth-child(2)').forEach(displayTrimInCell);
+  }
+
+  // Observa inserções de linhas de jobs para aplicar o display trim automaticamente
+  const bodyMo = new MutationObserver(muts=>{
+    let needs = false;
+    for (const m of muts){
+      m.addedNodes && m.addedNodes.forEach(n=>{
+        if (n.nodeType===1 && (n.matches('#jobsBody tr[data-ot]') || n.querySelector?.('#jobsBody tr[data-ot]'))) needs = true;
+        // listas dos modais
+        if (n.nodeType===1 && (n.matches('#finList tr, #finzList tr, #encList tr, #dupList tr') || n.querySelector?.('#finList tr, #finzList tr, #encList tr, #dupList tr'))) needs = true;
+      });
+    }
+    if (needs) applyOTDisplayTrim();
+  });
+  bodyMo.observe(document.documentElement, { childList:true, subtree:true });
+
+  // também ao carregar
+  if (document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', ()=> applyOTDisplayTrim());
+  } else {
+    applyOTDisplayTrim();
+  }
+
+  /* ===============================
+   * Normalização em disco (uma vez)
+   * =============================== */
+  async function normalizeCsvOTs(path){
+    const { text } = await ghGet(path, GH.branch);
+    if (!text) return false;
+    const { head, rows } = csvToObjs(text);
+    if (!head.length) return false;
+
+    const hasOT = head.includes('ot');
+    if (!hasOT) return false;
+
+    let changed = false;
+    for (const r of rows){
+      const cur = r.ot || '';
+      const trimmed = trimOT(cur);
+      if (trimmed && trimmed !== cur){
+        r.ot = trimmed;
+        changed = true;
+      }
+    }
+    if (!changed) return false;
+
+    const next = objsToCsv(head, rows);
+    await ghPut(path, next, `chore(ot): trim leading zeros in ${path}`);
+    return true;
+  }
+
+  async function normalizeAllOnce(){
+    // roda só se tiver token + não rodou ainda nesta máquina
+    if (!getToken()) return;
+    if (localStorage.getItem('wv_ot_trim_done') === 'yes') return;
+
+    try{
+      // pequena espera para não competir com outras cargas logo no login
+      await new Promise(r => setTimeout(r, 800));
+
+      const changedJobs = await normalizeCsvOTs(GH.jobsPath).catch(()=>false);
+      const changedEnc  = await normalizeCsvOTs(GH.encPath).catch(()=>false);
+
+      if (changedJobs || changedEnc){
+        // recarrega UI principal, se houver função disponível
+        if (typeof window.loadJobsFromGitHub === 'function'){
+          try { await window.loadJobsFromGitHub(); } catch {}
+        }
+      }
+      localStorage.setItem('wv_ot_trim_done','yes');
+    }catch(e){
+      // não trava a app
+      console.warn('[WV OT] normalização falhou:', e);
+    }
+  }
+
+  // dispara após login (quando currentUser existir) ou após token presente
+  function tryBootNormalize(){
+    if (!getToken()) return; // sem token, não é possível
+    if (window.currentUser){
+      normalizeAllOnce();
+      return true;
+    }
+    return false;
+  }
+
+  // tenta já
+  if (!tryBootNormalize()){
+    // observa login
+    const mo = new MutationObserver(()=>{
+      if (tryBootNormalize()) mo.disconnect();
+    });
+    mo.observe(document.documentElement, { childList:true, subtree:true, attributes:true });
+    // timeout de segurança (se currentUser já existir mas não detectamos)
+    setTimeout(tryBootNormalize, 2000);
+  }
+
+  // API opcional
+  window.WV_OT = window.WV_OT || {};
+  window.WV_OT.trimDisplayNow = () => applyOTDisplayTrim();
+  window.WV_OT.trimString = trimOT;
+
+  console.log('[WV OT] visual e normalização: zeros à esquerda removidos (OT-0007 → OT-7)');
+})();
+</script>
+
+<!// AJUTES - OT GLOBAL (OT sem zeros a esquerda) FIM ---->
+
 </body>
 </html>
