@@ -7178,6 +7178,208 @@
 
 <//! PERSISTENCIA LOGIN 20 min FIM ---->
 
+<//!PREMISSÕES SEPARADOS POR CARGOS ---->
+
+<script>
+(function(){
+  "use strict";
+
+  // ========= util: normalização de cargos =========
+  const ACCENT = (s)=> String(s||'').normalize('NFD').replace(/\p{Diacritic}/gu,'').toLowerCase().trim();
+  const ROLE_ALIAS = new Map([
+    ['administrador','administrador'], ['adminstrador','administrador'], ['administrator','administrador'],
+    ['diretor','diretor'], ['gerente','gerente'],
+    ['trafego','trafego'], ['tráfego','trafego'],
+    ['layout','layout'], ['digitador','digitador'],
+    ['diagramador','diagramador'], ['diagramação','diagramador'], ['diagramacao','diagramador'],
+    ['revisor','revisor'], ['encerramento','encerramento'], ['site','site']
+  ]);
+  const canonRole = (name)=> ROLE_ALIAS.get(ACCENT(name)) || ACCENT(name);
+
+  function getUserRoles(){
+    const u = (window.currentUser || {});
+    const r1 = canonRole(u.cargo_principal || u.cargo || '');
+    const r2 = canonRole(u.cargo_secundaria || '');
+    const roles = [r1, r2].filter(Boolean);
+    return Array.from(new Set(roles));
+  }
+
+  // ========= conjuntos =========
+  const ROLESETS = {
+    TOTAL: ['administrador','diretor','gerente','trafego'], // "permissão total"
+  };
+
+  // ========= botões (IDs) -> quem pode =========
+  const ACTIONS = {
+    btnNovo:            [...ROLESETS.TOTAL, 'layout'],
+    btnDuplicar:        [...ROLESETS.TOTAL, 'layout'],
+    btnEditar:          [...ROLESETS.TOTAL, 'layout'],
+    btnFiltrar:         'ALL',
+    btnDash:            'ALL',
+    btnVerFinalizados:  [...ROLESETS.TOTAL, 'layout'],
+    btnEtapasMassa:     [...ROLESETS.TOTAL],            // se o botão não existir, ignora
+    btnFinalizar:       [...ROLESETS.TOTAL, 'site'],
+    btnExcluir:         [...ROLESETS.TOTAL, 'layout'],
+    btnEncerrar:        [...ROLESETS.TOTAL, 'encerramento'],
+  };
+
+  // ========= etapas por cargo (para quem NÃO é TOTAL) =========
+  // IMPORTANTÍSSIMO: estas etapas de sistema são SOMENTE para TOTAL:
+  const SYSTEM_ONLY_STEPS = new Set(['lista','aprovacao','cancelado']);
+
+  const ROLE_TO_STEPS = {
+    layout:       ['layout'],
+    digitador:    ['digitacao'],
+    diagramador:  ['diagramacao'],
+    revisor:      ['revisao'],
+    encerramento: ['encerramento'],
+    site:         ['site'],
+  };
+
+  // ========= helpers perm =========
+  function hasAny(required){
+    const have = new Set(getUserRoles());
+    return required.some(r => have.has(r));
+  }
+  function canAction(id){
+    const rule = ACTIONS[id];
+    if (!rule) return true;
+    if (rule === 'ALL') return true;
+    return hasAny(rule.map(canonRole));
+  }
+  function hasFullEtapas(){
+    return hasAny(ROLESETS.TOTAL);
+  }
+  function allowedSteps(){
+    if (hasFullEtapas()) {
+      // TOTAL: tudo
+      return new Set(['lista','aprovacao','cancelado','layout','digitacao','diagramacao','revisao','encerramento','site']);
+    }
+    // demais: apenas o(s) do(s) cargo(s) 1/2; NUNCA as de sistema
+    const roles = getUserRoles();
+    const allow = new Set();
+    roles.forEach(r => (ROLE_TO_STEPS[r]||[]).forEach(s => allow.add(s)));
+    // garante que as de sistema nunca entrem
+    SYSTEM_ONLY_STEPS.forEach(s => allow.delete(s));
+    return allow;
+  }
+
+  // expõe
+  window.WV = window.WV || {};
+  window.WV.perms = { rolesOf:getUserRoles, canAction, hasFullEtapas, allowedSteps };
+
+  // ========= esconder botões sem permissão =========
+  const BTN_IDS = [
+    'btnNovo','btnDuplicar','btnEditar','btnFiltrar','btnDash','btnVerFinalizados',
+    'btnEtapasMassa','btnFinalizar','btnExcluir','btnEncerrar'
+  ];
+  function hideEl(el, hide){
+    if (!el) return;
+    if (hide){
+      if (el.style.display !== 'none'){
+        el.dataset.prevDisplay = el.style.display || '';
+        el.style.display = 'none';
+      }
+    } else {
+      el.style.display = el.dataset.prevDisplay || '';
+    }
+  }
+  function applyPermissions(){
+    BTN_IDS.forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      hideEl(el, !canAction(id));
+    });
+  }
+  window.applyPermissions = applyPermissions;
+
+  // aplica ao carregar / login
+  if (document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', applyPermissions, { once:true });
+  } else {
+    applyPermissions();
+  }
+
+  // ========= controle do modal de ETAPAS (“+”) =========
+  // bloqueio hard de clique em etapas não permitidas
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('#etapasList [data-add-step]');
+    if (!btn) return;
+    const step = String(btn.getAttribute('data-add-step')||'').toLowerCase();
+
+    const full = hasFullEtapas();
+    const allow = allowedSteps();
+
+    // sistema (lista/aprovacao/cancelado) só TOTAL
+    if (SYSTEM_ONLY_STEPS.has(step) && !full){
+      e.preventDefault(); e.stopPropagation();
+      const t=document.getElementById('toast'); if(t){ t.textContent='Sem permissão para esta etapa.'; t.style.display='block'; setTimeout(()=>t.style.display='none',1600); }
+      return;
+    }
+    // demais: precisa estar no allow
+    if (!full && !allow.has(step)){
+      e.preventDefault(); e.stopPropagation();
+      const t=document.getElementById('toast'); if(t){ t.textContent='Sem permissão para esta etapa.'; t.style.display='block'; setTimeout(()=>t.style.display='none',1600); }
+      return;
+    }
+  }, true);
+
+  // ao abrir o modal, ESCONDER cartões de etapas sem permissão
+  function restrictEtapasModalUI(){
+    const dlg  = document.getElementById('modalEtapas');
+    const list = document.getElementById('etapasList');
+    if (!dlg || !dlg.open || !list) return;
+
+    const full = hasFullEtapas();
+    const allow = allowedSteps();
+
+    list.querySelectorAll('.etapaCard').forEach(card => {
+      const addBtn = card.querySelector('[data-add-step]');
+      if (!addBtn) { hideEl(card, true); return; }
+      const step = String(addBtn.getAttribute('data-add-step')||'').toLowerCase();
+
+      let can = true;
+      if (SYSTEM_ONLY_STEPS.has(step)) can = full; // sistema => só TOTAL
+      else if (!full) can = allow.has(step);       // demais => conforme cargo
+
+      hideEl(card, !can);
+    });
+  }
+
+  // empacota openEtapasModal para aplicar quando abrir
+  (function wrapOpenEtapas(){
+    const tryWrap = () => {
+      if (typeof window.openEtapasModal === 'function' && !window.openEtapasModal._wrapped){
+        const orig = window.openEtapasModal;
+        window.openEtapasModal = function(ot){
+          const r = orig.call(this, ot);
+          setTimeout(restrictEtapasModalUI, 0);
+          return r;
+        };
+        window.openEtapasModal._wrapped = true;
+      }
+    };
+    tryWrap();
+    const obs = new MutationObserver(tryWrap);
+    obs.observe(document.documentElement, { childList:true, subtree:true });
+  })();
+
+  // fallback: observar atributo open do dialog
+  const dlgEtapas = document.getElementById('modalEtapas');
+  if (dlgEtapas){
+    const mo = new MutationObserver(restrictEtapasModalUI);
+    mo.observe(dlgEtapas, { attributes:true, attributeFilter:['open'] });
+  }
+
+  // re-aplica se trocar usuário/sessão em localStorage
+  window.addEventListener('storage', (e)=>{
+    if (e.key === 'wv_session') setTimeout(()=>{ applyPermissions(); restrictEtapasModalUI(); }, 0);
+  });
+
+})();
+</script>
+
+<//!PREMISSÕES SEPARADOS POR CARGOS - FIM ---->
 
 </body>
 </html>
