@@ -8313,184 +8313,67 @@
 
 <!//BLOCK IP>
 
-<style>
-  /* Overlay de bloqueio por IP */
-  #ipBlocker{
-    position:fixed; inset:0; z-index:2147483647;
-    display:none; place-items:center;
-    background:#0b1220;
-    color:#eaf0ff; font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
-  }
-  #ipBlocker.show{ display:grid }
-  #ipBlocker .box{
-    max-width:680px; width:min(92vw,680px);
-    background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.02));
-    border:1px solid rgba(255,255,255,.12);
-    border-radius:16px; padding:18px 20px; text-align:center;
-    box-shadow:0 18px 60px rgba(0,0,0,.6);
-  }
-  #ipBlocker h2{ margin:0 0 8px 0; font-size:20px }
-  #ipBlocker p{ margin:6px 0; color:#c7d2fe }
-  #ipBlocker .muted{ color:#94a3b8; font-size:.9rem }
-  #ipBlocker .row{ margin-top:12px; display:flex; justify-content:center; gap:10px; flex-wrap:wrap }
-  #ipBlocker .btn{
-    appearance:none; cursor:pointer;
-    border-radius:10px; padding:10px 14px; font-weight:600;
-    background:#0d1628; border:1px solid rgba(255,255,255,.12); color:#eaf0ff;
-  }
-  #ipBlocker .btn.primary{ background:linear-gradient(180deg,#2a60ff,#1b47c9); border-color:transparent }
-</style>
-
-<div id="ipBlocker" aria-hidden="true">
-  <div class="box">
-    <h2>Acesso bloqueado</h2>
-    <p>Seu IP não está autorizado para acessar esta aplicação.</p>
-    <p class="muted">IP detectado: <span id="ipBlockerClientIp">—</span></p>
-    <p class="muted">Se você acha que isso é um engano, contate o time de TI.</p>
-    <div class="row">
-      <button class="btn" id="ipBlockerRetry">Tentar novamente</button>
-      <button class="btn primary" id="ipBlockerReload">Recarregar</button>
-    </div>
-  </div>
-</div>
-
 <script>
 (function(){
   "use strict";
 
-  /* =======================
-   * CONFIG – AJUSTE AQUI
-   * ======================= */
+  // ===== CONFIG =====
   const GH = {
     owner:  'JPVectorsitem',
     repo:   'LINKS-img',
     branch: 'main',
-    path:   'segurancaallow_ip' // <- caminho do .txt com os IPs/ranges permitidos
+    // tenta nessas ordens; 1º é o seu arquivo sem "/"
+    pathCandidates: ['segurancaallow_ip.txt','allow_ip.txt','seguranca/allow_ip.txt']
   };
+  const CHECK_TIMEOUT = 10000;   // ms
+  const DEBUG = false;           // true p/ ver regra que casou
+  const ALLOW_LOCAL = true;      // autoriza 127.0.0.1 / 10.* / 172.16-31.* / 192.168.*
 
-  // Permite trabalhar em redes locais (dev) sem travar?
-  const ALLOW_LOCAL = true; // 127.0.0.1 / 10.* / 172.16–31.* / 192.168.* (apenas quando ip público não é detectado)
-  // Timeout total do check (ms) — falhou -> bloqueia
-  const CHECK_TIMEOUT = 9000;
-
-  /* =======================
-   * UTILS
-   * ======================= */
-  function getToken(){
-    try{
-      const saved = JSON.parse(localStorage.getItem('wv_gh_cfg')||'{}');
-      return (window.gh && window.gh.token) || saved.token || '';
-    }catch{ return (window.gh && window.gh.token) || ''; }
+  // ===== Overlay mínimo (cria se não existir) =====
+  function ensureOverlay(){
+    if (document.getElementById('ipBlocker')) return;
+    const css = document.createElement('style');
+    css.textContent = `
+      #ipBlocker{position:fixed;inset:0;z-index:2147483647;display:none;place-items:center;background:#0b1220;color:#eaf0ff;font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+      #ipBlocker.show{display:grid}
+      #ipBlocker .box{max-width:680px;width:min(92vw,680px);background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:18px 20px;text-align:center;box-shadow:0 18px 60px rgba(0,0,0,.6)}
+      #ipBlocker h2{margin:0 0 8px 0;font-size:20px}
+      #ipBlocker p{margin:6px 0;color:#c7d2fe}
+      #ipBlocker .muted{color:#94a3b8;font-size:.9rem}
+      #ipBlocker .btn{appearance:none;cursor:pointer;border-radius:10px;padding:10px 14px;font-weight:600;background:#0d1628;border:1px solid rgba(255,255,255,.12);color:#eaf0ff;margin:4px}
+      #ipBlocker .btn.primary{background:linear-gradient(180deg,#2a60ff,#1b47c9);border-color:transparent}
+      #ipBlocker .debug{margin-top:8px;color:#9ca3af;font-size:.85rem;word-break:break-all}
+    `;
+    document.head.appendChild(css);
+    const div = document.createElement('div');
+    div.id='ipBlocker'; div.innerHTML = `
+      <div class="box">
+        <h2>Acesso bloqueado</h2>
+        <p>Seu IP não está autorizado para acessar esta aplicação.</p>
+        <p class="muted">IP detectado: <span id="ipBlockerClientIp">—</span></p>
+        <div id="ipBlockerDebug" class="debug" style="display:none"></div>
+        <div>
+          <button class="btn" id="ipBlockerRetry">Tentar novamente</button>
+          <button class="btn primary" id="ipBlockerReload">Recarregar</button>
+        </div>
+      </div>`;
+    document.body.appendChild(div);
+    document.getElementById('ipBlockerRetry')?.addEventListener('click', runCheck);
+    document.getElementById('ipBlockerReload')?.addEventListener('click', ()=> location.reload());
   }
-  function ghHeaders(token, extra={}){
-    return {
-      'Accept':'application/vnd.github+json',
-      'X-GitHub-Api-Version':'2022-11-28',
-      ...(token ? {'Authorization':`Bearer ${token}`} : {}),
-      ...extra
-    };
-  }
+  ensureOverlay();
 
-  // Busca allowlist pela URL RAW (pública). Se falhar, tenta API (precisa token).
-  async function fetchAllowList(){
-    const rawUrl = `https://raw.githubusercontent.com/${encodeURIComponent(GH.owner)}/${encodeURIComponent(GH.repo)}/${encodeURIComponent(GH.branch)}/${GH.path}`;
-    // 1) tenta RAW
-    try{
-      const r = await fetch(rawUrl, { cache:'no-store' });
-      if (r.ok) return await r.text();
-    }catch{}
-    // 2) API do GitHub
-    const token = getToken();
-    if (!token) throw new Error('Repo privado e sem token.');
-    const apiUrl = `https://api.github.com/repos/${encodeURIComponent(GH.owner)}/${encodeURIComponent(GH.repo)}/contents/${encodeURIComponent(GH.path)}?ref=${encodeURIComponent(GH.branch)}`;
-    const r = await fetch(apiUrl, { headers: ghHeaders(token) });
-    if (!r.ok) throw new Error('Falha ao ler allow_ip.txt ('+r.status+')');
-    const j = await r.json();
-    if (!j || !j.content) throw new Error('Conteúdo inválido.');
-    // base64 -> utf8
-    const bin = atob(j.content);
-    const bytes = new Uint8Array(bin.length);
-    for (let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
-    return new TextDecoder().decode(bytes);
-  }
-
-  async function fetchClientIp(){
-    const r = await fetch('https://api.ipify.org?format=json', { cache:'no-store' });
-    if (!r.ok) throw new Error('ipify falhou');
-    const j = await r.json();
-    return j && j.ip ? String(j.ip) : '';
-  }
-
-  function parseRules(text){
-    return (text||'')
-      .split(/\r?\n/)
-      .map(s => s.trim())
-      .filter(s => s && !s.startsWith('#')); // ignora comentários
-  }
-
-  // IPv4 helpers
-  function ipV4toInt(ip){
-    const m = String(ip||'').match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
-    if (!m) return null;
-    const a = [+m[1], +m[2], +m[3], +m[4]];
-    if (a.some(x => x<0 || x>255 || !Number.isInteger(x))) return null;
-    return ((a[0]<<24)>>>0) + (a[1]<<16) + (a[2]<<8) + a[3];
-  }
-  function cidrMatch(ip, cidr){
-    const m = String(cidr||'').match(/^(\d+\.\d+\.\d+\.\d+)\/(\d{1,2})$/);
-    if (!m) return false;
-    const base = ipV4toInt(m[1]); const bits = +m[2];
-    const val = ipV4toInt(ip);
-    if (base==null || val==null || bits<0 || bits>32) return false;
-    const mask = bits===0 ? 0 : (~((1<<(32-bits))-1))>>>0;
-    return (val & mask) === (base & mask);
-  }
-  function wildcardMatch(ip, mask){
-    // ex.: 177.23.*.*  ou  10.10.1.*
-    const a = String(ip||'').split('.'); const b = String(mask||'').split('.');
-    if (a.length!==4 || b.length!==4) return false;
-    for(let i=0;i<4;i++){
-      if (b[i]==='*') continue;
-      if (a[i]!==b[i]) return false;
-    }
-    return true;
-  }
-
-  function isAllowed(ip, rules){
-    // IPv4 apenas
-    const isV4 = /^\d+\.\d+\.\d+\.\d+$/.test(ip||'');
-    if (!isV4){
-      // se não identificar IP público e ALLOW_LOCAL=true, libera (útil p/ dev com NAT)
-      if (ALLOW_LOCAL && (!ip || ip === '::1' || ip === '127.0.0.1')) return true;
-      return false;
-    }
-
-    // Opcional: liberar redes privadas quando ip público falhar (em certos proxies)
-    if (ALLOW_LOCAL){
-      if (ip.startsWith('10.') || ip.startsWith('192.168.') || /^172\.(1[6-9]|2\d|3[0-1])\./.test(ip)) return true;
-      if (ip === '127.0.0.1') return true;
-    }
-
-    for (const r of rules){
-      if (r.includes('/')) { if (cidrMatch(ip, r)) return true; }
-      else if (r.includes('*')) { if (wildcardMatch(ip, r)) return true; }
-      else if (r === ip) return true;
-    }
-    return false;
-  }
-
-  /* =======================
-   * UI Blocker
-   * ======================= */
   const blocker = document.getElementById('ipBlocker');
   const elIp    = document.getElementById('ipBlockerClientIp');
-  const btnRet  = document.getElementById('ipBlockerRetry');
-  const btnRel  = document.getElementById('ipBlockerReload');
+  const elDbg   = document.getElementById('ipBlockerDebug');
 
-  function showBlock(ip){
+  function showBlock(ip, dbg){
     if (elIp) elIp.textContent = ip || '—';
+    if (elDbg){
+      if (DEBUG && dbg){ elDbg.style.display='block'; elDbg.textContent = dbg; }
+      else { elDbg.style.display='none'; elDbg.textContent=''; }
+    }
     blocker?.classList.add('show');
-    // impede foco/tab atrás
     document.body.setAttribute('aria-hidden','true');
   }
   function hideBlock(){
@@ -8498,32 +8381,140 @@
     document.body.removeAttribute('aria-hidden');
   }
 
-  async function runCheck(){
-    const killer = new Promise((_,rej)=> setTimeout(()=> rej(new Error('timeout')), CHECK_TIMEOUT));
+  // ===== GitHub fetch =====
+  function getToken(){
     try{
-      const [text, ip] = await Promise.race([Promise.all([fetchAllowList(), fetchClientIp()]), killer]);
+      const saved = JSON.parse(localStorage.getItem('wv_gh_cfg')||'{}');
+      return (window.gh && window.gh.token) || saved.token || '';
+    }catch{ return (window.gh && window.gh.token) || ''; }
+  }
+  function b64ToText(b64){
+    const bin = atob(b64); const bytes = new Uint8Array(bin.length);
+    for (let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
+    return new TextDecoder().decode(bytes);
+  }
+  async function fetchPathRaw(path){
+    const rawUrl = `https://raw.githubusercontent.com/${encodeURIComponent(GH.owner)}/${encodeURIComponent(GH.repo)}/${encodeURIComponent(GH.branch)}/${path}`;
+    const r = await fetch(rawUrl, { cache:'no-store' });
+    if (!r.ok) throw new Error('raw '+r.status);
+    return await r.text();
+  }
+  async function fetchPathApi(path){
+    const token = getToken();
+    const apiUrl = `https://api.github.com/repos/${encodeURIComponent(GH.owner)}/${encodeURIComponent(GH.repo)}/contents/${encodeURIComponent(path)}?ref=${encodeURIComponent(GH.branch)}`;
+    const r = await fetch(apiUrl, { headers: {
+      'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28', ...(token?{'Authorization':`Bearer ${token}`}:{})
+    }});
+    if (!r.ok) throw new Error('api '+r.status);
+    const j = await r.json();
+    if (!j || !j.content) throw new Error('api content vazio');
+    return b64ToText(j.content);
+  }
+  async function fetchAllowList(){
+    const errors = [];
+    for (const path of GH.pathCandidates){
+      try{ return await fetchPathRaw(path); }catch(e){ errors.push(String(e)); }
+      try{ return await fetchPathApi(path); }catch(e){ errors.push(String(e)); }
+    }
+    throw new Error('Falha geral allowlist: '+errors.join(' | '));
+  }
+
+  // ===== IPv4 detect (fonte garantida IPv4) =====
+  async function fetchIPv4(){
+    const probes = [
+      async ()=> (await (await fetch('https://ipv4.icanhazip.com', { cache:'no-store' })).text()).trim(),
+      async ()=> (await (await fetch('https://api.ipify.org?format=text', { cache:'no-store' })).text()).trim()
+    ];
+    for (const p of probes){
+      try{
+        const ip = (await p()) || '';
+        if (/^\d{1,3}(\.\d{1,3}){3}$/.test(ip)) return ip;
+      }catch{}
+    }
+    return ''; // sem IPv4
+  }
+
+  // ===== Regras =====
+  function normalizeText(s){ return String(s||'').replace(/^\uFEFF/,'').replace(/\r\n/g,'\n'); }
+  function parseRules(text){
+    return normalizeText(text).split('\n').map(s=>s.trim()).filter(s=> s && !s.startsWith('#'));
+  }
+  function isIPv4(s){ return /^\d{1,3}(\.\d{1,3}){3}$/.test(String(s||'').trim()); }
+  function ipV4toInt(ip){
+    const m = String(ip||'').match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
+    if (!m) return null;
+    const a = [+m[1], +m[2], +m[3], +m[4]];
+    if (a.some(x => x<0 || x>255 || !Number.isInteger(x))) return null;
+    return ((a[0]<<24)>>>0) + (a[1]<<16) + (a[2]<<8) + a[3];
+  }
+  function wildcardMatch(ip, mask){
+    const a = String(ip||'').split('.'); const b = String(mask||'').split('.');
+    if (a.length!==4 || b.length!==4) return false;
+    for(let i=0;i<4;i++){ if(b[i]==='*') continue; if(a[i]!==b[i]) return false; }
+    return true;
+  }
+  function cidrMatch(ip, cidr){
+    const m = String(cidr||'').match(/^(\d+\.\d+\.\d+\.\d+)\/(\d{1,2})$/);
+    if (!m) return false;
+    const base = ipV4toInt(m[1]); const bits = +m[2]; const val = ipV4toInt(ip);
+    if (base==null || val==null || bits<0 || bits>32) return false;
+    const mask = bits===0 ? 0 : (~((1<<(32-bits))-1))>>>0;
+    return (val & mask) === (base & mask);
+  }
+  function rangeMatch(ip, range){
+    const m = String(range||'').replace(/\s+/g,'').match(/^(\d+\.\d+\.\d+\.\d+)-(\d+\.\d+\.\d+\.\d+)$/);
+    if (!m) return false;
+    const v = ipV4toInt(ip); const a = ipV4toInt(m[1]); const b = ipV4toInt(m[2]);
+    if (v==null || a==null || b==null) return false;
+    const lo = Math.min(a,b), hi=Math.max(a,b);
+    return v>=lo && v<=hi;
+  }
+  function isAllowed(ip, rules){
+    if (!isIPv4(ip)) {
+      if (ALLOW_LOCAL && (!ip || ip==='::1')) return { ok:true, rule:'local', type:'local' };
+      return { ok:false, rule:null, type:'none' };
+    }
+    if (ALLOW_LOCAL){
+      if (ip.startsWith('10.') || ip.startsWith('192.168.') || /^172\.(1[6-9]|2\d|3[0-1])\./.test(ip) || ip==='127.0.0.1')
+        return { ok:true, rule:'RFC1918', type:'local' };
+    }
+    const R = rules.map(r => r.replace(/\s*-\s*/g,'-'));
+    if (R.some(r => isIPv4(r) && r===ip)) return { ok:true, rule:ip, type:'exato' };
+    const w = R.find(r=> r.includes('*') && wildcardMatch(ip,r)); if (w) return { ok:true, rule:w, type:'wildcard' };
+    const c = R.find(r=> r.includes('/') && cidrMatch(ip,r));    if (c) return { ok:true, rule:c, type:'cidr' };
+    const g = R.find(r=> r.includes('-') && rangeMatch(ip,r));   if (g) return { ok:true, rule:g, type:'range' };
+    return { ok:false, rule:null, type:'none' };
+  }
+
+  async function runCheck(){
+    // libera rápido se o dev setou override via query (?allowip=1.2.3.4)
+    const q = new URLSearchParams(location.search);
+    const qAllow = q.get('allowip');
+    if (qAllow && isIPv4(qAllow)){ hideBlock(); console.info('[IP-Guard] override allowip=', qAllow); return; }
+
+    showBlock('…', DEBUG ? 'Checando IP e allowlist…' : '');
+    try{
+      const killer = new Promise((_,rej)=> setTimeout(()=> rej(new Error('timeout')), CHECK_TIMEOUT));
+      const [text, ip] = await Promise.race([Promise.all([fetchAllowList(), fetchIPv4()]), killer]);
       const rules = parseRules(text);
-      const ok = isAllowed(ip, rules);
-      (ok ? hideBlock : showBlock)(ip);
-      window.WV_IP = { allowed: !!ok, ip, rules };
+      const res = isAllowed(ip, rules);
+      if (res.ok){
+        hideBlock();
+        if (DEBUG) console.info('[IP-Guard] allow', {ip, rule:res.rule, type:res.type, rules});
+      }else{
+        showBlock(ip, DEBUG ? `Regras lidas: ${rules.length}\nNenhuma regra casou.` : '');
+        if (DEBUG) console.warn('[IP-Guard] deny', {ip, rules});
+      }
     }catch(e){
-      // Qualquer erro -> bloqueia por padrão
-      console.warn('[IP-Guard] bloqueado:', e);
-      showBlock('');
-      window.WV_IP = { allowed:false, ip:'', rules:[] };
+      showBlock('', DEBUG ? String(e) : '');
+      if (DEBUG) console.error('[IP-Guard] erro', e);
     }
   }
 
-  // BINDs
-  btnRet?.addEventListener('click', runCheck);
-  btnRel?.addEventListener('click', ()=> location.reload());
-
-  // inicia
-  showBlock('…'); // mostra até validar
   runCheck();
-
 })();
 </script>
+
 <<!// BLOCK IP - FIM>
 
 </body>
