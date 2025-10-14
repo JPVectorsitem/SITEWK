@@ -7381,5 +7381,312 @@
 
 <//!PREMISSÕES SEPARADOS POR CARGOS - FIM ---->
 
+<!// AJUTES - Botão ver lojas + duplicar selecionados (visualizar finalizados) ---->
+<script>
+(function(){
+  "use strict";
+
+  /* =========================================================
+   * 1) COLUNA "FILIAL(S)" => BOTÃO "VER LOJAS" (+ modal)
+   * ========================================================= */
+
+  function makeVerLojasButton(full){
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'btn small btnVerLojas';
+    b.textContent = 'Ver lojas';
+    b.setAttribute('data-full', (full||'').trim());
+    b.title = 'Clique para ver todas as filiais';
+    return b;
+  }
+
+  // Aplica ao TD (8ª coluna) do grid principal
+  function decorateFiliaisTD(td){
+    if (!td) return;
+    // Se já virou botão, não refaz
+    if (td.querySelector('.btnVerLojas')) return;
+
+    // Pega conteúdo completo (prioriza data-full existente nos patches antigos)
+    let full = '';
+    const clip = td.querySelector('.clip[data-full]');
+    if (clip) {
+      full = clip.getAttribute('data-full') || '';
+    } else {
+      full = (td.textContent || '').trim();
+    }
+
+    // Se estiver vazio/traço, não vira botão
+    if (!full || full === '—') return;
+
+    // Substitui por botão
+    td.textContent = '';
+    td.appendChild(makeVerLojasButton(full));
+  }
+
+  // Decora todas as linhas do grid principal (#jobsBody)
+  function decorateAllFiliaisMain(){
+    const tbody = document.getElementById('jobsBody');
+    if (!tbody) return;
+    tbody.querySelectorAll('tr[data-ot]').forEach(tr=>{
+      const td = tr.children && tr.children[7]; // 8ª coluna = Filial(s)
+      if (td) decorateFiliaisTD(td);
+    });
+  }
+
+  // Observa novas linhas no grid principal
+  (function observeMainFiliais(){
+    const tbody = document.getElementById('jobsBody');
+    if (!tbody) return;
+    const mo = new MutationObserver(muts=>{
+      muts.forEach(m=>{
+        m.addedNodes.forEach(n=>{
+          if (n.nodeType===1 && n.matches('tr[data-ot]')) {
+            const td = n.children && n.children[7];
+            if (td) decorateFiliaisTD(td);
+          }
+        });
+      });
+    });
+    mo.observe(tbody, { childList:true });
+    decorateAllFiliaisMain();
+  })();
+
+  // Também aplica dentro do modal "Visualizar finalizados" (#finzList)
+  function decorateAllFiliaisFinalizados(){
+    const tbody = document.getElementById('finzList');
+    if (!tbody) return;
+    tbody.querySelectorAll('tr').forEach(tr=>{
+      const td = tr.children && tr.children[7]; // 8ª col em "finalizados" é Filial(s)
+      if (!td) return;
+
+      // Se veio como .clip (do código anterior), converte em botão
+      const clip = td.querySelector('.clip[data-full]');
+      if (clip) {
+        const full = clip.getAttribute('data-full')||'';
+        td.textContent = '';
+        td.appendChild(makeVerLojasButton(full));
+      } else {
+        // Caso futuro: se for texto direto
+        decorateFiliaisTD(td);
+      }
+    });
+  }
+
+  // Quando abrir o modal de finalizados, faz a troca
+  (function hookFinalizadosOpen(){
+    const btn = document.getElementById('btnVerFinalizados');
+    const dlg = document.getElementById('modalFinalizados');
+    if (!btn || !dlg) return;
+    btn.addEventListener('click', ()=>{
+      // aguarda a tabela ser carregada pelo script existente e então decora
+      setTimeout(decorateAllFiliaisFinalizados, 120);
+    });
+  })();
+
+  // Clique no botão "Ver lojas" (vale para ambos os lugares)
+  document.addEventListener('click', (e)=>{
+    const b = e.target.closest('.btnVerLojas');
+    if (!b) return;
+    const full = b.getAttribute('data-full') || '';
+    const dlg  = document.getElementById('modalCell');
+    const ttl  = document.getElementById('cellTitle');
+    const body = document.getElementById('cellBody');
+    if (!dlg || !ttl || !body) return;
+
+    const items = full.split(',').map(s=>s.trim()).filter(Boolean);
+    ttl.textContent = 'Filial(s)';
+    body.style.whiteSpace = 'pre-wrap';
+    body.textContent = items.length ? items.join('\n') : (full || '—');
+    dlg.showModal();
+  });
+
+
+  /* =====================================================================
+   * 2) “DUPLICAR SELECIONADOS” (Visualizar finalizados) + AÇÃO NACIONAL
+   *    - Liga/desliga UI quando “Sim/Não”
+   *    - Botão “Definir ação…” lista subpartes existentes (ESPECIAL NACIONAL)
+   *    - Caso crie nova, usa o modalAcao já existente
+   *    - Na duplicação, a ação selecionada/ criada é usada
+   * ===================================================================== */
+
+  // Lê ações existentes a partir do DOM do grid principal (sub-rows de ESPECIAL NACIONAL)
+  function getExistingAcoes(){
+    const body = document.getElementById('jobsBody');
+    const set = new Set();
+    if (body) {
+      body.querySelectorAll('tr.sub-row[data-sub]').forEach(tr=>{
+        const nm = tr.getAttribute('data-sub')||'';
+        const name = nm.trim();
+        if (name) set.add(name);
+      });
+    }
+    // fallback: se não encontrar nada no DOM, tenta via memória se existir
+    if (!set.size && window.JOBS instanceof Map) {
+      for (const [,j] of window.JOBS.entries()){
+        if (String(j.isNacional).toLowerCase()==='true' && j.acaoNome) {
+          set.add(String(j.acaoNome).trim());
+        }
+      }
+    }
+    return Array.from(set).sort((a,b)=> a.localeCompare(b,'pt-BR'));
+  }
+
+  function setDupAcaoUIEnabled(enabled){
+    const btn = document.getElementById('btnDupEscolherAcao');
+    const inp = document.getElementById('dupAcaoNome');
+    if (btn) btn.disabled = !enabled;
+    if (inp) {
+      inp.readOnly = true; // segue o padrão do app
+      if (!enabled) inp.value = '';
+    }
+  }
+
+  function wireDupAcaoToggles(){
+    const rSim = document.getElementById('dupAcaoSim');
+    const rNao = document.getElementById('dupAcaoNao');
+    const onChange = ()=>{
+      const enabled = !!(rSim && rSim.checked);
+      setDupAcaoUIEnabled(enabled);
+    };
+    if (rSim) rSim.addEventListener('change', onChange);
+    if (rNao) rNao.addEventListener('change', onChange);
+    // estado inicial
+    onChange();
+  }
+
+  // Abre o modalAcao populando com as ações existentes e permite criar nova
+  function openAcaoChooser(targetInputId){
+    const dlg = document.getElementById('modalAcao');
+    const box = document.getElementById('acaoLista');
+    const inp = document.getElementById('acaoNova');
+    const btnOk = document.getElementById('acaoOk');
+    const btnCancel = document.getElementById('acaoCancelar');
+    if (!dlg || !box || !btnOk) return;
+
+    const actions = getExistingAcoes();
+    // render simples clicável
+    let sel = null;
+    box.innerHTML = actions.length
+      ? actions.map(a=>`<div class="acaoItem" data-name="${a.replace(/"/g,'&quot;')}"
+           style="padding:6px 8px;border-bottom:1px dashed rgba(255,255,255,.12);cursor:pointer">${a}</div>`).join('')
+      : '<div class="muted">Nenhuma ação existente encontrada.</div>';
+
+    box.querySelectorAll('.acaoItem').forEach(div=>{
+      div.addEventListener('click', ()=>{
+        box.querySelectorAll('.acaoItem').forEach(d=> d.style.background='transparent');
+        div.style.background = 'rgba(255,255,255,.06)';
+        sel = div.getAttribute('data-name') || '';
+        if (inp) inp.value = ''; // limpamos a criação se escolher existente
+      });
+    });
+
+    if (inp) inp.value = ''; // limpa campo de nova ação
+
+    function close(){
+      try { btnOk.removeEventListener('click', onOk); } catch {}
+      try { btnCancel && btnCancel.removeEventListener('click', onCancel); } catch {}
+      dlg.close();
+    }
+    function onCancel(){ close(); }
+    function onOk(){
+      const target = document.getElementById(targetInputId);
+      const viaNew = inp ? (inp.value||'').trim() : '';
+      const chosen = viaNew || (sel||'');
+      if (!chosen){
+        const t=document.getElementById('toast'); if(t){ t.textContent='Selecione ou crie uma Ação.'; t.style.display='block'; setTimeout(()=>t.style.display='none',1500); }
+        return;
+      }
+      if (target) target.value = chosen;
+      // guarda no contexto de duplicação (usado por quem salva)
+      window.WV = window.WV || {};
+      window.WV._dupActionName = chosen;
+      close();
+    }
+
+    btnOk.addEventListener('click', onOk);
+    btnCancel && btnCancel.addEventListener('click', onCancel);
+    dlg.showModal();
+  }
+
+  // Conecta o botão "Definir ação…" do modalDup2 ao chooser acima
+  (function wireDupAcaoChooser(){
+    const btn = document.getElementById('btnDupEscolherAcao');
+    if (!btn) return;
+    btn.addEventListener('click', ()=>{
+      // só se marcado "Sim"
+      const rSim = document.getElementById('dupAcaoSim');
+      if (!rSim || !rSim.checked) return;
+      openAcaoChooser('dupAcaoNome');
+    });
+  })();
+
+  // Integração com “Duplicar selecionados” do modal de Finalizados
+  (function hookFinalizadosDuplicate(){
+    const btnDupSel = document.getElementById('finzDuplicar');
+    const dlgDup2   = document.getElementById('modalDup2');      // parâmetros
+    const resumen   = document.getElementById('dupResumo');
+    const list      = document.getElementById('finzList');
+    if (!btnDupSel || !dlgDup2 || !list) return;
+
+    btnDupSel.addEventListener('click', ()=>{
+      // coleta seleção
+      const sel = [...list.querySelectorAll('input[type="checkbox"][data-ot]:checked')].map(b=> b.getAttribute('data-ot'));
+      if (!sel.length){
+        const t=document.getElementById('toast'); if(t){ t.textContent='Selecione pelo menos 1 job para duplicar.'; t.style.display='block'; setTimeout(()=>t.style.display='none',1500); }
+        return;
+      }
+
+      // marca contexto de duplicação originado de finalizados
+      window.WV = window.WV || {};
+      window.WV._dupContext = { from:'finalizados', ots: sel };
+
+      // limpa/ajusta UI do modalDup2
+      const rNao = document.getElementById('dupAcaoNao');
+      const rSim = document.getElementById('dupAcaoSim');
+      const inpAcao = document.getElementById('dupAcaoNome');
+      if (rNao) rNao.checked = true;
+      if (rSim) rSim.checked = false;
+      if (inpAcao) inpAcao.value = '';
+      setDupAcaoUIEnabled(false);
+      wireDupAcaoToggles();
+
+      if (resumen) {
+        resumen.classList.add('muted');
+        resumen.textContent = `${sel.length} job(s) selecionado(s) para duplicar a partir dos Finalizados. Defina os parâmetros e clique em “Lançar”.`;
+      }
+
+      dlgDup2.showModal();
+    });
+
+    // Extra: se o código de duplicação já está implementado no seu projeto,
+    // ele provavelmente lê dupAcaoSim/dupAcaoNome quando salva.
+    // Apenas garantimos que WV._dupActionName esteja alinhado antes do "Lançar".
+    const btnLaunch = document.getElementById('dup2Lancar');
+    if (btnLaunch && !btnLaunch._wvPatched){
+      btnLaunch.addEventListener('click', ()=>{
+        const rSim = document.getElementById('dupAcaoSim');
+        const inp  = document.getElementById('dupAcaoNome');
+        window.WV = window.WV || {};
+        window.WV._dupActionName = (rSim && rSim.checked && inp) ? (inp.value||'').trim() : '';
+        // Observação:
+        //  - Se _dupActionName for não-vazia, o seu fluxo de duplicação deve gravar:
+        //      isNacional = true
+        //      acaoNome   = _dupActionName
+        //  - Se estiver vazia ou rNao marcado, gravar:
+        //      isNacional = false
+        //      acaoNome   = ''
+        //
+        // Se o launcher de duplicação for seu e quiser usar este contexto,
+        // leia também window.WV._dupContext (ots selecionadas dos finalizados).
+      });
+      btnLaunch._wvPatched = true;
+    }
+  })();
+
+})();
+</script>
+
+<!// AJUTES - Botão ver lojas + duplicar selecionados (visualizar finalizados) FIM ---->
+
 </body>
 </html>
