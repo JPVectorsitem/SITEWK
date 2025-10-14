@@ -156,7 +156,7 @@
         <button class="btn ghost" id="btnEsqueci">Esqueci minha senha/e-mail!</button>
       </div>
 
-      <p class="warning" style="margin-top:8px">Versão: Beta 1.0 <strong>-WKF job</strong> Vector TI.</p>
+      <p class="warning" style="margin-top:8px">Versão: 1.1.0 <strong>-WKF job</strong> Vector TI.</p>
     </div>
     <aside class="side">
       <div class="brand">
@@ -6698,6 +6698,485 @@
 </script>
 
 <!-- ==================== /ETAPAS EM MASSA ==================== FIM -->
+
+<//!OTIMIZAÇÃO LEITURA + GRAVAÇÃO ------>
+
+<script>
+(function(){
+  "use strict";
+
+  // Namespace único
+  window.WV = window.WV || {};
+  const GH = (WV.cfg && WV.cfg.GH) || {
+    owner: 'JPVectorsitem',
+    repo:  'LINKS-img',
+    branch:'main',
+    jobsPath: 'jobs.csv'
+  };
+
+  /* ===================== Utils ===================== */
+  function getToken(){
+    try{
+      const saved = JSON.parse(localStorage.getItem('wv_gh_cfg')||'{}');
+      return (window.gh && window.gh.token) || saved.token || '';
+    }catch{ return (window.gh && window.gh.token) || ''; }
+  }
+  function utf8ToB64(str){
+    const bytes = new TextEncoder().encode(str);
+    let bin=''; for(let i=0;i<bytes.length;i++) bin+=String.fromCharCode(bytes[i]);
+    return btoa(bin);
+  }
+  function b64ToUtf8(b64){
+    const bin=atob(b64); const bytes=new Uint8Array(bin.length);
+    for(let i=0;i<bytes.length;i++) bytes[i]=bin.charCodeAt(i);
+    return new TextDecoder().decode(bytes);
+  }
+  const GH_API_VER='2022-11-28';
+  const ghHeaders=(tok)=>({'Accept':'application/vnd.github+json','X-GitHub-Api-Version':GH_API_VER, ...(tok?{'Authorization':`Bearer ${tok}`}:{})});
+
+  // CSV helpers pra quem quiser usar WV.sync.pushCsv(head, rows)
+  const csvEsc = v => {
+    v = v==null ? '' : String(v);
+    return /[",\n]/.test(v) ? `"${v.replace(/"/g,'""')}"` : v;
+  };
+  const toCsv   = (H, rows) => H.join(',')+'\n' + rows.map(o => H.map(k=>csvEsc(o[k]??'')).join(',')).join('\n') + '\n';
+  WV.csv = WV.csv || { toCsv, csvEsc };
+
+  /* =================== Sync Engine ================== */
+  WV.sync = (function(){
+    let readTimer=null, writeTimer=null;
+    let readEvery=1000, writeEvery=1000;
+
+    let jobsEtag=null, jobsSha=null, lastText=null;
+    let reading=false, writing=false;
+    let started=false;
+
+    // Backoff (auto-ajuste de intervalo quando der erro/limite)
+    let readBackoff=1, writeBackoff=1;          // multiplicadores
+    const BMIN=1, BMAX=15;                      // 1x..15x
+    const BASE_READ=1000, BASE_WRITE=1000;      // ms base
+    const HIDDEN_READ=3500;                     // quando aba oculta
+
+    const writeQueue=[]; // coalesce (sempre usa o último CSV enfileirado)
+
+    async function ghGetFileWithETag(path){
+      const token = getToken();
+      if(!token) throw new Error('Token GitHub não configurado.');
+
+      const url = `https://api.github.com/repos/${encodeURIComponent(GH.owner)}/${encodeURIComponent(GH.repo)}/contents/${encodeURIComponent(path)}?ref=${encodeURIComponent(GH.branch)}`;
+      const headers = ghHeaders(token);
+      if(jobsEtag) headers['If-None-Match'] = jobsEtag;
+
+      const r = await fetch(url, { headers });
+      if(r.status === 304) return { notModified:true }; // rápido
+
+      if(!r.ok){
+        const t = await r.text();
+        throw new Error('GET '+r.status+': '+t);
+      }
+
+      const etag = r.headers.get('ETag') || null;
+      const j = await r.json();
+      // /contents => base64
+      const text = j && j.content ? b64ToUtf8(j.content) : '';
+      return { text, sha: j.sha || null, etag };
+    }
+
+    async function ghPutFile(path, newText){
+      const token = getToken();
+      if(!token) throw new Error('Token GitHub não configurado.');
+
+      if(!jobsSha){
+        const fresh = await ghGetFileWithETag(path);
+        if(!fresh.notModified){
+          jobsSha = fresh.sha || jobsSha;
+          jobsEtag = fresh.etag || jobsEtag;
+          lastText = (fresh.text!=null?fresh.text:lastText);
+        }
+      }
+
+      const url = `https://api.github.com/repos/${encodeURIComponent(GH.owner)}/${encodeURIComponent(GH.repo)}/contents/${encodeURIComponent(path)}`;
+      const body = {
+        message: `chore(csv): update ${path}`,
+        content: utf8ToB64(newText),
+        branch: GH.branch,
+        ...(jobsSha ? { sha: jobsSha } : {})
+      };
+      const r = await fetch(url, { method:'PUT', headers:{...ghHeaders(token),'Content-Type':'application/json'}, body: JSON.stringify(body) });
+      const txt = await r.text();
+      if(!r.ok) throw new Error('PUT '+r.status+': '+txt);
+
+      let newSha=null;
+      try{ const j=JSON.parse(txt); newSha=j?.content?.sha||null; }catch{}
+      return { sha:newSha };
+    }
+
+    function scheduleLoops(){
+      clearInterval(readTimer); clearInterval(writeTimer);
+      const isHidden = document.hidden;
+      const re = Math.max(250, (isHidden? HIDDEN_READ : BASE_READ) * readBackoff);
+      const we = Math.max(250, BASE_WRITE * writeBackoff);
+      readEvery = re; writeEvery = we;
+
+      readTimer  = setInterval(readTick,  re);
+      writeTimer = setInterval(writeTick, we);
+    }
+
+    async function readTick(){
+      if(reading) return;
+      reading = true;
+      try{
+        const res = await ghGetFileWithETag(GH.jobsPath);
+        if(res.notModified){ readBackoff = Math.max(BMIN, readBackoff * 0.9); return; } // estabiliza para 304
+        // Mudou:
+        lastText = res.text;
+        if(res.sha)  jobsSha  = res.sha;
+        if(res.etag) jobsEtag = res.etag;
+
+        // dispara atualização de UI (usa seu loader existente)
+        if(typeof WV.onJobsFileUpdate === 'function'){
+          WV.onJobsFileUpdate(lastText);
+        }else if(typeof window.loadJobsFromGitHub === 'function'){
+          window.loadJobsFromGitHub();
+        }
+        readBackoff = Math.max(BMIN, readBackoff * 0.8);
+      }catch(e){
+        // 403/429 -> aumenta backoff (evita rate limit)
+        if(String(e).includes('403') || String(e).includes('429')) readBackoff = Math.min(BMAX, readBackoff*1.75);
+        else readBackoff = Math.min(BMAX, readBackoff*1.35);
+        scheduleLoops();
+        // console.warn('[sync] read error', e);
+      }finally{ reading=false; }
+    }
+
+    async function writeTick(){
+      if(writing) return;
+      if(writeQueue.length===0) return;
+      writing = true;
+
+      // coalesce: pega o último CSV
+      const item = writeQueue.splice(0, writeQueue.length).pop();
+
+      try{
+        const { sha } = await ghPutFile(GH.jobsPath, item.text);
+        if(sha) jobsSha = sha;
+        writeBackoff = Math.max(BMIN, writeBackoff * 0.8);
+        // leitura imediata pra alinhar ETag/sha/UI
+        await readTick();
+      }catch(err){
+        const msg = String(err||'');
+        if(msg.includes('409')){ // conflito: refaz SHA e tenta 1x
+          try{
+            const fresh = await ghGetFileWithETag(GH.jobsPath);
+            if(!fresh.notModified){
+              jobsSha = fresh.sha || jobsSha;
+              jobsEtag = fresh.etag || jobsEtag;
+              lastText = (fresh.text!=null?fresh.text:lastText);
+            }
+            const { sha } = await ghPutFile(GH.jobsPath, item.text);
+            if(sha) jobsSha = sha;
+            writeBackoff = Math.max(BMIN, writeBackoff * 0.9);
+            await readTick();
+          }catch(e2){
+            writeBackoff = Math.min(BMAX, writeBackoff*1.5);
+          }
+        }else{
+          // 403/429 = limite -> aumenta backoff
+          if(msg.includes('403') || msg.includes('429')) writeBackoff = Math.min(BMAX, writeBackoff*1.8);
+          else writeBackoff = Math.min(BMAX, writeBackoff*1.3);
+        }
+        scheduleLoops();
+      }finally{ writing=false; }
+    }
+
+    function enqueueWrite(csvText){
+      if(typeof csvText==='string'){
+        writeQueue.push({ text: csvText });
+      }
+    }
+
+    function start(opts={}){
+      if(started) return;
+      started=true;
+      // quando token surgir (depois que o usuário salvar no modal ⚙), inicia
+      const boot = () => {
+        if(!getToken()){ setTimeout(boot, 400); return; }
+        // Primeira leitura imediata e loops
+        readTick().finally(scheduleLoops);
+      };
+      boot();
+
+      // Ajustes live se o tab ficar oculto/visível
+      document.addEventListener('visibilitychange', scheduleLoops);
+      // Se alguém mudar o token em outra aba
+      window.addEventListener('storage', (e)=>{ if(e.key==='wv_gh_cfg') scheduleLoops(); });
+
+      // ajustes opcionais do usuário
+      if(opts.readEveryMs)  { /* mantemos base e o backoff cuida */ }
+      if(opts.writeEveryMs) { /* idem */ }
+    }
+
+    function stop(){
+      clearInterval(readTimer); clearInterval(writeTimer);
+      readTimer=writeTimer=null; started=false;
+    }
+
+    return { start, stop, enqueueWrite, toCsv };
+  })();
+
+  /* =========== Auto-start: liga sozinho =========== */
+  // Vai iniciar assim que o token existir.
+  WV.sync.start();
+
+  // OPCIONAL: se você, em algum lugar, montar o CSV e quiser salvar via fila rápida:
+  // WV.sync.enqueueWrite(WV.csv.toCsv(head, rows));
+
+})();
+</script>
+<//!OTIMIZAÇÃO LEITURA + GRAVAÇÃO ---- FIM>
+
+<//! PERSISTENCIA LOGIN 20 min ---->
+
+<script>
+(function(){
+  "use strict";
+
+  // ======= Config =======
+  const IDLE_MS = 20 * 60 * 1000; // 20 minutos
+
+  // ======= Elementos =======
+  const loginView = document.getElementById('loginView');
+  const jobsApp   = document.getElementById('jobsApp');
+  const elUserName= document.getElementById('userName');
+  const chip1     = document.getElementById('cargo1');
+  const chip2     = document.getElementById('cargo2');
+  const btnSair   = document.getElementById('btnSair');
+  const inpEmail  = document.getElementById('email');
+  const inpSenha  = document.getElementById('senha');
+  const toastEl   = document.getElementById('toast');
+
+  // ======= Helpers UI =======
+  function toast(msg){
+    if(!toastEl) return;
+    toastEl.textContent = msg;
+    toastEl.style.display = 'block';
+    setTimeout(()=> toastEl.style.display='none', 2200);
+  }
+  function roleKey(c){
+    const k=(c||'').trim().toLowerCase();
+    if(['administrador','administrator','diretor','gerente'].includes(k)) return 'prata';
+    if(k==='trafego') return 'verde';
+    if(k==='layout') return 'roxo';
+    if(k==='digitador') return 'azul';
+    if(k==='diagramador') return 'laranja';
+    if(k==='revisor') return 'rosa';
+    if(k==='encerramento') return 'amarelo';
+    if(k==='site') return 'roxoclaro';
+    return 'prata';
+  }
+
+  function showJobsUI(user){
+    if (elUserName) elUserName.textContent = user?.nome || '—';
+
+    if (chip1) {
+      const c1 = user?.cargo_principal || user?.cargo || '';
+      if (c1) {
+        chip1.textContent = c1;
+        chip1.className = 'role-chip role-' + roleKey(c1);
+        chip1.style.display = 'inline-block';
+      } else chip1.style.display = 'none';
+    }
+    if (chip2) {
+      const c2 = user?.cargo_secundaria || '';
+      if (c2) {
+        chip2.textContent = c2;
+        chip2.className = 'role-chip role-' + roleKey(c2);
+        chip2.style.display = 'inline-block';
+      } else chip2.style.display = 'none';
+    }
+
+    if (loginView) { loginView.classList.add('hide'); loginView.setAttribute('aria-hidden','true'); }
+    if (jobsApp)   { jobsApp.classList.remove('hide'); jobsApp.setAttribute('aria-hidden','false'); }
+
+    if (typeof window.applyPermissions === 'function') window.applyPermissions();
+    // dispara seus carregadores, se precisar
+    if (typeof window.TurboJobs?.mount === 'function') {
+      window.TurboJobs.mount().catch(()=>{});
+    } else if (typeof window.loadJobsFromGitHub === 'function' && typeof window.insertJobRow === 'function') {
+      window.loadJobsFromGitHub();
+    }
+  }
+
+  function showLoginUI(reason){
+    // reseta cabeçalho do usuário
+    if (elUserName) elUserName.textContent = '—';
+    if (chip1) { chip1.style.display = 'none'; chip1.textContent = ''; }
+    if (chip2) { chip2.style.display = 'none'; chip2.textContent = ''; }
+
+    if (jobsApp)   { jobsApp.classList.add('hide'); jobsApp.setAttribute('aria-hidden','true'); }
+    if (loginView) { loginView.classList.remove('hide'); loginView.setAttribute('aria-hidden','false'); }
+
+    if (inpSenha) inpSenha.value = '';
+    if (inpEmail) inpEmail.focus();
+
+    if (reason === 'idle') toast('Sessão expirada por inatividade (20 min).');
+  }
+
+  // ======= Persistência =======
+  const SKEY = 'wv_session';
+  function saveSession(user){
+    const data = {
+      isLoggedIn: true,
+      user: {
+        nome: user?.nome || '',
+        cargo_principal: user?.cargo_principal || user?.cargo || '',
+        cargo_secundaria: user?.cargo_secundaria || ''
+      },
+      lastActivity: Date.now(),
+      loggedInAt: Date.now()
+    };
+    localStorage.setItem(SKEY, JSON.stringify(data));
+  }
+  function loadSession(){
+    try{
+      const j = JSON.parse(localStorage.getItem(SKEY) || '{}');
+      if(j && j.isLoggedIn && j.user) return j;
+    }catch{}
+    return null;
+  }
+  function clearSession(){
+    localStorage.removeItem(SKEY);
+  }
+  function touchActivity(){
+    const s = loadSession();
+    if(!s) return;
+    s.lastActivity = Date.now();
+    localStorage.setItem(SKEY, JSON.stringify(s));
+  }
+
+  // ======= Idle Timer =======
+  let idleTimer = null;
+  function scheduleIdleCheck(){
+    clearTimeout(idleTimer);
+    const s = loadSession();
+    if(!s || !s.isLoggedIn) return;
+    const remain = Math.max(0, IDLE_MS - (Date.now() - (s.lastActivity||Date.now())));
+    idleTimer = setTimeout(()=> doLogout('idle'), remain || 0);
+  }
+
+  // ======= Login/Logout de verdade =======
+  function doLoginFromCurrentUser(){
+    // usa o que seu fluxo já definiu
+    const u = window.currentUser;
+    if(!u) return;
+    window.currentUser = {
+      nome: u.nome || '',
+      cargo_principal: u.cargo_principal || u.cargo || '',
+      cargo_secundaria: u.cargo_secundaria || ''
+    };
+    saveSession(window.currentUser);
+    showJobsUI(window.currentUser);
+    touchActivity();
+    scheduleIdleCheck();
+  }
+
+  function doLoginFromStored(){
+    const s = loadSession();
+    if(!s || !s.isLoggedIn) return false;
+    window.currentUser = {
+      nome: s.user?.nome || '',
+      cargo_principal: s.user?.cargo_principal || '',
+      cargo_secundaria: s.user?.cargo_secundaria || ''
+    };
+    showJobsUI(window.currentUser);
+    touchActivity();           // ao entrar/refresh, reseta o cronômetro
+    scheduleIdleCheck();
+    return true;
+    }
+
+  function doLogout(reason){
+    clearSession();
+    window.currentUser = null;
+    showLoginUI(reason);
+  }
+
+  // ======= Observa o momento do login do seu fluxo =======
+  // Quando #jobsApp ficar visível e houver window.currentUser,
+  // persistimos a sessão (útil quando o login acontece pelo botão).
+  if (jobsApp){
+    const mo = new MutationObserver(() => {
+      const visible = !jobsApp.classList.contains('hide') && jobsApp.getAttribute('aria-hidden') !== 'true';
+      if (visible && window.currentUser && loadSession()?.isLoggedIn !== true){
+        doLoginFromCurrentUser();
+      }
+    });
+    mo.observe(jobsApp, { attributes: true, attributeFilter: ['class','aria-hidden'] });
+  }
+
+  // ======= Captura atividades do usuário =======
+  const ACT_EVENTS = ['pointerdown','keydown','mousemove','scroll','touchstart','wheel'];
+  const onAct = () => { touchActivity(); scheduleIdleCheck(); };
+  ACT_EVENTS.forEach(ev => window.addEventListener(ev, onAct, { passive:true }));
+  document.addEventListener('visibilitychange', () => {
+    // se voltou pra aba depois de muito tempo, checa expiração
+    const s = loadSession();
+    if(!s || !s.isLoggedIn) return;
+    if (document.visibilityState === 'visible') {
+      const passed = Date.now() - (s.lastActivity || 0);
+      if (passed >= IDLE_MS) {
+        doLogout('idle');
+      } else {
+        onAct();
+      }
+    }
+  });
+
+  // ======= Sincroniza entre abas =======
+  window.addEventListener('storage', (e)=>{
+    if(e.key !== SKEY) return;
+    const s = loadSession();
+    if(!s || !s.isLoggedIn){
+      // logout em outra aba
+      showLoginUI();
+      window.currentUser = null;
+      clearTimeout(idleTimer);
+    }else{
+      // login/refresh em outra aba
+      window.currentUser = {
+        nome: s.user?.nome || '',
+        cargo_principal: s.user?.cargo_principal || '',
+        cargo_secundaria: s.user?.cargo_secundaria || ''
+      };
+      showJobsUI(window.currentUser);
+      scheduleIdleCheck();
+    }
+  });
+
+  // ======= Integra com seu botão "Sair" (garante limpar storage) =======
+  if (btnSair){
+    btnSair.addEventListener('click', () => {
+      // deixa seu handler atual cuidar da UI; nós só limpamos a sessão
+      clearSession();
+    }, { passive:true });
+  }
+
+  // ======= Bootstrap: tenta restaurar sessão ao abrir/atualizar =======
+  // se existir sessão salva, entra direto e reseta o timer
+  doLoginFromStored();
+
+  // expõe um mini-API opcional
+  window.WV = window.WV || {};
+  window.WV.session = {
+    logout: () => doLogout('manual'),
+    touch:  onAct,
+    isLogged: () => !!(loadSession() && loadSession().isLoggedIn),
+    getUser: () => (loadSession()?.user || null),
+    IDLE_MS
+  };
+})();
+</script>
+
+<//! PERSISTENCIA LOGIN 20 min FIM ---->
 
 
 </body>
