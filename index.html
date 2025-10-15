@@ -8311,152 +8311,565 @@
 
 <!// AJUTES - OT GLOBAL (OT sem zeros a esquerda) FIM ---->
 
-<!//BLOCK IP>
+<!-- ====== GATE (Porta de Acesso) — COLE ANTES DE </body> ====== -->
+<style>
+  /* Estilos do Gate (página inicial antes do login) */
+  #gateView{
+    width:min(1100px,100%);margin:0 auto;padding:24px;display:none;
+  }
+  #gateView .card{
+    background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.02));
+    border:1px solid rgba(255,255,255,.08); border-radius:16px; box-shadow:0 10px 30px rgba(0,0,0,.45); overflow:hidden;
+  }
+  #gateView .panel{padding:24px}
+  #gateView h2{margin:0 0 10px 0}
+  #gateView .muted{color:var(--muted)}
+  #gateView .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:12px}
+  #gateView .col-12{grid-column:span 12} .col-6{grid-column:span 6} .col-4{grid-column:span 4} .col-8{grid-column:span 8}
+  #gateView .field{display:grid;gap:6px}
+  #gateView input, #gateView button, #gateView select{
+    font-family:inherit;font-size:.95rem
+  }
+  #gateView input, #gateView select{
+    width:100%; padding:10px 12px; border-radius:10px; border:1px solid rgba(255,255,255,.12);
+    background:#0b1426; color:var(--text); outline:none; transition:.2s border-color,.2s box-shadow
+  }
+  #gateView input:focus, #gateView select:focus{border-color:var(--accent); box-shadow:var(--ring)}
+  #gateView .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  #gateView .btn{appearance:none; border:1px solid rgba(255,255,255,.12); background:#0d1628; color:#eaf0ff;
+    padding:10px 14px; border-radius:10px; cursor:pointer;transition:.2s transform,.2s background,.2s border-color, .2s box-shadow; font-weight:600}
+  #gateView .btn:hover{transform:translateY(-1px); border-color:rgba(255,255,255,.25)}
+  #gateView .btn.primary{background:linear-gradient(180deg,#2a60ff,#1b47c9);border-color:transparent}
+  #gateView .btn.small{padding:6px 10px; font-size:.85rem}
+  #gateView .hint{color:var(--muted);font-size:.9rem}
+  #gateView .ok{color:#86efac} .warn{color:#facc15} .err{color:#f87171}
+  #gateView .captchaBox{border:1px dashed rgba(255,255,255,.18); padding:10px; border-radius:10px}
+  #gateView .chip{display:inline-block;padding:4px 8px;border-radius:999px;border:1px solid rgba(255,255,255,.18);font-size:.8rem}
+  #gateView .timer{font-variant-numeric:tabular-nums; font-weight:700}
+  #gateBlock{
+    position:fixed; inset:0; background:rgba(0,0,0,.8); display:none; place-items:center; z-index:99999
+  }
+  #gateBlock .box{
+    background:#0e1730;border:1px solid rgba(255,255,255,.12);padding:16px 18px;border-radius:12px; max-width:92vw
+  }
+</style>
+
+<div id="gateView" class="app">
+  <div class="title" style="text-align:center;line-height:1.2">
+    <h1>Workflow Vector — Porta de Acesso</h1>
+    <p class="muted">Este aplicativo é uma ferramenta de uso interno e exclusivo. Para obter acesso, siga os procedimentos abaixo junto ao setor de Tecnologia da Informação (TI).</p>
+  </div>
+
+  <section class="card">
+    <div class="panel">
+      <div class="grid">
+        <div class="col-12"><h2>1) Token de acesso</h2></div>
+        <div class="col-8">
+          <div class="field">
+            <label>Insira o token de acesso</label>
+            <input id="gateTok" type="password" placeholder="ghp_xxx..." autocomplete="off"/>
+            <div class="hint">Salvar token antes de passar para etapa 2.</div>
+          </div>
+        </div>
+        <div class="col-4" style="display:flex;align-items:end">
+          <button id="gateSaveTok" class="btn">Salvar token</button>
+        </div>
+
+        <div class="col-12"><hr style="border-color:rgba(255,255,255,.12)"></div>
+
+        <div class="col-12"><h2>2) Senha de liberação</h2></div>
+        <div class="col-6">
+          <div class="field">
+            <label>Insira a senha</label>
+            <input id="gatePassInput" type="password" placeholder="Digite a senha vigente" autocomplete="off"/>
+            <div class="hint">Coloque a senha correta dentro do tempo de: <span id="gateTimer" class="timer">--:--</span></div>
+          </div>
+        </div>
+        <div class="col-6">
+          <div class="row" style="gap:8px;margin-top:26px">
+            <button id="gateGen" class="btn small">Atualizar/Gerar senha</button>
+            <span id="gatePassState" class="chip">Aguardando…</span>
+          </div>
+        </div>
+
+        <div class="col-12"><h2>3) Não sou um robô</h2></div>
+        <div class="col-12">
+          <div class="captchaBox">
+            <div class="row">
+              <label class="row" style="gap:8px"><input id="gateChk" type="checkbox"> Não sou um robô</label>
+              <span id="gateCaptchaState" class="chip">Desativado</span>
+            </div>
+            <div id="gateQA" class="row" style="margin-top:10px;display:none;align-items:flex-end">
+              <div style="flex:1 1 480px">
+                <div class="field">
+                  <label>Pergunta</label>
+                  <input id="gateQ" type="text" readonly/>
+                </div>
+              </div>
+              <div style="flex:1 1 260px">
+                <div class="field">
+                  <label>Resposta</label>
+                  <input id="gateA" type="text" placeholder="Digite a resposta"/>
+                </div>
+              </div>
+              <button id="gateNewQ" class="btn small" type="button">Trocar pergunta</button>
+            </div>
+            <div class="hint" style="margin-top:6px">Responda as perguntas<strong> CORRETAMENTE </strong>para ter acesso.</div>
+          </div>
+        </div>
+
+        <div class="col-12" style="display:flex;justify-content:flex-end;margin-top:8px">
+          <button id="gateAccess" class="btn primary">Acessar</button>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div id="gateBlock"><div class="box">
+  <div style="font-weight:700;margin-bottom:6px">Muitas tentativas inválidas</div>
+  <div class="muted">Aguarde a senha expirar para tentar novamente.</div>
+  <div style="margin-top:6px">Tempo restante: <span id="gateBlockLeft" class="timer">--:--</span></div>
+</div></div>
+
 <script>
-/* ====== IP GUARD NO LOGIN (cole antes de </body>) ====== */
-(function () {
-  /* ==== CONFIGURE AQUI SE PRECISAR ==== */
-  const GUARD = {
-    owner:  'JPVectorsitem',        // organização/conta
-    repo:   'LINKS-img',            // repositório
-    branch: 'main',                 // branch
-    path:   'segurancaallow_ip.txt' // arquivo de allow list (um IP por linha)
+(function(){
+  /* ===================== CONFIG REPO ===================== */
+  const GH = {
+    owner:  'JPVectorsitem',
+    repo:   'LINKS-img',
+    branch: 'main',
+    passPath: 'segurancaallow_ip.txt',    // armazena senha global (10min)
+    qaPath:  'perguntas_respostas.csv'    // perguntas,respostas
   };
 
-  /* ==== HELPERS BÁSICOS ==== */
-  const toast = (m) => {
-    const t = document.getElementById('toast');
-    if (t) { t.textContent = m; t.style.display = 'block'; setTimeout(()=>t.style.display='none', 2200); }
-    else alert(m);
-  };
-  const getToken = () => {
-    try { const s = JSON.parse(localStorage.getItem('wv_gh_cfg') || '{}'); return (window.gh && window.gh.token) || s.token || ''; }
-    catch { return (window.gh && window.gh.token) || ''; }
-  };
-  const b64ToUtf8 = (b64) => {
-    const bin = atob(b64); const bytes = new Uint8Array(bin.length);
-    for (let i=0;i<bin.length;i++) bytes[i] = bin.charCodeAt(i);
-    return new TextDecoder().decode(bytes);
-  };
-  const trimIP = (s) => String(s||'').trim();
+  /* ===================== ELEMENTOS ===================== */
+  const gateView  = ensureGateView();
+  const loginView = document.getElementById('loginView');
+  const jobsApp   = document.getElementById('jobsApp');
+  const elTok     = document.getElementById('gateTok');
+  const btSaveTok = document.getElementById('gateSaveTok');
+  const btGen     = document.getElementById('gateGen');
+  const elPassInp = document.getElementById('gatePassInput');
+  const elTimer   = document.getElementById('gateTimer');
+  const elPassSt  = document.getElementById('gatePassState');
+  const chkBot    = document.getElementById('gateChk');
+  const capState  = document.getElementById('gateCaptchaState');
+  const qaWrap    = document.getElementById('gateQA');
+  const elQ       = document.getElementById('gateQ');
+  const elA       = document.getElementById('gateA');
+  const btNewQ    = document.getElementById('gateNewQ');
+  const btAccess  = document.getElementById('gateAccess');
+  const blockLay  = document.getElementById('gateBlock');
+  const blockLeft = document.getElementById('gateBlockLeft');
 
-  /* ==== PEGA IP PÚBLICO DO CLIENTE (com fallbacks) ==== */
-  async function getPublicIP() {
-    const tryOne = async (url, jsonKey) => {
-      const r = await fetch(url, { cache:'no-store' });
-      if (!r.ok) throw new Error('ip fetch fail');
-      return jsonKey ? (await r.json())[jsonKey] : trimIP(await r.text());
-    };
-    try { return trimIP(await tryOne('https://api.ipify.org?format=json','ip')); } catch {}
-    try { return trimIP(await tryOne('https://ipv4.icanhazip.com/')); } catch {}
-    try { return trimIP(await tryOne('https://ifconfig.me/ip')); } catch {}
-    throw new Error('Não consegui descobrir o IP público.');
+  /* ===================== STATE ===================== */
+  let PASS_VALUE = '';        // senha global vigente (do arquivo)
+  let PASS_EXP   = null;      // ISO
+  let tickTimer  = null;
+  let QA = [];                // [{q,a}]
+  let curIdx = -1;
+  let attempts = +(localStorage.getItem('wv_gate_attempts')||'0')|0;
+
+  /* ===================== UTILS ===================== */
+  function toast(msg){
+    const el = document.getElementById('toast');
+    if(!el){ alert(msg); return; }
+    el.textContent = msg;
+    el.style.display = 'block';
+    setTimeout(()=> el.style.display='none', 2200);
+  }
+  function setBusy(v,msg){
+    const o=document.getElementById('busy'); if(!o) return;
+    o.style.display = v ? 'grid' : 'none';
+    if(msg) o.querySelector('.box').textContent = msg;
+  }
+  function getToken(){
+    try{
+      const saved = JSON.parse(localStorage.getItem('wv_gh_cfg')||'{}');
+      return (window.gh && window.gh.token) || saved.token || '';
+    }catch{ return (window.gh && window.gh.token) || ''; }
+  }
+  function setToken(tok){
+    window.gh = window.gh || {};
+    window.gh.token = tok;
+    try{ localStorage.setItem('wv_gh_cfg', JSON.stringify({ token: tok })); }catch{}
+  }
+  function fmtMMSS(ms){
+    const s = Math.max(0, Math.floor(ms/1000));
+    const m = Math.floor(s/60);
+    const r = s%60;
+    return String(m).padStart(2,'0')+':'+String(r).padStart(2,'0');
+  }
+  function rand12(){
+    const alpha='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // sem 0/O/1/I
+    let o=''; for(let i=0;i<12;i++) o+=alpha[Math.floor(Math.random()*alpha.length)];
+    return o;
   }
 
-  /* ==== CARREGA ALLOW LIST DO GITHUB (tenta RAW sem token, depois API com token) ==== */
-  async function loadAllowList() {
-    const rawURL = `https://raw.githubusercontent.com/${encodeURIComponent(GUARD.owner)}/${encodeURIComponent(GUARD.repo)}/${encodeURIComponent(GUARD.branch)}/${GUARD.path}`;
-    // 1) tenta RAW (funciona se o repo/arquivo for público)
-    try {
-      const r = await fetch(rawURL, { cache: 'no-store' });
-      if (r.ok) return parseAllowList(await r.text());
-    } catch {}
-    // 2) tenta API (para repo privado) — exige token
-    const token = getToken();
-    if (!token) throw new Error('Token não configurado para ler allow list.');
-    const apiURL = `https://api.github.com/repos/${encodeURIComponent(GUARD.owner)}/${encodeURIComponent(GUARD.repo)}/contents/${encodeURIComponent(GUARD.path)}?ref=${encodeURIComponent(GUARD.branch)}`;
-    const r = await fetch(apiURL, {
-      headers: {
-        'Accept': 'application/vnd.github+json',
-        'X-GitHub-Api-Version': '2022-11-28',
-        'Authorization': `Bearer ${token}`
-      },
-      cache: 'no-store'
-    });
-    if (!r.ok) throw new Error('Falha ao ler allow list no GitHub (' + r.status + ')');
-    const j = await r.json();
-    const text = j && j.content ? b64ToUtf8(j.content) : '';
-    return parseAllowList(text);
+  /* ===================== CSV & TXT PARSERS ===================== */
+  function parseCsv(text){
+    if(!text) return [];
+    const out=[]; let row=[],cur='',q=false;
+    for(let i=0;i<text.length;i++){
+      const c=text[i];
+      if(q){
+        if(c=='"'){ if(text[i+1]=='"'){cur+='"';i++;} else q=false; }
+        else cur+=c;
+      }else{
+        if(c=='"') q=true;
+        else if(c==','){ row.push(cur); cur=''; }
+        else if(c=='\r'){}
+        else if(c=='\n'){ row.push(cur); out.push(row); row=[]; cur=''; }
+        else cur+=c;
+      }
+    }
+    if(cur.length>0 || row.length>0){ row.push(cur); out.push(row); }
+    return out;
   }
-
-  function parseAllowList(text) {
-    const out = [];
-    String(text||'').split(/\r?\n/).forEach(line => {
-      const s = trimIP(line);
-      if (!s || s.startsWith('#')) return;
-      out.push(s);
+  function csvToQAs(csv){
+    const rows = parseCsv(csv);
+    if(!rows.length) return [];
+    const H = rows[0].map(h=>String(h||'').trim().toLowerCase());
+    const iQ = H.indexOf('perguntas');
+    const iA = H.indexOf('respostas');
+    if(iQ<0 || iA<0) return [];
+    const arr=[];
+    for(let i=1;i<rows.length;i++){
+      const r = rows[i]; if(!r || (!r[iQ] && !r[iA])) continue;
+      arr.push({ q: r[iQ]||'', a: r[iA]||'' });
+    }
+    return arr;
+  }
+  // >>>>>>> CORRIGIDO: divide só no primeiro ":" e datas robustas
+  function parseTxt(txt){
+    const out = { pass:'', exp:null, createdAt:null };
+    String(txt||'').split(/\r?\n/).forEach(line=>{
+      const s = line.trim();
+      if(!s) return;
+      const idx = s.indexOf(':');
+      if(idx < 0) return;
+      const k = s.slice(0, idx).trim().toUpperCase();
+      const v = s.slice(idx + 1).trim();
+      if(k === 'WV_PASS')   out.pass = v;
+      else if(k === 'EXPIRES')  out.exp = v;
+      else if(k === 'CREATED')  out.createdAt = v;
     });
     return out;
   }
-
-  /* ==== CACHE CURTO EM SESSIONSTORAGE (evita latência repetida) ==== */
-  function cachePut(ok, ip, list) {
-    try {
-      sessionStorage.setItem('ipguard', JSON.stringify({
-        t: Date.now(), ok: !!ok, ip: ip || '', list: Array.isArray(list) ? list : []
-      }));
-    } catch {}
-  }
-  function cacheGet() {
-    try {
-      const j = JSON.parse(sessionStorage.getItem('ipguard') || '{}');
-      // validade: 2 minutos
-      if (!j || !j.t || (Date.now() - j.t > 2*60*1000)) return null;
-      return j;
-    } catch { return null; }
+  function msLeft(exp){
+    const t = Date.parse(exp);
+    if (isNaN(t)) return 0;
+    return Math.max(0, t - Date.now());
   }
 
-  /* ==== VERIFICAÇÃO PRINCIPAL ==== */
-  async function ensureIPAllowed() {
-    // tenta cache
-    const c = cacheGet();
-    if (c) return c.ok;
+  /* ===================== GITHUB HELPERS ===================== */
+  const GH_API_VER='2022-11-28';
+  const ghHeaders = (tok) => ({
+    'Accept':'application/vnd.github+json',
+    'X-GitHub-Api-Version': GH_API_VER,
+    ...(tok ? { 'Authorization':`Bearer ${tok}` } : {})
+  });
+  function b64ToUtf8(b64){
+    const bin = atob(b64); const bytes = new Uint8Array(bin.length);
+    for(let i=0;i<bytes.length;i++) bytes[i] = bin.charCodeAt(i);
+    return new TextDecoder().decode(bytes);
+  }
+  function utf8ToB64(str){
+    const bytes = new TextEncoder().encode(str); let bin='';
+    for(let i=0;i<bytes.length;i++) bin+=String.fromCharCode(bytes[i]);
+    return btoa(bin);
+  }
+  async function ghGetFile(path, branch){
+    const token = getToken();
+    if(!token) throw new Error('Token GitHub não configurado.');
+    const url = `https://api.github.com/repos/${encodeURIComponent(GH.owner)}/${encodeURIComponent(GH.repo)}/contents/${encodeURIComponent(path)}?ref=${encodeURIComponent(branch||GH.branch)}`;
+    const r = await fetch(url, { headers: ghHeaders(token) });
+    if(r.status===404) return { text:'', sha:null };
+    if(!r.ok) throw new Error('Falha ao ler ('+r.status+')');
+    const j = await r.json();
+    const content = j && j.content ? b64ToUtf8(j.content) : '';
+    return { text: content, sha: j.sha || null };
+  }
+  async function ghPutFile(path, newText, message){
+    const token = getToken();
+    if(!token) throw new Error('Token GitHub não configurado.');
+    // buscar SHA
+    let sha = null;
+    try{ const cur = await ghGetFile(path, GH.branch); sha = cur.sha; }catch{}
+    const url = `https://api.github.com/repos/${encodeURIComponent(GH.owner)}/${encodeURIComponent(GH.repo)}/contents/${encodeURIComponent(path)}`;
+    const body = {
+      message: message || `chore(gate): update ${path}`,
+      content: utf8ToB64(newText),
+      branch: GH.branch,
+      ...(sha ? { sha } : {})
+    };
+    const r = await fetch(url, {
+      method:'PUT',
+      headers:{...ghHeaders(token), 'Content-Type':'application/json'},
+      body: JSON.stringify(body)
+    });
+    if(!r.ok){ const t=await r.text(); throw new Error('Falha ao salvar ('+r.status+'): '+t); }
+    return true;
+  }
 
-    let ip = '';
-    let list = [];
-    try {
-      ip = await getPublicIP();
-      list = await loadAllowList();
-    } catch (e) {
-      toast('Erro ao validar IP. Acesso bloqueado.');
-      cachePut(false, ip, list);
-      return false;
+  /* ===================== UI BUILD/TOGGLE ===================== */
+  function ensureGateView(){
+    // se já existe no HTML (inserido acima), apenas retorna
+    const el = document.getElementById('gateView');
+    if(el) return el;
+    // fallback defensivo (não deve entrar)
+    const div = document.createElement('div'); div.id='gateView';
+    document.body.prepend(div);
+    return div;
+  }
+  function showGate(){
+    if(gateView){ gateView.style.display='block'; gateView.setAttribute('aria-hidden','false'); }
+    if(loginView){ loginView.classList.add('hide'); loginView.setAttribute('aria-hidden','true'); }
+    if(jobsApp){ jobsApp.classList.add('hide'); jobsApp.setAttribute('aria-hidden','true'); }
+  }
+  function showLogin(){
+    if(gateView){ gateView.style.display='none'; gateView.setAttribute('aria-hidden','true'); }
+    if(loginView){ loginView.classList.remove('hide'); loginView.setAttribute('aria-hidden','false'); }
+  }
+  function setPassState(txt, cls){
+    elPassSt.textContent = txt;
+    elPassSt.className = 'chip ' + (cls||'');
+  }
+  function setCaptchaState(txt, cls){
+    capState.textContent = txt;
+    capState.className = 'chip ' + (cls||'');
+  }
+
+  /* ===================== TIMER ===================== */
+  function startTimer(){
+    stopTimer();
+    const tick = ()=>{
+      const ms = msLeft(PASS_EXP);
+      elTimer.textContent = fmtMMSS(ms);
+      if(blockLay.style.display==='grid') blockLeft.textContent = fmtMMSS(ms);
+      if(ms<=0){
+        setPassState('Expirada', 'err');
+        btGen.disabled = false;
+        stopTimer();
+      }
+    };
+    tickTimer = setInterval(tick, 1000);
+    tick();
+  }
+  function stopTimer(){
+    if(tickTimer){ clearInterval(tickTimer); tickTimer=null; }
+  }
+
+  /* ===================== LOADERS ===================== */
+  async function loadPass(){
+    const { text } = await ghGetFile(GH.passPath, GH.branch);
+    const meta = parseTxt(text);
+    PASS_VALUE = meta.pass || '';
+    PASS_EXP   = meta.exp  || null;
+    const left = msLeft(PASS_EXP);
+    if(!PASS_VALUE || left<=0){
+      setPassState('Expirada ou ausente', 'err');
+      btGen.disabled = false;
+      elTimer.textContent='00:00';
+      stopTimer();
+    }else{
+      setPassState('Ativa', 'ok');
+      btGen.disabled = false;     // deixa gerar de novo se for admin
+      startTimer();
+    }
+  }
+  async function loadQA(){
+    const { text } = await ghGetFile(GH.qaPath, GH.branch);
+    QA = csvToQAs(text);
+    if(!QA.length){
+      setCaptchaState('Perguntas indisponíveis', 'err');
+    }
+  }
+
+  /* ===================== ACTIONS ===================== */
+  async function saveToken(){
+    const tok = (elTok.value||'').trim();
+    if(!tok){ toast('Informe o token.'); return; }
+    setToken(tok);
+    toast('Token salvo.');
+    try{
+      setBusy(true,'Carregando dados do repositório…');
+      await loadQA();
+      await loadPass();
+      setBusy(false);
+      setCaptchaState('Pronto para desafio', 'ok');
+    }catch(e){
+      console.error(e);
+      setBusy(false);
+      setCaptchaState('Erro ao carregar', 'err');
+      setPassState('Erro ao ler senha', 'err');
+    }
+  }
+
+  async function genPass(){
+    if(!getToken()){ toast('Salve o token primeiro.'); return; }
+    const pass = rand12();
+    const now = new Date();
+    const exp = new Date(now.getTime() + 10*60*1000);
+    const txt = [
+      `WV_PASS:${pass}`,
+      `CREATED:${now.toISOString()}`,
+      `EXPIRES:${exp.toISOString()}`
+    ].join('\n') + '\n';
+    try{
+      setBusy(true,'Gerando senha…');
+      await ghPutFile(GH.passPath, txt, 'chore(gate): rotate WV_PASS (10min)');
+      setBusy(false);
+      toast('Senha gerada/atualizada.');
+      // recarrega meta
+      await loadPass();
+    }catch(e){
+      console.error(e);
+      setBusy(false);
+      toast('Falha ao gerar senha.');
+    }
+  }
+
+  function pickQuestion(){
+    if(!QA.length){ elQ.value=''; elA.value=''; return; }
+    curIdx = Math.floor(Math.random()*QA.length);
+    elQ.value = QA[curIdx].q || '';
+    elA.value = '';
+  }
+
+  function blockUntilExpire(){
+    blockLay.style.display = 'grid';
+    // contador já é atualizado pelo startTimer()
+  }
+  function unblock(){
+    blockLay.style.display = 'none';
+    attempts = 0;
+    localStorage.removeItem('wv_gate_attempts');
+  }
+
+  async function access(){
+    // checa se já está bloqueado pelo contador (expiração)
+    if(msLeft(PASS_EXP)<=0){
+      setPassState('Expirada', 'err');
+      blockUntilExpire();
+      return;
+    }
+    // valida token
+    if(!getToken()){ toast('Salve o token primeiro.'); return; }
+    // valida senha
+    const typed = (elPassInp.value||'').trim();
+    if(!typed){ toast('Digite a senha de liberação.'); return; }
+    // precisamos da senha do arquivo
+    if(!PASS_VALUE){ toast('Senha do arquivo indisponível. Atualize/Gere.'); return; }
+    // valida captcha
+    if(!chkBot.checked){
+      toast('Marque "Não sou um robô".');
+      return;
+    }
+    if(curIdx<0 || !QA.length){
+      toast('Carregando pergunta… clique em "Trocar pergunta".');
+      return;
+    }
+    const ans = (elA.value||'').trim().toLowerCase();
+    const okAns = (QA[curIdx].a||'').trim().toLowerCase();
+    const okPass = (typed === PASS_VALUE);
+
+    if(!okPass || ans!==okAns){
+      attempts++;
+      localStorage.setItem('wv_gate_attempts', String(attempts));
+      if(!okPass && ans!==okAns) toast('Senha e resposta incorretas.');
+      else if(!okPass) toast('Senha incorreta.');
+      else toast('Resposta incorreta.');
+      pickQuestion(); // muda pergunta
+      if(attempts>=3){
+        blockUntilExpire();
+      }
+      return;
     }
 
-    const allowed = list.some(v => trimIP(v) === ip);
-    cachePut(allowed, ip, list);
+    // SUCESSO
+    localStorage.setItem('wv_gate_ok','1'); // não mostrar mais o gate neste navegador
+    unblock();
+    toast('Acesso liberado.');
+    showLogin();
+  }
 
-    if (!allowed) {
-      toast('Acesso bloqueado por IP (' + ip + ').');
+  /* ===================== BINDINGS ===================== */
+  if(btSaveTok) btSaveTok.addEventListener('click', saveToken);
+  if(btGen)     btGen.addEventListener('click', genPass);
+  if(chkBot){
+    chkBot.addEventListener('change', ()=>{
+      if(chkBot.checked){
+        qaWrap.style.display='flex';
+        setCaptchaState('Desafio ativo','ok');
+        if(!QA.length){
+          // tentar carregar se ainda não carregou
+          loadQA().then(pickQuestion).catch(()=> setCaptchaState('Erro ao carregar','err'));
+        }else pickQuestion();
+      }else{
+        qaWrap.style.display='none';
+        setCaptchaState('Desativado','');
+      }
+    });
+  }
+  if(btNewQ) btNewQ.addEventListener('click', pickQuestion);
+  if(btAccess) btAccess.addEventListener('click', access);
+
+  // Se bloqueado visualmente, some quando expirar
+  const unblockCheck = setInterval(()=>{
+    if(blockLay.style.display==='grid' && msLeft(PASS_EXP)<=0){
+      unblock();
+      blockLay.style.display='none';
+      elPassInp.value = '';
+      setPassState('Expirada', 'err');
+      elTimer.textContent='00:00';
     }
-    return allowed;
-  }
+  }, 1000);
 
-  /* ==== INTERCEPTA LOGIN (click e Enter) NO FASE CAPTURE ==== */
-  const btnLogin = document.getElementById('btnLogin');
-  const loginView = document.getElementById('loginView');
-  const isLoginVisible = () => loginView && !loginView.classList.contains('hide') && loginView.getAttribute('aria-hidden') !== 'true';
+  // Enter para “Acessar”
+  document.addEventListener('keydown', (e)=>{
+    if(e.key==='Enter' && gateView && gateView.style.display!=='none'){
+      e.preventDefault();
+      access();
+    }
+  });
 
-  if (btnLogin) {
-    btnLogin.addEventListener('click', async (e) => {
-      // roda antes do handler original
-      const ok = await ensureIPAllowed();
-      if (!ok) { e.stopImmediatePropagation(); e.preventDefault(); }
-    }, { capture: true });
-  }
+  /* ===================== BOOT ===================== */
+  (async function boot(){
+    // se já liberado neste navegador, pula o gate
+    if(localStorage.getItem('wv_gate_ok')==='1'){
+      showLogin();
+      return;
+    }
+    // mostra gate e esconde login/jobs
+    showGate();
 
-  // Enter na tela de login
-  document.addEventListener('keydown', async (e) => {
-    if (e.key !== 'Enter') return;
-    if (!isLoginVisible()) return;
-    const ok = await ensureIPAllowed();
-    if (!ok) { e.stopImmediatePropagation(); e.preventDefault(); }
-  }, { capture: true });
+    // pré-popula token se existir
+    const tok = getToken();
+    if(tok && elTok) elTok.value = tok;
+
+    // tenta carregar pass/qa se já tem token salvo
+    if(tok){
+      try{
+        setBusy(true,'Preparando…');
+        await Promise.all([loadQA(), loadPass()]);
+        setBusy(false);
+        setCaptchaState('Responda as perguntas!','ok');
+      }catch(e){
+        console.error(e);
+        setBusy(false);
+        setPassState('Erro ao ler','err');
+        setCaptchaState('Erro ao carregar','err');
+      }
+    }else{
+      setPassState('Informe o token primeiro','warn');
+    }
+  })();
 
 })();
 </script>
-
-<<!// BLOCK IP - FIM>
+<!-- ====== /GATE ====== FIM -->
 
 </body>
 </html>
