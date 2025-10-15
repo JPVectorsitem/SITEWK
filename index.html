@@ -8312,146 +8312,149 @@
 <!// AJUTES - OT GLOBAL (OT sem zeros a esquerda) FIM ---->
 
 <!//BLOCK IP>
-
 <script>
-(function(){
-  "use strict";
-
-  // ===== CONFIG =====
-  const GH = {
-    owner:  'JPVectorsitem',
-    repo:   'LINKS-img',
-    branch: 'main',
-    path:   'segurancaallow_ip.txt' // NA RAIZ do repo (sem "/")
+/* ====== IP GUARD NO LOGIN (cole antes de </body>) ====== */
+(function () {
+  /* ==== CONFIGURE AQUI SE PRECISAR ==== */
+  const GUARD = {
+    owner:  'JPVectorsitem',        // organização/conta
+    repo:   'LINKS-img',            // repositório
+    branch: 'main',                 // branch
+    path:   'segurancaallow_ip.txt' // arquivo de allow list (um IP por linha)
   };
-  const DEBUG = false;          // true para ver detalhes do motivo
-  const TEXT_DENY = 'Acesso bloqueado: IP não autorizado.';
-  const TEXT_CHECK = 'Verificando acesso…';
 
-  // ===== Overlay full-screen =====
-  function ensureOverlay(){
-    if (document.getElementById('ipBlocker')) return;
-    const css = document.createElement('style');
-    css.textContent = `
-      #ipBlocker{position:fixed;inset:0;z-index:2147483647;display:grid;place-items:center;background:#0b1220;color:#eaf0ff;font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
-      #ipBlocker .box{max-width:680px;width:min(92vw,680px);background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:18px 20px;text-align:center;box-shadow:0 18px 60px rgba(0,0,0,.6)}
-      #ipBlocker h2{margin:0 0 8px 0;font-size:20px}
-      #ipBlocker p{margin:6px 0;color:#c7d2fe}
-      #ipBlocker .muted{color:#94a3b8;font-size:.9rem}
-      #ipBlocker .btn{appearance:none;cursor:pointer;border-radius:10px;padding:10px 14px;font-weight:600;background:#0d1628;border:1px solid rgba(255,255,255,.12);color:#eaf0ff;margin:4px}
-      #ipBlocker .btn.primary{background:linear-gradient(180deg,#2a60ff,#1b47c9);border-color:transparent}
-      #ipBlocker .debug{margin-top:8px;color:#9ca3af;font-size:.85rem;word-break:break-all;display:none}
-      body.ip-guard-hidden{overflow:hidden}
-    `;
-    document.head.appendChild(css);
-
-    const div = document.createElement('div');
-    div.id='ipBlocker';
-    div.innerHTML = `
-      <div class="box">
-        <h2 id="ipTitle">${TEXT_CHECK}</h2>
-        <p class="muted">IP detectado: <span id="ipClient">—</span></p>
-        <div id="ipDebug" class="debug"></div>
-        <div>
-          <button class="btn" id="ipRetry">Tentar novamente</button>
-          <button class="btn primary" id="ipReload">Recarregar</button>
-        </div>
-      </div>`;
-    document.body.appendChild(div);
-    document.body.classList.add('ip-guard-hidden');
-    document.getElementById('ipRetry')?.addEventListener('click', runCheck);
-    document.getElementById('ipReload')?.addEventListener('click', ()=> location.reload());
-  }
-  ensureOverlay();
-
-  const $ = (id)=> document.getElementById(id);
-
-  function setOverlay(state, ip, dbg){
-    if ($('ipClient')) $('ipClient').textContent = ip || '—';
-    if (state==='allow'){
-      // remove overlay
-      const blk = $('ipBlocker');
-      blk?.parentElement?.removeChild(blk);
-      document.body.classList.remove('ip-guard-hidden');
-    } else if (state==='deny'){
-      if ($('ipTitle')) $('ipTitle').textContent = TEXT_DENY;
-      if (DEBUG && $('ipDebug')) { $('ipDebug').style.display='block'; $('ipDebug').textContent = dbg || ''; }
-    } else {
-      if ($('ipTitle')) $('ipTitle').textContent = TEXT_CHECK;
-      if ($('ipDebug')) { $('ipDebug').style.display='none'; $('ipDebug').textContent=''; }
-    }
-  }
-
-  // ===== Fetch allowlist (RAW GitHub prioritário; API fallback) =====
-  async function fetchAllowRaw(){
-    const url = `https://raw.githubusercontent.com/${encodeURIComponent(GH.owner)}/${encodeURIComponent(GH.repo)}/${encodeURIComponent(GH.branch)}/${GH.path}`;
-    const r = await fetch(url, { cache:'no-store' });
-    if (!r.ok) throw new Error('raw '+r.status);
-    return await r.text();
-  }
-  function b64ToText(b64){
+  /* ==== HELPERS BÁSICOS ==== */
+  const toast = (m) => {
+    const t = document.getElementById('toast');
+    if (t) { t.textContent = m; t.style.display = 'block'; setTimeout(()=>t.style.display='none', 2200); }
+    else alert(m);
+  };
+  const getToken = () => {
+    try { const s = JSON.parse(localStorage.getItem('wv_gh_cfg') || '{}'); return (window.gh && window.gh.token) || s.token || ''; }
+    catch { return (window.gh && window.gh.token) || ''; }
+  };
+  const b64ToUtf8 = (b64) => {
     const bin = atob(b64); const bytes = new Uint8Array(bin.length);
-    for (let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
+    for (let i=0;i<bin.length;i++) bytes[i] = bin.charCodeAt(i);
     return new TextDecoder().decode(bytes);
+  };
+  const trimIP = (s) => String(s||'').trim();
+
+  /* ==== PEGA IP PÚBLICO DO CLIENTE (com fallbacks) ==== */
+  async function getPublicIP() {
+    const tryOne = async (url, jsonKey) => {
+      const r = await fetch(url, { cache:'no-store' });
+      if (!r.ok) throw new Error('ip fetch fail');
+      return jsonKey ? (await r.json())[jsonKey] : trimIP(await r.text());
+    };
+    try { return trimIP(await tryOne('https://api.ipify.org?format=json','ip')); } catch {}
+    try { return trimIP(await tryOne('https://ipv4.icanhazip.com/')); } catch {}
+    try { return trimIP(await tryOne('https://ifconfig.me/ip')); } catch {}
+    throw new Error('Não consegui descobrir o IP público.');
   }
-  async function fetchAllowApi(){
-    const token = (()=>{
-      try{ const s=JSON.parse(localStorage.getItem('wv_gh_cfg')||'{}'); return (window.gh&&window.gh.token)||s.token||''; }catch{ return (window.gh&&window.gh.token)||''; }
-    })();
-    const url = `https://api.github.com/repos/${encodeURIComponent(GH.owner)}/${encodeURIComponent(GH.repo)}/contents/${encodeURIComponent(GH.path)}?ref=${encodeURIComponent(GH.branch)}`;
-    const r = await fetch(url, { headers: { 'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28', ...(token?{'Authorization':`Bearer ${token}`}:{}) } });
-    if (!r.ok) throw new Error('api '+r.status);
+
+  /* ==== CARREGA ALLOW LIST DO GITHUB (tenta RAW sem token, depois API com token) ==== */
+  async function loadAllowList() {
+    const rawURL = `https://raw.githubusercontent.com/${encodeURIComponent(GUARD.owner)}/${encodeURIComponent(GUARD.repo)}/${encodeURIComponent(GUARD.branch)}/${GUARD.path}`;
+    // 1) tenta RAW (funciona se o repo/arquivo for público)
+    try {
+      const r = await fetch(rawURL, { cache: 'no-store' });
+      if (r.ok) return parseAllowList(await r.text());
+    } catch {}
+    // 2) tenta API (para repo privado) — exige token
+    const token = getToken();
+    if (!token) throw new Error('Token não configurado para ler allow list.');
+    const apiURL = `https://api.github.com/repos/${encodeURIComponent(GUARD.owner)}/${encodeURIComponent(GUARD.repo)}/contents/${encodeURIComponent(GUARD.path)}?ref=${encodeURIComponent(GUARD.branch)}`;
+    const r = await fetch(apiURL, {
+      headers: {
+        'Accept': 'application/vnd.github+json',
+        'X-GitHub-Api-Version': '2022-11-28',
+        'Authorization': `Bearer ${token}`
+      },
+      cache: 'no-store'
+    });
+    if (!r.ok) throw new Error('Falha ao ler allow list no GitHub (' + r.status + ')');
     const j = await r.json();
-    if (!j || !j.content) throw new Error('api sem content');
-    return b64ToText(j.content);
-  }
-  async function getAllowList(){
-    try { return await fetchAllowRaw(); } catch(_){}
-    return await fetchAllowApi();
+    const text = j && j.content ? b64ToUtf8(j.content) : '';
+    return parseAllowList(text);
   }
 
-  // ===== Descobre IPv4 público rápido =====
-  async function getIPv4(){
-    const probes = [
-      async ()=> (await (await fetch('https://ipv4.icanhazip.com', { cache:'no-store' })).text()).trim(),
-      async ()=> (await (await fetch('https://api.ipify.org?format=text', { cache:'no-store' })).text()).trim()
-    ];
-    for (const p of probes){
-      try{
-        const ip = (await p())||'';
-        if (/^\d{1,3}(\.\d{1,3}){3}$/.test(ip)) return ip;
-      }catch{}
+  function parseAllowList(text) {
+    const out = [];
+    String(text||'').split(/\r?\n/).forEach(line => {
+      const s = trimIP(line);
+      if (!s || s.startsWith('#')) return;
+      out.push(s);
+    });
+    return out;
+  }
+
+  /* ==== CACHE CURTO EM SESSIONSTORAGE (evita latência repetida) ==== */
+  function cachePut(ok, ip, list) {
+    try {
+      sessionStorage.setItem('ipguard', JSON.stringify({
+        t: Date.now(), ok: !!ok, ip: ip || '', list: Array.isArray(list) ? list : []
+      }));
+    } catch {}
+  }
+  function cacheGet() {
+    try {
+      const j = JSON.parse(sessionStorage.getItem('ipguard') || '{}');
+      // validade: 2 minutos
+      if (!j || !j.t || (Date.now() - j.t > 2*60*1000)) return null;
+      return j;
+    } catch { return null; }
+  }
+
+  /* ==== VERIFICAÇÃO PRINCIPAL ==== */
+  async function ensureIPAllowed() {
+    // tenta cache
+    const c = cacheGet();
+    if (c) return c.ok;
+
+    let ip = '';
+    let list = [];
+    try {
+      ip = await getPublicIP();
+      list = await loadAllowList();
+    } catch (e) {
+      toast('Erro ao validar IP. Acesso bloqueado.');
+      cachePut(false, ip, list);
+      return false;
     }
-    return '';
-  }
 
-  // ===== Parse / match =====
-  function parseLines(t){
-    return String(t||'').replace(/^\uFEFF/,'').split(/\r?\n/).map(s=>s.trim()).filter(s=> s && !s.startsWith('#'));
-  }
+    const allowed = list.some(v => trimIP(v) === ip);
+    cachePut(allowed, ip, list);
 
-  async function runCheck(){
-    setOverlay('checking', '…', DEBUG ? 'checando…' : '');
-    try{
-      const [txt, ip] = await Promise.all([getAllowList(), getIPv4()]);
-      const rules = parseLines(txt);
-      if (DEBUG && $('ipDebug')) $('ipDebug').textContent = `Regras: ${rules.join(', ')}`;
-      if ($('ipClient')) $('ipClient').textContent = ip || '—';
-
-      // Só permite EXATO (sem wildcard/CIDR)
-      const ok = !!(ip && rules.some(r => r === ip));
-      if (ok) setOverlay('allow', ip);
-      else    setOverlay('deny',  ip, `IP ${ip||'—'} não consta na lista.`);
-    }catch(e){
-      setOverlay('deny', '', DEBUG ? String(e) : '');
+    if (!allowed) {
+      toast('Acesso bloqueado por IP (' + ip + ').');
     }
+    return allowed;
   }
 
-  // roda já
-  runCheck();
+  /* ==== INTERCEPTA LOGIN (click e Enter) NO FASE CAPTURE ==== */
+  const btnLogin = document.getElementById('btnLogin');
+  const loginView = document.getElementById('loginView');
+  const isLoginVisible = () => loginView && !loginView.classList.contains('hide') && loginView.getAttribute('aria-hidden') !== 'true';
+
+  if (btnLogin) {
+    btnLogin.addEventListener('click', async (e) => {
+      // roda antes do handler original
+      const ok = await ensureIPAllowed();
+      if (!ok) { e.stopImmediatePropagation(); e.preventDefault(); }
+    }, { capture: true });
+  }
+
+  // Enter na tela de login
+  document.addEventListener('keydown', async (e) => {
+    if (e.key !== 'Enter') return;
+    if (!isLoginVisible()) return;
+    const ok = await ensureIPAllowed();
+    if (!ok) { e.stopImmediatePropagation(); e.preventDefault(); }
+  }, { capture: true });
+
 })();
 </script>
-
 
 <<!// BLOCK IP - FIM>
 
