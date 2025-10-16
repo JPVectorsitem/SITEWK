@@ -333,85 +333,141 @@
 </div>
 
 <!-- ===== MODAL: Novo ===== -->
-<dialog id="modalNovo"><form method="dialog" class="modal" id="formNovo">
-  <h3>Novo tabloide</h3>
-  <div class="grid">
-    <div class="col-6"><label>Regional</label>
-      <select id="novoRegional">
-        <option value="">— selecione —</option>
-        <option>REGIONAL BA - SE</option>
-        <option>REGIONAL DF - GO - TO</option>
-        <option>REGIONAL MG</option>
-        <option>REGIONAL MS</option>
-        <option>REGIONAL MT - RO - AC</option>
-        <option>REGIONAL NORDESTE 1</option>
-        <option>REGIONAL NORDESTE 2</option>
-        <option>REGIONAL NORTE</option>
-        <option>REGIONAL PR</option>
-        <option>REGIONAL RJ - ES</option>
-        <option>REGIONAL RS</option>
-        <option>REGIONAL SP</option>
-        <option>REGIONAL SC</option>
-      </select>
-    </div>
-    <div class="col-3"><label>Tipo da loja</label>
-      <select id="novoTipoLoja"><option value="">— selecione —</option><option>AS</option><option>AT</option></select>
-    </div>
-    <div class="col-3"><label>Tipo do JOB</label>
-      <select id="novoTipoJob"><option value="">— selecione —</option><option>Tabloide Digital</option><option>Tabloide Impresso</option></select>
-    </div>
+<dialog id="modalNovo">
+  <form method="dialog" class="modal" id="formNovo">
+    <h3>Novo tabloide</h3>
 
-    <div class="col-6"><label>Nome do tabloide</label>
-      <div style="display:flex; gap:8px; align-items:center">
-        <select id="novoNomeSel" style="flex:1 1 auto; min-width:240px">
+    <div class="grid">
+      <div class="col-6">
+        <label>Regional</label>
+        <select id="novoRegional">
           <option value="">— selecione —</option>
+          <option>REGIONAL BA - SE</option>
+          <option>REGIONAL DF - GO - TO</option>
+          <option>REGIONAL MG</option>
+          <option>REGIONAL MS</option>
+          <option>REGIONAL MT - RO - AC</option>
+          <option>REGIONAL NORDESTE 1</option>
+          <option>REGIONAL NORDESTE 2</option>
+          <option>REGIONAL NORTE</option>
+          <option>REGIONAL PR</option>
+          <option>REGIONAL RJ - ES</option>
+          <option>REGIONAL RS</option>
+          <option>REGIONAL SP</option>
+          <option>REGIONAL SC</option>
         </select>
-        <button class="btn small" type="button" id="btnNomeNovo">Novo nome</button>
       </div>
-      <!-- opcional: espelho (caso backend use #novoNome) -->
-      <input id="novoNome" type="hidden" />
-    </div>
 
-    <div class="col-6"><label>Complemento</label><input id="novoCompl" type="text" placeholder="Opcional" /></div>
+      <div class="col-3">
+        <label>Tipo da loja</label>
+        <select id="novoTipoLoja">
+          <option value="">— selecione —</option>
+          <option>AS</option>
+          <option>AT</option>
+        </select>
+      </div>
 
-    <div class="col-3"><label>Estado</label><select id="novoEstado"></select></div>
-    <div class="col-3"><label>Filial(s)</label><input id="novoFilial" type="text" placeholder="001, 002" /></div>
-    <div class="col-3"><label>Validade início</label><input id="novoIni" type="date" /></div>
-    <div class="col-3"><label>Validade término</label><input id="novoFim" type="date" /></div>
-    <div class="col-3"><label>Página (tamanho)</label>
-      <select id="novoTam"><option value="">— selecione —</option><option>A3</option><option>A4</option></select>
-    </div>
-    <div class="col-3"><label>Página (quantidade)</label><input id="novoQtd" type="number" min="1" step="1" /></div>
+      <div class="col-3">
+        <label>Tipo do JOB</label>
+        <select id="novoTipoJob">
+          <option value="">— selecione —</option>
+          <option>Tabloide Digital</option>
+          <option>Tabloide Impresso</option>
+        </select>
+      </div>
 
-    <div class="col-3">
-      <label>Ação nacional</label>
-      <div class="frow" role="group" aria-label="Ação nacional">
-        <label><input type="radio" name="novoAcaoNac" id="novoAcaoNao" value="nao" checked> Não</label>
-        <label><input type="radio" name="novoAcaoNac" id="novoAcaoSim" value="sim"> Sim</label>
+      <div class="col-6">
+        <label>Nome do tabloide</label>
+        <div style="display:flex; gap:8px; align-items:center">
+          <select id="novoNomeSel" style="flex:1 1 auto; min-width:240px">
+            <option value="">— selecione —</option>
+          </select>
+          <button class="btn small" type="button" id="btnNomeNovo">Novo nome</button>
+        </div>
+        <!-- espelho opcional -->
+        <input id="novoNome" type="hidden" />
+      </div>
+
+      <div class="col-6">
+        <label>Complemento</label>
+        <input id="novoCompl" type="text" placeholder="Opcional" />
+      </div>
+
+      <!-- Linha principal de UF/Filial/Data -->
+      <div class="col-3">
+        <label>Estado</label>
+        <div style="display:flex; gap:8px; align-items:center">
+          <select id="novoEstado" style="flex:1 1 auto"></select>
+          <button class="btn small" type="button" id="novoAddLinha" title="Adicionar linha (UF/Filial/Data)">+</button>
+        </div>
+      </div>
+
+      <div class="col-3">
+        <label>Filial(s)</label>
+        <input id="novoFilial" type="text" placeholder="001, 002" />
+      </div>
+
+      <div class="col-3">
+        <label>Validade início</label>
+        <input id="novoIni" type="date" />
+      </div>
+
+      <div class="col-3">
+        <label>Validade término</label>
+        <input id="novoFim" type="date" />
+      </div>
+
+      <div class="col-3">
+        <label>Página (tamanho)</label>
+        <select id="novoTam">
+          <option value="">— selecione —</option>
+          <option>A3</option>
+          <option>A4</option>
+        </select>
+      </div>
+
+      <div class="col-3">
+        <label>Página (quantidade)</label>
+        <input id="novoQtd" type="number" min="1" step="1" />
+      </div>
+
+      <div class="col-3">
+        <label>Ação nacional</label>
+        <div class="frow" role="group" aria-label="Ação nacional">
+          <label><input type="radio" name="novoAcaoNac" id="novoAcaoNao" value="nao" checked> Não</label>
+          <label><input type="radio" name="novoAcaoNac" id="novoAcaoSim" value="sim"> Sim</label>
+        </div>
+      </div>
+
+      <div class="col-6">
+        <label>Ação (quando nacional)</label>
+        <div style="display:flex; gap:8px; align-items:center">
+          <input id="novoAcaoNome" type="text" placeholder="Escolha/crie uma ação" readonly />
+          <button class="btn small" type="button" id="btnEscolherAcao" disabled>Definir ação…</button>
+        </div>
+        <div class="muted">Se marcar “Sim”, escolha uma ação existente ou crie uma nova (usada em “Especial nacional”).</div>
+      </div>
+
+      <div class="col-6">
+        <label>Link pasta</label>
+        <input id="novoLink" type="url" placeholder="https://... (Google Drive, rede, etc.)" />
+      </div>
+
+      <!-- ====== Lista de linhas (repeater) ====== -->
+      <div class="col-12" id="novoBatchArea" style="margin-top:8px">
+        <div class="muted" style="margin-bottom:6px">Linhas a salvar (UF, Filial(s), Datas). Use o “+” para adicionar.</div>
+        <div id="novoBatchList" style="display:flex; flex-direction:column; gap:8px"></div>
       </div>
     </div>
-    <div class="col-6">
-      <label>Ação (quando nacional)</label>
-      <div style="display:flex; gap:8px; align-items:center">
-        <input id="novoAcaoNome" type="text" placeholder="Escolha/crie uma ação" readonly />
-        <button class="btn small" type="button" id="btnEscolherAcao" disabled>Definir ação…</button>
-      </div>
-      <div class="muted">Se marcar “Sim”, escolha uma ação existente ou crie uma nova (usada em “Especial nacional”).</div>
-    </div>
 
-    <div class="col-6">
-      <label>Link pasta</label>
-      <input id="novoLink" type="url" placeholder="https://... (Google Drive, rede, etc.)" />
+    <div class="actions">
+      <button class="btn" type="button" id="btnNovoCancelar">Cancelar</button>
+      <button class="btn primary" type="button" id="btnNovoSalvar">Salvar</button>
     </div>
-  </div>
-  <div class="actions">
-    <button class="btn" type="button" id="btnNovoCancelar">Cancelar</button>
-    <button class="btn primary" type="button" id="btnNovoSalvar">Salvar</button>
-  </div>
-</form></dialog>
-<!-- ===== MODAL: Novo ===== FIM -->
+  </form>
+</dialog>
 
-<!-- ===== MODAL: Novo nome (nome_tabloide.csv) ===== -->
+<!-- Sub-modal: “Novo nome” -->
 <dialog id="modalNomeTab">
   <form method="dialog" class="modal" id="formNomeTab">
     <h3>Novo nome de tabloide</h3>
@@ -426,7 +482,8 @@
     </div>
   </form>
 </dialog>
-<!-- ===== MODAL: Novo nome FIM ===== -->
+<!-- ===== MODAL: Novo FIM ===== -->
+
 
 <!-- ===== MODAL: Editar ===== -->
 <dialog id="modalEdit"><form method="dialog" class="modal" id="formEdit">
@@ -2955,285 +3012,363 @@
 
 <!-- PLUS na coluna ETAPAS + cores por etapa no modal FIM -->
 
-<!-- // BOTÃO NOVO + LISTA "NOME DO TABLOIDE" (carrega/salva em nome_tabloide.csv) -->
+<!//========BOTÃO NOVO=======>
+
 <script>
 (function(){
-  /* ====== CONFIG GH ====== */
+  /* ================== CONFIG GH ================== */
   const GH = {
-    owner: 'JPVectorsitem',
-    repo:  'LINKS-img',
+    owner:'JPVectorsitem',
+    repo:'LINKS-img',
     branch:'main',
-    nomesPath: 'nome_tabloide.csv' // <<< nome correto do arquivo
+    nomesPath:'nome_tabloide.csv',
+    jobsPath:'jobs.csv',
+    jobsClosedPath:'jobs_encerrados.csv'
   };
 
-  /* ====== ELEMENTOS ====== */
-  const btnNovo      = document.getElementById('btnNovo');
-  const dlgNovo      = document.getElementById('modalNovo');
-  const selNome      = document.getElementById('novoNomeSel');
-  const inputNomeEsp = document.getElementById('novoNome'); // hidden espelho
-  const btnNomeNovo  = document.getElementById('btnNomeNovo');
-
-  const dlgNome      = document.getElementById('modalNomeTab');
-  const inpNomeNovo  = document.getElementById('nomeTabTexto');
-  const btnNomeSave  = document.getElementById('nomeTabSalvar');
-  const btnNomeCancel= document.getElementById('nomeTabCancelar');
-
-  /* ====== UX HELPERS (reusando seus padrões) ====== */
-  function toast(msg){
-    const el = document.getElementById('toast');
-    if(!el){ alert(msg); return; }
-    el.textContent = msg;
-    el.style.display = 'block';
-    setTimeout(()=> el.style.display='none', 2200);
-  }
-  function setBusy(v,msg){
-    const o=document.getElementById('busy');
-    if(!o) return;
-    o.style.display = v ? 'grid' : 'none';
-    if(msg) o.querySelector('.box').textContent = msg;
-  }
-  function getToken(){
-    try{
-      const saved = JSON.parse(localStorage.getItem('wv_gh_cfg')||'{}');
-      return (window.gh && window.gh.token) || saved.token || '';
-    }catch{ return (window.gh && window.gh.token) || ''; }
-  }
-
-  /* ====== CSV & ENCODING (robusto p/ acentos) ====== */
-  const csvEsc = v => {
-    v = v == null ? '' : String(v);
-    return /[",\n]/.test(v) ? `"${v.replace(/"/g,'""')}"` : v;
+  /* ================== UF por Regional ================== */
+  const UF_MAP = {
+    'REGIONAL BA - SE':        ['BA','SE'],
+    'REGIONAL DF - GO - TO':   ['DF','GO','TO'],
+    'REGIONAL MG':             ['MG'],
+    'REGIONAL MS':             ['MS'],
+    'REGIONAL MT - RO - AC':   ['MT','RO','AC'],
+    'REGIONAL NORDESTE 1':     ['AL','PB','PE','RN'],
+    'REGIONAL NORDESTE 2':     ['CE','PI','MA'],
+    'REGIONAL NORTE':          ['AM','AP','PA','RR'],
+    'REGIONAL PR':             ['PR'],
+    'REGIONAL RJ - ES':        ['RJ','ES'],
+    'REGIONAL RS':             ['RS'],
+    'REGIONAL SP':             ['SP'],
+    'REGIONAL SC':             ['SC']
   };
-  function parseCsv(text){
-    if(!text) return [];
-    const r=[]; let row=[], cur='', q=false;
-    for(let i=0;i<text.length;i++){
-      const c=text[i];
-      if(q){
-        if(c=='"'){ if(text[i+1]=='"'){cur+='"'; i++;} else q=false; }
-        else cur+=c;
-      }else{
-        if(c=='"') q=true;
-        else if(c==','){ row.push(cur); cur=''; }
-        else if(c=='\r'){ /* ignore */ }
-        else if(c=='\n'){ row.push(cur); r.push(row); row=[]; cur=''; }
-        else cur+=c;
-      }
+
+  /* ================== ELEMENTOS ================== */
+  const dlgNovo       = document.getElementById('modalNovo');
+  const btnNovo       = document.getElementById('btnNovo');
+
+  const selRegional   = document.getElementById('novoRegional');
+  const selTipoLoja   = document.getElementById('novoTipoLoja');
+  const selTipoJob    = document.getElementById('novoTipoJob');
+
+  const selNome       = document.getElementById('novoNomeSel');
+  const inputNomeEsp  = document.getElementById('novoNome');
+  const btnNomeNovo   = document.getElementById('btnNomeNovo');
+
+  const dlgNome       = document.getElementById('modalNomeTab');
+  const inpNomeNovo   = document.getElementById('nomeTabTexto');
+  const btnNomeSave   = document.getElementById('nomeTabSalvar');
+  const btnNomeCancel = document.getElementById('nomeTabCancelar');
+
+  const inpCompl      = document.getElementById('novoCompl');
+
+  const selUF         = document.getElementById('novoEstado');
+  const inpFilial     = document.getElementById('novoFilial');
+  const inpIni        = document.getElementById('novoIni');
+  const inpFim        = document.getElementById('novoFim');
+
+  const selTam        = document.getElementById('novoTam');
+  const inpQtd        = document.getElementById('novoQtd');
+  const inpLink       = document.getElementById('novoLink');
+
+  const radioNao      = document.getElementById('novoAcaoNao');
+  const radioSim      = document.getElementById('novoAcaoSim');
+  const btnAcao       = document.getElementById('btnEscolherAcao');
+  const inpAcaoNome   = document.getElementById('novoAcaoNome');
+
+  const btnAddLinha   = document.getElementById('novoAddLinha');
+  const listWrap      = document.getElementById('novoBatchList');
+
+  const btnCancelar   = document.getElementById('btnNovoCancelar');
+  const btnSalvar     = document.getElementById('btnNovoSalvar');
+
+  /* ================== UX HELPERS ================== */
+  function toast(m){ const t=document.getElementById('toast'); if(!t){ alert(m); return; } t.textContent=m; t.style.display='block'; setTimeout(()=>t.style.display='none',2000); }
+  function setBusy(v,msg){ const o=document.getElementById('busy'); if(!o) return; o.style.display=v?'grid':'none'; if(msg) o.querySelector('.box').textContent=msg; }
+  function getToken(){ try{ const s=JSON.parse(localStorage.getItem('wv_gh_cfg')||'{}'); return (window.gh&&window.gh.token)||s.token||''; }catch{ return (window.gh&&window.gh.token)||''; } }
+
+  /* ================== CSV / GH ================== */
+  const csvEsc = v => { v=v==null?'':String(v); return /[",\n]/.test(v)?`"${v.replace(/"/g,'""')}"`:v; };
+  function parseCsv(t){ if(!t) return []; const r=[]; let row=[],cur='',q=false;
+    for(let i=0;i<t.length;i++){ const c=t[i];
+      if(q){ if(c=='"'){ if(t[i+1]=='"'){cur+='"'; i++;} else q=false; } else cur+=c; }
+      else{ if(c=='"') q=true; else if(c==','){row.push(cur);cur='';}
+      else if(c=='\r'){} else if(c=='\n'){row.push(cur);r.push(row);row=[];cur='';} else cur+=c; }
     }
-    if(cur.length>0 || row.length>0){ row.push(cur); r.push(row); }
+    if(cur.length>0||row.length>0){ row.push(cur); r.push(row); }
     return r;
   }
+  function csvToObjsAndHeader(text){
+    const rows=parseCsv(text); if(!rows.length) return { header:[], rows:[] };
+    const H=rows[0], out=[];
+    for(let i=1;i<rows.length;i++){ const rr=rows[i]; if(!rr || (rr.length===1&&rr[0]==='')) continue; const o={}; for(let j=0;j<H.length;j++) o[H[j]]=rr[j]||''; out.push(o); }
+    return { header:H, rows:out };
+  }
+  function toCsv(H, rows){
+    const head=H.join(',')+'\n';
+    const body=rows.map(o=> H.map(k=> csvEsc(o[k]??'')).join(',')).join('\n');
+    return head + (body? body+'\n' : '');
+  }
   function b64ToSmartText(b64){
-    // bytes
-    const bin = atob(b64);
-    const bytes = new Uint8Array(bin.length);
-    for(let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
-
-    // tenta UTF-8
-    let utf8 = new TextDecoder('utf-8', {fatal:false}).decode(bytes);
-    const looksBad = /Ã.|�/.test(utf8);
-    if(!looksBad) return utf8;
-
-    // fallback latin1 (windows-1252)
-    try {
-      const lat = new TextDecoder('windows-1252', {fatal:false}).decode(bytes);
-      // heurística simples: escolhe quem tem mais acentos legíveis e menos "Ã"
-      const score = s => (s.match(/[çáéíóúâêôãõÇÁÉÍÓÚÂÊÔÃÕ]/g)||[]).length - (s.match(/Ã.|�/g)||[]).length;
-      return score(lat) > score(utf8) ? lat : utf8;
-    } catch {
-      return utf8;
-    }
+    const bin=atob(b64); const bytes=new Uint8Array(bin.length); for(let i=0;i<bytes.length;i++) bytes[i]=bin.charCodeAt(i);
+    let utf8=new TextDecoder('utf-8',{fatal:false}).decode(bytes);
+    if(!/Ã.|�/.test(utf8)) return utf8;
+    try{
+      const lat=new TextDecoder('windows-1252',{fatal:false}).decode(bytes);
+      const score=s=>(s.match(/[çáéíóúâêôãõÇÁÉÍÓÚÂÊÔÃÕ]/g)||[]).length-(s.match(/Ã.|�/g)||[]).length;
+      return score(lat)>score(utf8)?lat:utf8;
+    }catch{ return utf8; }
   }
-
-  /* ====== GitHub API helpers ====== */
-  const GH_API_VER = '2022-11-28';
-  const ghHeaders = (token) => ({
-    'Accept': 'application/vnd.github+json',
-    'X-GitHub-Api-Version': GH_API_VER,
-    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-  });
+  const GH_API_VER='2022-11-28';
+  const ghHeaders=(tok)=>({'Accept':'application/vnd.github+json','X-GitHub-Api-Version':GH_API_VER, ...(tok?{'Authorization':`Bearer ${tok}`}:{})});
   async function ghGetFile(path, branch){
-    const token = getToken();
-    if(!token) throw new Error('Token GitHub não configurado.');
-    const url = `https://api.github.com/repos/${encodeURIComponent(GH.owner)}/${encodeURIComponent(GH.repo)}/contents/${encodeURIComponent(path)}?ref=${encodeURIComponent(branch||GH.branch)}`;
-    const r = await fetch(url, { headers: ghHeaders(token) });
-    if (r.status === 404) return { text:'', sha:null };
-    if (!r.ok) throw new Error('Falha ao ler ('+r.status+')');
-    const j = await r.json();
-    const content = j && j.content ? b64ToSmartText(j.content) : '';
-    return { text: content, sha: j.sha || null };
+    const token=getToken(); if(!token) throw new Error('Token GitHub não configurado.');
+    const url=`https://api.github.com/repos/${encodeURIComponent(GH.owner)}/${encodeURIComponent(GH.repo)}/contents/${encodeURIComponent(path)}?ref=${encodeURIComponent(branch||GH.branch)}`;
+    const r=await fetch(url,{headers:ghHeaders(token)});
+    if(r.status===404) return { text:'', sha:null };
+    if(!r.ok) throw new Error('Falha ao ler ('+r.status+')');
+    const j=await r.json(); return { text: j && j.content ? b64ToSmartText(j.content) : '', sha:j.sha||null };
   }
-  function utf8ToB64(str){
-    const bytes = new TextEncoder().encode(str);
-    let bin=''; for(let i=0;i<bytes.length;i++) bin+=String.fromCharCode(bytes[i]);
-    return btoa(bin);
-  }
+  function utf8ToB64(str){ const bytes=new TextEncoder().encode(str); let bin=''; for(let i=0;i<bytes.length;i++) bin+=String.fromCharCode(bytes[i]); return btoa(bin); }
   async function ghPutFile(path, newText, message){
-    const token = getToken();
-    if(!token) throw new Error('Token GitHub não configurado.');
-    // obtém SHA atual (se existir)
-    let sha = null;
-    try {
-      const cur = await ghGetFile(path, GH.branch);
-      sha = cur.sha;
-    } catch {}
-    const url = `https://api.github.com/repos/${encodeURIComponent(GH.owner)}/${encodeURIComponent(GH.repo)}/contents/${encodeURIComponent(path)}`;
-    const body = {
-      message: message || `chore(csv): update ${path}`,
-      content: utf8ToB64(newText),
-      branch: GH.branch,
-      ...(sha ? { sha } : {})
-    };
-    const r = await fetch(url, { method:'PUT', headers:{...ghHeaders(token), 'Content-Type':'application/json'}, body: JSON.stringify(body) });
-    if(!r.ok){
-      const t = await r.text();
-      throw new Error('Falha ao salvar ('+r.status+'): '+t);
-    }
+    const token=getToken(); if(!token) throw new Error('Token GitHub não configurado.');
+    let sha=null; try{ const cur=await ghGetFile(path, GH.branch); sha=cur.sha; }catch{}
+    const url=`https://api.github.com/repos/${encodeURIComponent(GH.owner)}/${encodeURIComponent(GH.repo)}/contents/${encodeURIComponent(path)}`;
+    const body={ message:message||`chore(csv): update ${path}`, content:utf8ToB64(newText), branch:GH.branch, ...(sha?{sha}:{}) };
+    const r=await fetch(url,{method:'PUT', headers:{...ghHeaders(token),'Content-Type':'application/json'}, body:JSON.stringify(body)});
+    if(!r.ok){ const t=await r.text(); throw new Error('Falha ao salvar ('+r.status+'): '+t); }
     return true;
   }
 
-  /* ====== NOMES: carregar + salvar ====== */
-  function normalizeCmp(s){
-    return String(s||'').trim().replace(/\s+/g,' ')
-      .toLowerCase()
-      .normalize('NFD').replace(/[\u0300-\u036f]/g,''); // remove acentos p/ comparação
-  }
+  /* ================== NOMES DO TABLOIDE ================== */
+  function normalizeCmp(s){ return String(s||'').trim().replace(/\s+/g,' ').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); }
   function parseNomes(text){
     if(!text.trim()) return { header:'nome', list:[] };
-    // remove BOM se houver
-    text = text.replace(/^\uFEFF/,'');
-    const rows = parseCsv(text);
-    if(!rows.length) return { header:'nome', list:[] };
-
-    const H = rows[0].map(h=> String(h||'').trim());
-    let idx = H.findIndex(h => h.toLowerCase() === 'nome');
-    let start = 1;
-    // Caso não tenha cabeçalho "nome", considera arquivo 1 coluna sem cabeçalho
-    if(idx === -1){
-      idx = 0;
-      start = 0;
-    }
-    const list = [];
-    for(let i=start;i<rows.length;i++){
-      const rr = rows[i];
-      if(!rr || (rr.length===1 && rr[0]==='')) continue;
-      const val = rr[idx] ?? '';
-      const v = String(val||'').trim();
-      if(!v) continue;
-      list.push(v);
-    }
-    // dedup respeitando acentos na saída, mas ignorando na comparação
-    const seen = new Set();
-    const out = [];
-    for(const n of list){
-      const k = normalizeCmp(n);
-      if(seen.has(k)) continue;
-      seen.add(k);
-      out.push(n);
-    }
-    return { header: (idx===-1?'nome':H[idx]||'nome'), list: out };
+    text=text.replace(/^\uFEFF/,'');
+    const rows=parseCsv(text); if(!rows.length) return { header:'nome', list:[] };
+    const H=rows[0].map(h=>String(h||'').trim()); let idx=H.findIndex(h=>h.toLowerCase()==='nome'), start=1;
+    if(idx===-1){ idx=0; start=0; }
+    const list=[]; for(let i=start;i<rows.length;i++){ const rr=rows[i]; if(!rr) continue; const v=String(rr[idx]??'').trim(); if(v) list.push(v); }
+    const seen=new Set(), out=[]; for(const n of list){ const k=normalizeCmp(n); if(!seen.has(k)){ seen.add(k); out.push(n); } }
+    return { header:(idx===-1?'nome':H[idx]||'nome'), list:out };
   }
-  function buildNomesCsv(header, names){
-    const H = [ header || 'nome' ];
-    const lines = names.map(n => csvEsc(n));
-    return H.join(',')+'\n'+ lines.join('\n') + (lines.length?'\n':'');
-  }
-
+  function buildNomesCsv(header, names){ return (header||'nome')+'\n'+names.map(n=>csvEsc(n)).join('\n')+(names.length?'\n':''); }
   async function loadNomesIntoSelect(){
     if(!selNome) return;
-    setBusy(true, 'Carregando nomes…');
+    setBusy(true,'Carregando nomes…');
     try{
       const { text } = await ghGetFile(GH.nomesPath, GH.branch);
       const { list } = parseNomes(text);
-      // ordena pt-BR ignorando acentos/case
-      list.sort((a,b)=> a.localeCompare(b,'pt-BR',{sensitivity:'base'}));
-      // monta options (mantém "— selecione —")
-      const cur = selNome.value || '';
-      selNome.innerHTML = '<option value="">— selecione —</option>' +
-        list.map(n => `<option>${n.replace(/</g,'&lt;')}</option>`).join('');
-      // restaura seleção se ainda existir
-      if(cur){
-        const opt = [...selNome.options].find(o => normalizeCmp(o.value) === normalizeCmp(cur));
-        if(opt) opt.selected = true;
-      }
-      // espelha no hidden
+      list.sort((a,b)=>a.localeCompare(b,'pt-BR',{sensitivity:'base'}));
+      const cur=selNome.value||'';
+      selNome.innerHTML='<option value="">— selecione —</option>'+list.map(n=>`<option>${n.replace(/</g,'&lt;')}</option>`).join('');
+      if(cur){ const opt=[...selNome.options].find(o=>normalizeCmp(o.value)===normalizeCmp(cur)); if(opt) opt.selected=true; }
       if(inputNomeEsp) inputNomeEsp.value = selNome.value || '';
-    }catch(e){
-      console.error(e);
-      toast('Não foi possível carregar a lista de nomes.');
-    }finally{
-      setBusy(false);
-    }
+    }catch(e){ console.error(e); toast('Não foi possível carregar os nomes.'); }
+    finally{ setBusy(false); }
   }
-
   async function saveNovoNome(){
-    const nome = (inpNomeNovo?.value || '').trim().replace(/\s+/g,' ');
-    if(!nome){ toast('Digite um nome.'); return; }
-    if(!getToken()){ toast('Configurar GitHub primeiro (⚙).'); return; }
-
-    setBusy(true, 'Salvando nome…');
+    const nome=(inpNomeNovo?.value||'').trim().replace(/\s+/g,' '); if(!nome){ toast('Digite um nome.'); return; }
+    if(!getToken()){ toast('Configurar GitHub primeiro.'); return; }
+    setBusy(true,'Salvando nome…');
     try{
       const { text } = await ghGetFile(GH.nomesPath, GH.branch);
-      const parsed = parseNomes(text);
-      // dedup
-      const exists = parsed.list.some(n => normalizeCmp(n) === normalizeCmp(nome));
-      if(!exists) parsed.list.push(nome);
-
-      // ordena antes de gravar (opcional, fica organizado)
-      parsed.list.sort((a,b)=> a.localeCompare(b,'pt-BR',{sensitivity:'base'}));
-
-      const nextCsv = buildNomesCsv(parsed.header, parsed.list);
-      await ghPutFile(GH.nomesPath, nextCsv, `chore(csv): add nome_tabloide "${nome}"`);
-
-      // atualiza select no modal principal e seleciona o novo
+      const parsed=parseNomes(text);
+      if(!parsed.list.some(n=>normalizeCmp(n)===normalizeCmp(nome))) parsed.list.push(nome);
+      parsed.list.sort((a,b)=>a.localeCompare(b,'pt-BR',{sensitivity:'base'}));
+      await ghPutFile(GH.nomesPath, buildNomesCsv(parsed.header, parsed.list), `chore(csv): add nome_tabloide "${nome}"`);
       await loadNomesIntoSelect();
-      if(selNome){
-        const opt = [...selNome.options].find(o => normalizeCmp(o.value) === normalizeCmp(nome));
-        if(opt) opt.selected = true;
-      }
-      if(inputNomeEsp) inputNomeEsp.value = nome;
-
-      // fecha modal e limpa campo
-      if(dlgNome) dlgNome.close();
-      if(inpNomeNovo) inpNomeNovo.value = '';
+      const opt=[...selNome.options].find(o=>normalizeCmp(o.value)===normalizeCmp(nome)); if(opt) opt.selected=true;
+      if(inputNomeEsp) inputNomeEsp.value=nome;
+      dlgNome?.close(); if(inpNomeNovo) inpNomeNovo.value='';
       toast('Nome adicionado.');
+    }catch(e){ console.error(e); toast('Falha ao salvar o nome.'); }
+    finally{ setBusy(false); }
+  }
+
+  /* ================== REGIONAL -> UF ================== */
+  function fillUFs(){
+    const r=selRegional?.value||''; const list=UF_MAP[r]||[];
+    selUF.innerHTML = list.length ? list.map(uf=>`<option>${uf}</option>`).join('') : '<option value="">—</option>';
+  }
+  selRegional?.addEventListener('change', fillUFs);
+
+  /* ================== LOTE (+) ================== */
+  const itemCss='display:grid;grid-template-columns:120px 1fr 170px 170px 36px;gap:8px;align-items:center;';
+  const baseInputCss='width:100%;padding:8px 10px;border-radius:10px;border:1px solid rgba(255,255,255,.16);background:#0b1426;color:#eaf0ff;';
+  function makeItem(preset){
+    const row=document.createElement('div'); row.className='novo-batch-item'; row.style.cssText=itemCss;
+    const uf=document.createElement('select'); uf.style.cssText=baseInputCss; uf.innerHTML=selUF.innerHTML; uf.value=preset?.uf||selUF.value||'';
+    const filial=document.createElement('input'); filial.type='text'; filial.placeholder='Ex.: 001, 002'; filial.value=preset?.filial||''; filial.style.cssText=baseInputCss;
+    const ini=document.createElement('input'); ini.type='date'; ini.value=preset?.ini||inpIni.value||''; ini.style.cssText=baseInputCss;
+    const fim=document.createElement('input'); fim.type='date'; fim.value=preset?.fim||inpFim.value||''; fim.style.cssText=baseInputCss;
+    const rm=document.createElement('button'); rm.type='button'; rm.textContent='×'; rm.title='Remover';
+    rm.style.cssText='width:36px;height:36px;border-radius:8px;border:1px solid rgba(255,255,255,.16);background:#2b1a1a;color:#ffd1d1;font-weight:900;cursor:pointer;';
+    rm.addEventListener('click',()=>row.remove());
+    row.append(uf,filial,ini,fim,rm); return row;
+  }
+  btnAddLinha?.addEventListener('click',()=> listWrap.appendChild(makeItem({ uf:selUF.value, ini:inpIni.value||'', fim:inpFim.value||'' })));
+  function collectCombos(includeMain=true){
+    const arr=[];
+    if(includeMain){
+      arr.push({ uf:selUF.value||'', filial:(inpFilial.value||'').trim(), ini:inpIni.value||'', fim:inpFim.value||'' });
+    }
+    listWrap.querySelectorAll('.novo-batch-item').forEach(row=>{
+      const [uf,filial,ini,fim]=row.querySelectorAll('select,input');
+      arr.push({ uf:uf?.value||'', filial:(filial?.value||'').trim(), ini:ini?.value||'', fim:fim?.value||'' });
+    });
+    return arr.filter(x=>x.uf && x.ini && x.fim);
+  }
+
+  /* ================== VALIDAÇÕES ================== */
+  function required(v){ return String(v||'').trim().length>0; }
+  function validFormBase(){
+    const regional=selRegional.value, tipoLoja=selTipoLoja.value, tipoJob=selTipoJob.value, nome=selNome.value, tam=selTam.value, qtd=inpQtd.value;
+    if(!required(regional)||!required(tipoLoja)||!required(tipoJob)||!required(nome)||!required(tam)||!required(qtd)){
+      toast('Preencha Regional, Tipo da loja, Tipo do JOB, Nome, Tamanho e Quantidade.');
+      return false;
+    }
+    const qn=parseInt(qtd,10); if(isNaN(qn)||qn<=0){ toast('Quantidade inválida.'); return false; }
+    const ufs=UF_MAP[regional]||[]; const combos=collectCombos(true);
+    if(!combos.length){ toast('Adicione ao menos uma linha (UF/Data).'); return false; }
+    for(const c of combos){
+      if(ufs.length && !ufs.includes(c.uf)){ toast('UF não é permitida para a regional selecionada.'); return false; }
+      if(c.ini && c.fim && new Date(c.ini)>new Date(c.fim)){ toast('Período inválido em uma das linhas.'); return false; }
+    }
+    if(radioSim.checked && !required(inpAcaoNome.value)){ toast('Defina/Selecione a Ação nacional.'); return false; }
+    return true;
+  }
+
+  /* ================== OT GLOBAL (OT-x) ================== */
+  function extractMaxOT(rows){
+    let max=0;
+    for(const r of rows){
+      const v=String(r.ot||''); const m=v.match(/(\d+)/);
+      if(m){ const n=parseInt(m[1],10); if(n>max) max=n; }
+    }
+    return max;
+  }
+  function ensureHeaderColumns(H, rows, needed){
+    const head=H.slice(); const have=new Set(head);
+    let changed=false; needed.forEach(col=>{ if(!have.has(col)){ head.push(col); changed=true; } });
+    if(changed){ rows.forEach(r=> needed.forEach(col=>{ if(r[col]===undefined) r[col]=''; })); }
+    return { head, rows };
+  }
+
+  /* ================== SALVAR (EM LOTE) ================== */
+  async function salvarLote(){
+    if(!getToken()){ toast('Configurar GitHub primeiro.'); return; }
+    if(!validFormBase()) return;
+
+    // Coleta base
+    const regional=selRegional.value, tipoLoja=selTipoLoja.value, tipoJob=selTipoJob.value;
+    const nome=selNome.value, compl=inpCompl.value||'';
+    const tam=selTam.value, qtd=String(parseInt(inpQtd.value,10));
+    const link=inpLink.value||'';
+    const acaoNacional = radioSim.checked ? 'Sim' : 'Não';
+    const acaoNome = radioSim.checked ? (inpAcaoNome.value||'') : '';
+    const combos=collectCombos(true);
+
+    setBusy(true,'Gravando jobs…');
+
+    try{
+      // Lê jobs e encerrados pra calcular OT global
+      const [curJobs, curClosed] = await Promise.all([
+        ghGetFile(GH.jobsPath, GH.branch),
+        ghGetFile(GH.jobsClosedPath, GH.branch)
+      ]);
+      const pj = csvToObjsAndHeader(curJobs.text);
+      const pc = csvToObjsAndHeader(curClosed.text);
+
+      // garante colunas
+      const need=['ot','regional','tipoLoja','tipoJob','nome','compl','uf','filial','ini','fim','tam','qtd','link','acaoNacional','acaoNome','status','statusStep','logs','criado_em','atualizado_em'];
+      let ensured = ensureHeaderColumns(pj.header, pj.rows, need);
+      let H = ensured.head, rows = ensured.rows;
+
+      const maxJ = extractMaxOT(rows);
+      const maxC = extractMaxOT(pc.rows||[]);
+      let next = Math.max(maxJ, maxC);
+
+      const agora = new Date().toISOString();
+      const resp  = (window.currentUser && window.currentUser.nome) ? String(window.currentUser.nome) : '—';
+
+      // cria N novas linhas (um OT por combo)
+      const novos = [];
+      for(const c of combos){
+        next += 1;
+        const ot = 'OT-' + next; // sem zeros à esquerda
+        const logs = { criado:[{nome:resp, ts:agora}] };
+        const row = {
+          ot,
+          regional,
+          tipoLoja,
+          tipoJob,
+          nome,
+          compl,
+          uf: c.uf,
+          filial: c.filial || '',
+          ini: c.ini,
+          fim: c.fim,
+          tam,
+          qtd,
+          link,
+          acaoNacional,
+          acaoNome,
+          status: 'Novo',
+          statusStep: '',
+          logs: JSON.stringify(logs),
+          criado_em: agora,
+          atualizado_em: agora
+        };
+        novos.push(row);
+        rows.push(row);
+      }
+
+      // grava uma vez só
+      const nextCsv = toCsv(H, rows);
+      await ghPutFile(GH.jobsPath, nextCsv, `chore(csv): add ${novos.length} job(s) [lote]`);
+
+      // atualiza UI se existir
+      if(typeof window.loadJobsFromGitHub==='function'){
+        await window.loadJobsFromGitHub();
+      }
+
+      // Limpa e fecha
+      listWrap.innerHTML='';
+      dlgNovo?.close();
+      toast(`${novos.length} job(s) criado(s) com sucesso.`);
     }catch(e){
       console.error(e);
-      toast('Falha ao salvar o nome.');
+      toast('Falha ao salvar os jobs.');
     }finally{
       setBusy(false);
     }
   }
 
-  /* ====== BINDS ====== */
-  // Abre MODAL NOVO e carrega nomes do CSV
-  if(btnNovo && dlgNovo){
+  /* ================== BINDS ================== */
+  if(btnNovo){
     btnNovo.addEventListener('click', async ()=>{
+      fillUFs();
       await loadNomesIntoSelect();
       dlgNovo.showModal();
     });
   }
-  // Espelha select -> input hidden (se você usar #novoNome no backend)
-  if(selNome && inputNomeEsp){
-    selNome.addEventListener('change', ()=> inputNomeEsp.value = selNome.value || '');
-  }
+  selNome?.addEventListener('change', ()=>{ if(inputNomeEsp) inputNomeEsp.value = selNome.value || ''; });
 
-  // Sub-modal "Novo nome"
-  if(btnNomeNovo && dlgNome){
-    btnNomeNovo.addEventListener('click', ()=>{
-      if(inpNomeNovo) inpNomeNovo.value = '';
-      dlgNome.showModal();
-    });
-  }
-  if(btnNomeCancel && dlgNome){
-    btnNomeCancel.addEventListener('click', ()=> dlgNome.close());
-  }
-  if(btnNomeSave){
-    btnNomeSave.addEventListener('click', saveNovoNome);
-  }
+  btnNomeNovo?.addEventListener('click', ()=>{ if(inpNomeNovo) inpNomeNovo.value=''; dlgNome?.showModal(); });
+  btnNomeCancel?.addEventListener('click', ()=> dlgNome?.close());
+  btnNomeSave?.addEventListener('click', saveNovoNome);
+
+  function syncAcao(){ btnAcao.disabled = !radioSim.checked; }
+  radioSim?.addEventListener('change', syncAcao);
+  radioNao?.addEventListener('change', syncAcao);
+  syncAcao();
+
+  btnCancelar?.addEventListener('click', ()=>{ dlgNovo?.close(); listWrap.innerHTML=''; });
+  btnSalvar?.addEventListener('click', salvarLote);
 })();
 </script>
-<!-- // BOTÃO NOVO + LISTA "NOME DO TABLOIDE" - FIM -->
+<!//========BOTÃO NOVO=======FIM>
 
 <!-- // NOVO — CANCELAR (fecha modal e reseta campos) -->
 <script>
@@ -8168,258 +8303,6 @@
 <!// AJUTES - OT GLOBAL (Lançados e Finalizados) FIM ---->
 
 
-<!// AJUTES - OT GLOBAL (OT sem zeros a esquerda)  ---->
-<script>
-(function(){
-  "use strict";
-
-  /* ===============================
-   * Config GitHub (ajuste se mudar)
-   * =============================== */
-  const GH = {
-    owner:  'JPVectorsitem',
-    repo:   'LINKS-img',
-    branch: 'main',
-    jobsPath: 'jobs.csv',
-    encPath:  'jobs_encerrados.csv'
-  };
-
-  /* ===============================
-   * Helpers gerais
-   * =============================== */
-  function getToken(){
-    try{
-      const saved = JSON.parse(localStorage.getItem('wv_gh_cfg')||'{}');
-      return (window.gh && window.gh.token) || saved.token || '';
-    }catch{ return (window.gh && window.gh.token) || ''; }
-  }
-  function ghHeaders(token, extra={}){
-    return {
-      'Accept':'application/vnd.github+json',
-      'X-GitHub-Api-Version':'2022-11-28',
-      ...(token ? {'Authorization':`Bearer ${token}`} : {}),
-      ...extra
-    };
-  }
-  function b64ToUtf8(b64){
-    const bin = atob(b64);
-    const bytes = new Uint8Array(bin.length);
-    for (let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
-    return new TextDecoder().decode(bytes);
-  }
-  function utf8ToB64(str){
-    const bytes = new TextEncoder().encode(str);
-    let bin=''; for(let i=0;i<bytes.length;i++) bin+=String.fromCharCode(bytes[i]);
-    return btoa(bin);
-  }
-  async function ghGet(path, branch){
-    const token = getToken();
-    if (!token) throw new Error('Token GitHub não configurado.');
-    const url = `https://api.github.com/repos/${encodeURIComponent(GH.owner)}/${encodeURIComponent(GH.repo)}/contents/${encodeURIComponent(path)}?ref=${encodeURIComponent(branch||GH.branch)}`;
-    const r = await fetch(url, { headers: ghHeaders(token) });
-    if (r.status === 404) return { text:'', sha:null };
-    if (!r.ok) throw new Error('GET '+path+' '+r.status);
-    const j = await r.json();
-    const text = j && j.content ? b64ToUtf8(j.content) : '';
-    return { text, sha: j.sha || null };
-  }
-  async function ghPut(path, newText, msg){
-    const token = getToken();
-    if (!token) throw new Error('Token GitHub não configurado.');
-    let sha = null;
-    try { const cur = await ghGet(path, GH.branch); sha = cur.sha; } catch {}
-    const url = `https://api.github.com/repos/${encodeURIComponent(GH.owner)}/${encodeURIComponent(GH.repo)}/contents/${encodeURIComponent(path)}`;
-    const body = { message: msg || `chore(csv): normalize OTs ${path}`, content: utf8ToB64(newText), branch: GH.branch, ...(sha?{sha}:{}) };
-    const r = await fetch(url, { method:'PUT', headers: { ...ghHeaders(token), 'Content-Type':'application/json' }, body: JSON.stringify(body) });
-    if (!r.ok) { const t = await r.text(); throw new Error('PUT '+path+' '+r.status+': '+t); }
-    return true;
-  }
-
-  /* ===============================
-   * CSV helpers leves
-   * =============================== */
-  function parseCsv(text){
-    if (!text) return [];
-    const out=[]; let row=[], cur='', q=false;
-    for(let i=0;i<text.length;i++){
-      const c=text[i];
-      if(q){
-        if(c=='"'){ if(text[i+1]=='"'){cur+='"'; i++;} else q=false; }
-        else cur+=c;
-      }else{
-        if(c=='"') q=true;
-        else if(c==','){ row.push(cur); cur=''; }
-        else if(c=='\r'){ /* ignore */ }
-        else if(c=='\n'){ row.push(cur); out.push(row); row=[]; cur=''; }
-        else cur+=c;
-      }
-    }
-    if(cur.length>0 || row.length>0){ row.push(cur); out.push(row); }
-    return out;
-  }
-  function csvToObjs(text){
-    const rows = parseCsv(text);
-    if (!rows.length) return { head:[], rows:[] };
-    const head = rows[0];
-    const list=[];
-    for(let i=1;i<rows.length;i++){
-      const r=rows[i]; if(!r || (r.length===1 && r[0]==='')) continue;
-      const o={}; for(let j=0;j<head.length;j++) o[head[j]] = r[j] ?? '';
-      list.push(o);
-    }
-    return { head, rows:list };
-  }
-  const csvEsc = v => {
-    v = v==null ? '' : String(v);
-    return /[",\n]/.test(v) ? `"${v.replace(/"/g,'""')}"` : v;
-  };
-  function objsToCsv(head, rows){
-    const H = head.slice();
-    const body = rows.map(o => H.map(h => csvEsc(o[h] ?? '')).join(',')).join('\n');
-    return H.join(',') + '\n' + (body ? (body+'\n') : '');
-  }
-
-  /* ===============================
-   * Trim de zeros à esquerda
-   * =============================== */
-  function trimOT(ot){
-    // Mantém prefixo se existir; extrai número; remove zeros à esquerda
-    if (!ot) return ot;
-    const s = String(ot);
-    const m = s.match(/^([A-Za-z\-]*)(\d+)$/) || s.match(/^([A-Za-z\-]*)(0*)(\d+)$/) || s.match(/^(.+?)-?0*(\d+)$/) || [];
-    // estratégia robusta: pega últimos dígitos
-    const md = s.match(/(\d+)\s*$/);
-    if (!md) return s;
-    const num = parseInt(md[1],10);
-    if (isNaN(num)) return s;
-    // prefixo é tudo até os dígitos começarem
-    const px = s.slice(0, s.lastIndexOf(md[1]));
-    const dash = px.endsWith('-') ? '' : (px ? '-' : '');
-    return `${px}${dash}${num}`;
-  }
-
-  // UI: sempre mostrar sem zeros (sem mexer em data-ot)
-  function displayTrimInCell(td){
-    if (!td) return;
-    const txt = (td.textContent || '').trim();
-    if (!txt) return;
-    const trimmed = trimOT(txt);
-    if (trimmed !== txt) td.textContent = trimmed;
-  }
-  function applyOTDisplayTrim(root){
-    const scope = root || document;
-    // tabela principal (OT está na 1ª coluna)
-    scope.querySelectorAll('#jobsBody tr[data-ot] td:nth-child(1)').forEach(displayTrimInCell);
-    // modais conhecidos (finalizar, finalizados, encerrar, duplicar) — 2ª col costuma ser OT
-    scope.querySelectorAll('#finList tr td:nth-child(2), #finzList tr td:nth-child(2), #encList tr td:nth-child(2), #dupList tr td:nth-child(2)').forEach(displayTrimInCell);
-  }
-
-  // Observa inserções de linhas de jobs para aplicar o display trim automaticamente
-  const bodyMo = new MutationObserver(muts=>{
-    let needs = false;
-    for (const m of muts){
-      m.addedNodes && m.addedNodes.forEach(n=>{
-        if (n.nodeType===1 && (n.matches('#jobsBody tr[data-ot]') || n.querySelector?.('#jobsBody tr[data-ot]'))) needs = true;
-        // listas dos modais
-        if (n.nodeType===1 && (n.matches('#finList tr, #finzList tr, #encList tr, #dupList tr') || n.querySelector?.('#finList tr, #finzList tr, #encList tr, #dupList tr'))) needs = true;
-      });
-    }
-    if (needs) applyOTDisplayTrim();
-  });
-  bodyMo.observe(document.documentElement, { childList:true, subtree:true });
-
-  // também ao carregar
-  if (document.readyState === 'loading'){
-    document.addEventListener('DOMContentLoaded', ()=> applyOTDisplayTrim());
-  } else {
-    applyOTDisplayTrim();
-  }
-
-  /* ===============================
-   * Normalização em disco (uma vez)
-   * =============================== */
-  async function normalizeCsvOTs(path){
-    const { text } = await ghGet(path, GH.branch);
-    if (!text) return false;
-    const { head, rows } = csvToObjs(text);
-    if (!head.length) return false;
-
-    const hasOT = head.includes('ot');
-    if (!hasOT) return false;
-
-    let changed = false;
-    for (const r of rows){
-      const cur = r.ot || '';
-      const trimmed = trimOT(cur);
-      if (trimmed && trimmed !== cur){
-        r.ot = trimmed;
-        changed = true;
-      }
-    }
-    if (!changed) return false;
-
-    const next = objsToCsv(head, rows);
-    await ghPut(path, next, `chore(ot): trim leading zeros in ${path}`);
-    return true;
-  }
-
-  async function normalizeAllOnce(){
-    // roda só se tiver token + não rodou ainda nesta máquina
-    if (!getToken()) return;
-    if (localStorage.getItem('wv_ot_trim_done') === 'yes') return;
-
-    try{
-      // pequena espera para não competir com outras cargas logo no login
-      await new Promise(r => setTimeout(r, 800));
-
-      const changedJobs = await normalizeCsvOTs(GH.jobsPath).catch(()=>false);
-      const changedEnc  = await normalizeCsvOTs(GH.encPath).catch(()=>false);
-
-      if (changedJobs || changedEnc){
-        // recarrega UI principal, se houver função disponível
-        if (typeof window.loadJobsFromGitHub === 'function'){
-          try { await window.loadJobsFromGitHub(); } catch {}
-        }
-      }
-      localStorage.setItem('wv_ot_trim_done','yes');
-    }catch(e){
-      // não trava a app
-      console.warn('[WV OT] normalização falhou:', e);
-    }
-  }
-
-  // dispara após login (quando currentUser existir) ou após token presente
-  function tryBootNormalize(){
-    if (!getToken()) return; // sem token, não é possível
-    if (window.currentUser){
-      normalizeAllOnce();
-      return true;
-    }
-    return false;
-  }
-
-  // tenta já
-  if (!tryBootNormalize()){
-    // observa login
-    const mo = new MutationObserver(()=>{
-      if (tryBootNormalize()) mo.disconnect();
-    });
-    mo.observe(document.documentElement, { childList:true, subtree:true, attributes:true });
-    // timeout de segurança (se currentUser já existir mas não detectamos)
-    setTimeout(tryBootNormalize, 2000);
-  }
-
-  // API opcional
-  window.WV_OT = window.WV_OT || {};
-  window.WV_OT.trimDisplayNow = () => applyOTDisplayTrim();
-  window.WV_OT.trimString = trimOT;
-
-  console.log('[WV OT] visual e normalização: zeros à esquerda removidos (OT-0007 → OT-7)');
-})();
-</script>
-
-<!// AJUTES - OT GLOBAL (OT sem zeros a esquerda) FIM ---->
-
 <!-- ============================ GATE (PORTA DE ACESSO) — MODAL SÓLIDO v2 ============================ -->
 <style>
   body.gate-locked { overflow: hidden; }
@@ -8833,6 +8716,482 @@
 })();
 </script>
 <!-- ===== /Ocultar "Config GitHub" no LOGIN ===== -->
+
+<!//===== AJUSTE SALVAR EM LOTE ======>
+<script>
+/* ===== AJUSTE: Salvar em LOTE no botão "Novo" ===== */
+(function(){
+  const GH = {
+    owner:'JPVectorsitem',
+    repo:'LINKS-img',
+    branch:'main',
+    jobsPath:'jobs.csv',
+    jobsClosedPath:'jobs_encerrados.csv'
+  };
+  const UF_MAP = {
+    'REGIONAL BA - SE':        ['BA','SE'],
+    'REGIONAL DF - GO - TO':   ['DF','GO','TO'],
+    'REGIONAL MG':             ['MG'],
+    'REGIONAL MS':             ['MS'],
+    'REGIONAL MT - RO - AC':   ['MT','RO','AC'],
+    'REGIONAL NORDESTE 1':     ['AL','PB','PE','RN'],
+    'REGIONAL NORDESTE 2':     ['CE','PI','MA'],
+    'REGIONAL NORTE':          ['AM','AP','PA','RR'],
+    'REGIONAL PR':             ['PR'],
+    'REGIONAL RJ - ES':        ['RJ','ES'],
+    'REGIONAL RS':             ['RS'],
+    'REGIONAL SP':             ['SP'],
+    'REGIONAL SC':             ['SC']
+  };
+
+  /* === util === */
+  function el(id){ return document.getElementById(id); }
+  function toast(m){ const t=el('toast'); if(!t){ alert(m); return; } t.textContent=m; t.style.display='block'; setTimeout(()=>t.style.display='none',2000); }
+  function setBusy(v,msg){ const o=el('busy'); if(!o) return; o.style.display=v?'grid':'none'; if(msg) o.querySelector('.box').textContent=msg; }
+  function getToken(){ try{ const s=JSON.parse(localStorage.getItem('wv_gh_cfg')||'{}'); return (window.gh&&window.gh.token)||s.token||''; }catch{ return (window.gh&&window.gh.token)||''; } }
+  const csvEsc=v=>{ v=v==null?'':String(v); return /[",\n]/.test(v)?`"${v.replace(/"/g,'""')}"`:v; };
+  function parseCsv(t){ if(!t) return []; const r=[]; let row=[],cur='',q=false;
+    for(let i=0;i<t.length;i++){ const c=t[i];
+      if(q){ if(c=='"'){ if(t[i+1]=='"'){cur+='"'; i++;} else q=false; } else cur+=c; }
+      else{ if(c=='"') q=true; else if(c==','){row.push(cur);cur='';}
+        else if(c=='\r'){} else if(c=='\n'){row.push(cur);r.push(row);row=[];cur='';} else cur+=c; }
+    }
+    if(cur.length>0||row.length>0){ row.push(cur); r.push(row); }
+    return r;
+  }
+  function csvToObjsAndHeader(text){
+    const rows=parseCsv(text); if(!rows.length) return { header:[], rows:[] };
+    const H=rows[0], out=[];
+    for(let i=1;i<rows.length;i++){ const rr=rows[i]; if(!rr || (rr.length===1&&rr[0]==='')) continue;
+      const o={}; for(let j=0;j<H.length;j++) o[H[j]]=rr[j]||''; out.push(o);
+    }
+    return { header:H, rows:out };
+  }
+  function toCsv(H, rows){
+    const head=H.join(',')+'\n';
+    const body=rows.map(o=> H.map(k=> csvEsc(o[k]??'')).join(',')).join('\n');
+    return head + (body? body+'\n' : '');
+  }
+  function b64ToSmartText(b64){
+    const bin=atob(b64); const bytes=new Uint8Array(bin.length); for(let i=0;i<bytes.length;i++) bytes[i]=bin.charCodeAt(i);
+    let utf8=new TextDecoder('utf-8',{fatal:false}).decode(bytes);
+    if(!/Ã.|�/.test(utf8)) return utf8;
+    try{
+      const lat=new TextDecoder('windows-1252',{fatal:false}).decode(bytes);
+      const score=s=>(s.match(/[çáéíóúâêôãõÇÁÉÍÓÚÂÊÔÃÕ]/g)||[]).length-(s.match(/Ã.|�/g)||[]).length;
+      return score(lat)>score(utf8)?lat:utf8;
+    }catch{ return utf8; }
+  }
+  const GH_API_VER='2022-11-28';
+  const ghHeaders=(tok)=>({'Accept':'application/vnd.github+json','X-GitHub-Api-Version':GH_API_VER, ...(tok?{'Authorization':`Bearer ${tok}`}:{})});
+  async function ghGetFile(path, branch){
+    const token=getToken(); if(!token) throw new Error('Token GitHub não configurado.');
+    const url=`https://api.github.com/repos/${encodeURIComponent(GH.owner)}/${encodeURIComponent(GH.repo)}/contents/${encodeURIComponent(path)}?ref=${encodeURIComponent(branch||GH.branch)}`;
+    const r=await fetch(url,{headers:ghHeaders(token)});
+    if(r.status===404) return { text:'', sha:null };
+    if(!r.ok) throw new Error('Falha ao ler ('+r.status+')');
+    const j=await r.json(); return { text: j && j.content ? b64ToSmartText(j.content) : '', sha:j.sha||null };
+  }
+  function utf8ToB64(str){ const bytes=new TextEncoder().encode(str); let bin=''; for(let i=0;i<bytes.length;i++) bin+=String.fromCharCode(bytes[i]); return btoa(bin); }
+  async function ghPutFile(path, newText, message){
+    const token=getToken(); if(!token) throw new Error('Token GitHub não configurado.');
+    let sha=null; try{ const cur=await ghGetFile(path, GH.branch); sha=cur.sha; }catch{}
+    const url=`https://api.github.com/repos/${encodeURIComponent(GH.owner)}/${encodeURIComponent(GH.repo)}/contents/${encodeURIComponent(path)}`;
+    const body={ message:message||`chore(csv): update ${path}`, content:utf8ToB64(newText), branch:GH.branch, ...(sha?{sha}:{}) };
+    const r=await fetch(url,{method:'PUT', headers:{...ghHeaders(token),'Content-Type':'application/json'}, body:JSON.stringify(body)});
+    if(!r.ok){ const t=await r.text(); throw new Error('Falha ao salvar ('+r.status+'): '+t); }
+    return true;
+  }
+
+  function ensureHeaderColumns(H, rows, needed){
+    const head=H.slice(); const have=new Set(head);
+    let changed=false; needed.forEach(col=>{ if(!have.has(col)){ head.push(col); changed=true; } });
+    if(changed){ rows.forEach(r=> needed.forEach(col=>{ if(r[col]===undefined) r[col]=''; })); }
+    return { head, rows };
+  }
+  function extractMaxOT(rows){
+    let max=0; for(const r of rows){
+      const v=String(r.ot||''); const m=v.match(/(\d+)/);
+      if(m){ const n=parseInt(m[1],10); if(n>max) max=n; }
+    } return max;
+  }
+
+  /* === monta combos de lote === */
+  function splitFiliais(str){
+    return String(str||'')
+      .split(/[,;|\s]+/)
+      .map(s=>s.trim())
+      .filter(Boolean);
+  }
+  function getLoteCombos(){
+    const selRegional = el('novoRegional');
+    const selUF       = el('novoEstado');
+    const inpFilial   = el('novoFilial');
+    const inpIni      = el('novoIni');
+    const inpFim      = el('novoFim');
+
+    const baseUF   = selUF ? (selUF.value||'') : '';
+    const baseIni  = inpIni ? (inpIni.value||'') : '';
+    const baseFim  = inpFim ? (inpFim.value||'') : '';
+    const baseFils = splitFiliais(inpFilial ? inpFilial.value : '');
+
+    const wrap = el('novoBatchList');
+    const rows = wrap ? [...wrap.querySelectorAll('.novo-batch-item')] : [];
+
+    const out = [];
+
+    if(rows.length){
+      // tem UI de lote (+)
+      rows.forEach(row=>{
+        const parts = row.querySelectorAll('select,input');
+        const UF  = parts[0]?.value||'';
+        const FIL = parts[1]?.value||'';
+        const INI = parts[2]?.value||'';
+        const FIM = parts[3]?.value||'';
+        const muitos = splitFiliais(FIL);
+        if(muitos.length){
+          muitos.forEach(f=> out.push({ uf:UF, filial:f, ini:INI, fim:FIM }));
+        }else{
+          out.push({ uf:UF, filial:FIL, ini:INI, fim:FIM });
+        }
+      });
+      // inclui a linha “principal” também (se tiver preenchida)
+      if(baseUF && baseIni && baseFim){
+        (baseFils.length? baseFils:['']).forEach(f=> out.push({ uf:baseUF, filial:f, ini:baseIni, fim:baseFim }));
+      }
+    }else{
+      // sem UI de lote: duplica por filial(s)
+      const filList = baseFils.length? baseFils : [''];
+      filList.forEach(f=> out.push({ uf:baseUF, filial:f, ini:baseIni, fim:baseFim }));
+    }
+    // filtra vazios (precisa UF + datas)
+    return out.filter(c=> c.uf && c.ini && c.fim);
+  }
+
+  /* === validações base === */
+  function baseValid(regional, combos){
+    const ufs = UF_MAP[regional] || [];
+    if(!combos.length){ toast('Adicione ao menos uma linha válida (UF/Data).'); return false; }
+    for(const c of combos){
+      if(ufs.length && !ufs.includes(c.uf)){ toast(`UF ${c.uf} não é permitida para ${regional}.`); return false; }
+      if(new Date(c.ini) > new Date(c.fim)){ toast('Período inválido em uma das linhas.'); return false; }
+    }
+    return true;
+  }
+
+  /* === handler (override) === */
+  const btnSalvar = el('btnNovoSalvar');
+  if(!btnSalvar) return;
+
+  btnSalvar.addEventListener('click', async (ev)=>{
+    // evita que um listener antigo rode também
+    ev.stopImmediatePropagation();
+    ev.preventDefault();
+
+    if(!getToken()){ toast('Configurar GitHub primeiro.'); return; }
+
+    const regional = el('novoRegional')?.value || '';
+    const tipoLoja = el('novoTipoLoja')?.value || '';
+    const tipoJob  = el('novoTipoJob')?.value || '';
+    const nome     = el('novoNomeSel')?.value || '';
+    const compl    = el('novoCompl')?.value || '';
+    const tam      = el('novoTam')?.value || '';
+    const qtdRaw   = el('novoQtd')?.value || '';
+    const link     = el('novoLink')?.value || '';
+    const acaoNacional = (el('novoAcaoSim')?.checked ? 'Sim' : 'Não');
+    const acaoNome     = (acaoNacional==='Sim') ? (el('novoAcaoNome')?.value || '') : '';
+
+    if(!regional || !tipoLoja || !tipoJob || !nome || !tam || !qtdRaw){ toast('Preencha Regional, Tipo da loja, Tipo do JOB, Nome, Tamanho e Quantidade.'); return; }
+    const qtd = parseInt(qtdRaw,10); if(isNaN(qtd)||qtd<=0){ toast('Quantidade inválida.'); return; }
+
+    if(acaoNacional==='Sim' && !acaoNome){ toast('Defina/Selecione a Ação nacional.'); return; }
+
+    const combos = getLoteCombos();
+    if(!baseValid(regional, combos)) return;
+
+    setBusy(true, 'Gravando jobs em lote…');
+
+    try{
+      // lê arquivos para calcular OT global e montar header
+      const [curJobs, curClosed] = await Promise.all([ghGetFile(GH.jobsPath, GH.branch), ghGetFile(GH.jobsClosedPath, GH.branch)]);
+      const pj = csvToObjsAndHeader(curJobs.text);
+      const pc = csvToObjsAndHeader(curClosed.text);
+
+      const need=['ot','regional','tipoLoja','tipoJob','nome','compl','uf','filial','ini','fim','tam','qtd','link','acaoNacional','acaoNome','status','statusStep','logs','criado_em','atualizado_em'];
+      let ensured = ensureHeaderColumns(pj.header, pj.rows, need);
+      let H = ensured.head, rows = ensured.rows;
+
+      let next = Math.max(extractMaxOT(rows), extractMaxOT(pc.rows||[]));
+      const agora = new Date().toISOString();
+      const resp  = (window.currentUser && window.currentUser.nome) ? String(window.currentUser.nome) : '—';
+
+      const novos=[];
+      for(const c of combos){
+        next += 1;
+        const ot = 'OT-' + next; // sem zeros à esquerda
+        const logs = { criado:[{ nome:resp, ts:agora }] };
+        const row = {
+          ot, regional, tipoLoja, tipoJob, nome, compl,
+          uf:c.uf, filial:c.filial||'',
+          ini:c.ini, fim:c.fim,
+          tam, qtd:String(qtd), link,
+          acaoNacional, acaoNome,
+          status:'Novo', statusStep:'',
+          logs:JSON.stringify(logs),
+          criado_em:agora, atualizado_em:agora
+        };
+        rows.push(row);
+        novos.push(row);
+      }
+
+      const nextCsv = toCsv(H, rows);
+      await ghPutFile(GH.jobsPath, nextCsv, `chore(csv): add ${novos.length} job(s) [lote]`);
+
+      // atualiza UI/tabela se sua app tiver esse método
+      if(typeof window.loadJobsFromGitHub==='function'){
+        await window.loadJobsFromGitHub();
+      }
+
+      // fecha modal se existir
+      const dlgNovo = el('modalNovo'); if(dlgNovo && typeof dlgNovo.close==='function') dlgNovo.close();
+
+      toast(`${novos.length} job(s) criado(s).`);
+    }catch(e){
+      console.error(e);
+      toast('Falha ao salvar o lote.');
+    }finally{
+      setBusy(false);
+    }
+  }, true); // captura para ser o primeiro e bloquear outros
+})();
+</script>
+
+<!//===== AJUSTE SALVAR EM LOTE FIM======>
+
+<!// Tamanho fonte linha>
+
+<style>
+  /* Tamanho do texto das linhas de jobs lançados */
+  #jobsBody tr[data-ot] td {
+    font-size: 7pt;          /* “tamanho 7” */
+    line-height: 1.2;
+  }
+
+  /* Mantém botões legíveis, se existirem dentro das células */
+  #jobsBody tr[data-ot] td button,
+  #jobsBody tr[data-ot] td .btn {
+    font-size: 8.5pt;
+  }
+</style>
+<!// Tamanho fonte linha FIM>
+
+<!-- ======= AJUSTES FINAIS v2: ellipsis + neutraliza "Ver lojas" + compacta ======= -->
+<style>
+  /* Linhas compactas */
+  #jobsBody tr[data-ot] td {
+    padding: 3px 6px;
+    font-size: 7pt;
+    line-height: 1.15;
+    vertical-align: middle;
+  }
+
+  /* Força largura fixa nas colunas desejadas (com table-layout: fixed) */
+  #jobsBody td.col-nome    { width: 260px; max-width: 260px; }
+  #jobsBody td.col-filiais { width: 320px; max-width: 320px; }
+
+  /* Conteúdo com ellipsis */
+  .cell-clip {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .cell-clickable { cursor: zoom-in; }
+
+  /* Botão "+" menor */
+  #jobsBody tr[data-ot] td .btnPlusMini,
+  #jobsBody tr[data-ot] td .btnStepPlus {
+    width: 20px; height: 20px; min-width: 20px;
+    font-size: 12px; line-height: 18px; padding: 0; border-radius: 6px;
+  }
+
+  /* Título de área à esquerda */
+  #jobsBody tr.areaTitleRow td { text-align: left !important; }
+
+  /* Mini viewer */
+  #miniViewer { border: none; padding: 0; width: min(680px, 96vw); background: transparent; }
+  #miniViewer::backdrop { background: rgba(0,0,0,.65); }
+  #miniCard {
+    background: #0e1730; color: #eaf0ff;
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: 14px; box-shadow: 0 18px 60px rgba(0,0,0,.55);
+    overflow: hidden;
+  }
+  #miniHdr { padding: 12px 16px; border-bottom: 1px solid rgba(255,255,255,.08); font-weight: 700; }
+  #miniCnt { padding: 14px 16px; max-height: 60vh; overflow: auto; }
+  #miniCnt ul { margin: 0; padding-left: 18px; }
+  #miniCnt .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: pre-wrap; }
+  #miniAct { padding: 10px 16px 14px; border-top: 1px solid rgba(255,255,255,.08); text-align: right; }
+  #miniAct .btn { appearance: none; border: 1px solid rgba(255,255,255,.16); background: #0d1628; color: #eaf0ff;
+                  padding: 8px 12px; border-radius: 10px; cursor: pointer; font-weight: 700; }
+</style>
+
+<dialog id="miniViewer">
+  <div id="miniCard" role="dialog" aria-modal="true" aria-labelledby="miniTitle">
+    <div id="miniHdr"><span id="miniTitle">Detalhes</span></div>
+    <div id="miniCnt"></div>
+    <div id="miniAct"><button class="btn" id="miniClose" type="button">Fechar</button></div>
+  </div>
+</dialog>
+
+<script>
+(() => {
+  const jobsBody = document.getElementById('jobsBody');
+  const miniDlg  = document.getElementById('miniViewer');
+  const miniT    = document.getElementById('miniTitle');
+  const miniCnt  = document.getElementById('miniCnt');
+  const miniClose= document.getElementById('miniClose');
+
+  // Índices das colunas (ajuste se a ordem for diferente)
+  const COL = { ot:0, regional:1, tipoLoja:2, tipoJob:3, nome:4, compl:5, uf:6, filiais:7, ini:8, fim:9, tam:10, qtd:11, status:12 };
+
+  const htmlEscape = s => String(s||'').replace(/[&<>"']/g,m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
+  const isAreaTitleRow = tr => !tr.hasAttribute('data-ot') && /^(REGIONAL |ESPECIAL NACIONAL)/i.test((tr.textContent||'').trim());
+
+  function openMini(title, fullText, listStyle=false){
+    miniT.textContent = title || 'Detalhes';
+    if(listStyle){
+      const arr = String(fullText||'')
+        .split(/[\n;,]+/).map(s=>s.trim()).filter(Boolean);
+      miniCnt.innerHTML = arr.length
+        ? '<ul>'+arr.map(x=>'<li>'+htmlEscape(x)+'</li>').join('')+'</ul>'
+        : '<div class="mono">'+htmlEscape(fullText||'')+'</div>';
+    } else {
+      miniCnt.innerHTML = '<div class="mono">'+htmlEscape(fullText||'')+'</div>';
+    }
+    try{ miniDlg.showModal(); }catch{}
+  }
+
+  function findAnyDataFull(td){
+    // procura data-full em qualquer descendente
+    const el = td.querySelector('[data-full]');
+    if (el && el.getAttribute('data-full')) return el.getAttribute('data-full');
+    // tenta title (muitos botões "Ver lojas" guardam no title)
+    const titled = td.querySelector('[title]');
+    if (titled && /[,;\n]/.test(titled.getAttribute('title')||'')) return titled.getAttribute('title');
+    // tenta no próprio td
+    if (td.dataset && td.dataset.full) return td.dataset.full;
+    if (td.title && /[,;\n]/.test(td.title)) return td.title;
+    return '';
+  }
+
+  function getRowStores(tr){
+    // tenta várias fontes confiáveis para as filiais
+    const ot = tr?.dataset?.ot || '';
+    if (tr?.dataset?.filiais) return tr.dataset.filiais;
+
+    if (window.jobsByOT && window.jobsByOT[ot]) {
+      return window.jobsByOT[ot].filial || window.jobsByOT[ot].filiais || '';
+    }
+    if (typeof window.getRowDataByOT === 'function') {
+      try {
+        const r = window.getRowDataByOT(ot);
+        if (r) return r.filial || r.filiais || r.lojas || '';
+      } catch {}
+    }
+    return '';
+  }
+
+  function buildClip(td, full){
+    td.innerHTML = '';
+    const span = document.createElement('span');
+    span.className = 'cell-clip';
+    span.textContent = String(full||'').replace(/\s+/g,' ').trim();
+    span.dataset.full = full || '';
+    td.appendChild(span);
+    td.classList.add('cell-clickable');
+    return span;
+  }
+
+  function decorateOneRow(tr){
+    if (!tr || !tr.children) return;
+
+    // Área/título
+    if (isAreaTitleRow(tr)) { tr.classList.add('areaTitleRow'); return; }
+    if (!tr.hasAttribute('data-ot')) return;
+
+    // NOME
+    const tdNome = tr.children[COL.nome];
+    if (tdNome) {
+      let full = tdNome.querySelector('.cell-clip')?.dataset.full || (tdNome.textContent||'').trim();
+      tdNome.classList.add('col-nome');
+      const sp = buildClip(tdNome, full);
+      tdNome.addEventListener('click', (e)=>{ e.stopPropagation(); openMini('Nome do tabloide', sp.dataset.full, false); });
+    }
+
+    // FILIAIS: neutraliza "Ver lojas"
+    const tdFil = tr.children[COL.filiais];
+    if (tdFil) {
+      let full = findAnyDataFull(tdFil);
+
+      // se ainda vier "Ver lojas" ou vazio, tenta buscar em outras fontes
+      if (!full || /^ver\s+lojas$/i.test((tdFil.textContent||'').trim())) {
+        const fallback = getRowStores(tr);
+        if (fallback) full = fallback;
+      }
+
+      // remove "Ver lojas" do texto bruto
+      if (/^ver\s+lojas$/i.test((tdFil.textContent||'').trim())) {
+        tdFil.textContent = '';
+      }
+
+      tdFil.classList.add('col-filiais');
+      const sp = buildClip(tdFil, full);
+      tdFil.addEventListener('click', (e)=>{ e.stopPropagation(); openMini('Filiais', sp.dataset.full, true); });
+    }
+
+    // botão "+"
+    const plusBtn =
+      tr.querySelector('.btnStepPlus, .btnStep, .btn-plus, button.plus, [data-action="step-plus"]') ||
+      [...tr.querySelectorAll('button')].find(b => b.textContent.trim() === '+');
+    if (plusBtn) plusBtn.classList.add('btnPlusMini');
+  }
+
+  function decorateAll(){
+    if (!jobsBody) return;
+    // força table-layout: fixed no <table>
+    const tbl = jobsBody.closest('table');
+    if (tbl) { tbl.style.tableLayout = 'fixed'; tbl.style.width = '100%'; }
+    [...jobsBody.querySelectorAll('tr')].forEach(decorateOneRow);
+  }
+
+  // APIs para reaplicar quando a tabela recarregar
+  window.decorateInlineCells = decorateAll;
+  window.decorateFiliaisCellForOT = (ot)=>{
+    const tr = jobsBody?.querySelector(`tr[data-ot="${CSS.escape(ot)}"]`);
+    if (tr) decorateOneRow(tr);
+  };
+  window.decorateNomeCellForOT = window.decorateFiliaisCellForOT;
+
+  // Hook após loadJobsFromGitHub se existir
+  if (typeof window.loadJobsFromGitHub === 'function'){
+    const _orig = window.loadJobsFromGitHub;
+    window.loadJobsFromGitHub = async function(...args){
+      const r = await _orig.apply(this, args);
+      requestAnimationFrame(decorateAll);
+      return r;
+    };
+  }
+
+  // Botão fechar do mini viewer
+  miniClose?.addEventListener('click', ()=> { try{ miniDlg.close(); }catch{} });
+
+  // Aplica agora
+  decorateAll();
+})();
+</script>
+<!-- ======= /AJUSTES FINAIS v2 ======= FIM -->
 
 
 </body>
