@@ -669,19 +669,49 @@
 <!-- MODAIS: Duplicar -->
 <dialog id="modalDup1"><div class="modal">
   <h3>Duplicar jobs — Seleção</h3>
-  <div class="frow">
-    <div style="flex:1 1 220px"><label>Regional</label><select id="dupReg"></select></div>
-    <div style="flex:2 1 260px"><label>Nome do tabloide (contém)</label><input id="dupNome" type="text" placeholder="Digite parte do nome" /></div>
-    <div style="align-self:flex-end"><button class="btn" id="dupFiltrar" type="button">Filtrar</button></div>
-    <div style="align-self:flex-end"><button class="btn" id="dupSelTodos" type="button">Selecionar todos</button></div>
-    <div style="align-self:flex-end"><button class="btn" id="dupSelNenhum" type="button">Limpar seleção</button></div>
+
+  <div class="frow" style="gap:10px; flex-wrap:wrap">
+    <div style="flex:1 1 200px">
+      <label>Origem dos jobs</label>
+      <select id="dupFonte">
+        <option value="jobs.csv">JOBS LANÇADOS</option>
+        <option value="jobs_encerrados.csv">JOBS FINALIZADOS</option>
+      </select>
+    </div>
+
+    <div style="flex:1 1 220px">
+      <label>Regional</label>
+      <select id="dupReg"></select>
+    </div>
+
+    <div style="flex:2 1 260px">
+      <label>Nome do tabloide</label>
+      <!-- vira SELECT via JS (lista de nome_tabloide.csv) -->
+      <input id="dupNome" type="text" placeholder="(todas)" />
+    </div>
+
+    <div style="align-self:flex-end">
+      <button class="btn" id="dupFiltrar" type="button">Filtrar</button>
+    </div>
+    <div style="align-self:flex-end">
+      <button class="btn" id="dupSelTodos" type="button">Selecionar todos</button>
+    </div>
+    <div style="align-self:flex-end">
+      <button class="btn" id="dupSelNenhum" type="button">Limpar seleção</button>
+    </div>
   </div>
+
   <div class="list">
     <table>
-      <thead><tr><th></th><th>OT</th><th>Regional</th><th>Nome</th><th>Status</th></tr></thead>
-      <tbody id="dupList"><tr><td colspan="5" class="hint">Sem resultados. Use os filtros acima.</td></tr></tbody>
+      <thead>
+        <tr><th></th><th>OT</th><th>Regional</th><th>Nome</th><th>Status</th></tr>
+      </thead>
+      <tbody id="dupList">
+        <tr><td colspan="5" class="hint">Sem resultados. Use os filtros acima.</td></tr>
+      </tbody>
     </table>
   </div>
+
   <div class="actions">
     <button class="btn" id="dup1Cancelar" type="button">Cancelar</button>
     <button class="btn primary" id="dup1Avancar" type="button">Avançar</button>
@@ -692,11 +722,18 @@
   <h3>Duplicar jobs — Parâmetros</h3>
   <div class="grid">
     <div class="col-3"><label>Tipo do JOB</label>
-      <select id="dupTipoJob"><option value="">— selecione —</option><option>Tabloide Digital</option><option>Tabloide Impresso</option></select>
+      <select id="dupTipoJob">
+        <option value="">— selecione —</option>
+        <option>Tabloide Digital</option>
+        <option>Tabloide Impresso</option>
+      </select>
     </div>
+
     <div class="col-12 dup-nome-col"><label>Nome do tabloide</label>
+      <!-- vira SELECT via JS (lista de nome_tabloide.csv) -->
       <input id="dupNomeNovo" type="text" placeholder="Novo nome comum para os duplicados" />
     </div>
+
     <div class="col-3"><label>Validade início</label><input id="dupIni" type="date" /></div>
     <div class="col-3"><label>Validade término</label><input id="dupFim" type="date" /></div>
     <div class="col-3"><label>Página (tamanho)</label>
@@ -711,9 +748,11 @@
         <label><input type="radio" name="dupAcaoNac" id="dupAcaoSim" value="sim"> Sim</label>
       </div>
     </div>
+
     <div class="col-9">
       <label>Ação (quando nacional)</label>
       <div style="display:flex; gap:8px; align-items:center">
+        <!-- SELECT de ações existentes é inserido antes deste input -->
         <input id="dupAcaoNome" type="text" placeholder="Escolha/crie uma ação" readonly />
         <button class="btn small" type="button" id="btnDupEscolherAcao" disabled>Definir ação…</button>
       </div>
@@ -721,12 +760,14 @@
 
     <div class="col-12" id="dupResumo" class="muted"></div>
   </div>
+
   <div class="actions">
     <button class="btn" type="button" id="dup2Voltar">Cancelar</button>
     <button class="btn" type="button" id="dup2Limpar">Limpar</button>
     <button class="btn primary" type="button" id="dup2Lancar">Lançar</button>
   </div>
 </form></dialog>
+
 
 <!-- MODAL: Finalizar -->
 <dialog id="modalFinalizar"><div class="modal">
@@ -744,28 +785,50 @@
   </div>
 </div></dialog>
 
-<!-- MODAL: Visualizar Finalizados -->
+<!-- MODAL: Visualizar Finalizados (com filtros) -->
 <dialog id="modalFinalizados"><div class="modal">
   <h3>Jobs finalizados</h3>
-  <div class="frow" id="finzToolbar" style="justify-content:flex-end">
-    <button class="btn" id="finzSelTodos" type="button">Selecionar todos</button>
-    <button class="btn" id="finzSelNenhum" type="button">Limpar</button>
-    <button class="btn primary" id="finzDuplicar" type="button">Duplicar selecionados</button>
+
+  <div class="frow" id="finzToolbar" style="gap:10px;flex-wrap:wrap;justify-content:flex-end">
+    <div style="flex:1 1 220px;min-width:220px">
+      <label>Regional</label>
+      <select id="finzReg">
+        <option value="(todas)">(todas)</option>
+        <!-- opções reais são preenchidas via JS com base no CSV -->
+      </select>
+    </div>
+    <div style="flex:0 0 160px;min-width:160px">
+      <label>Período — Início</label>
+      <input id="finzIni" type="date">
+    </div>
+    <div style="flex:0 0 160px;min-width:160px">
+      <label>Período — Término</label>
+      <input id="finzFim" type="date">
+    </div>
+    <div style="align-self:flex-end">
+      <button class="btn" id="finzFiltrar" type="button">Aplicar filtro</button>
+    </div>
+    <div style="align-self:flex-end">
+      <button class="btn" id="finzFechar" type="button">Fechar</button>
+    </div>
   </div>
+
   <div class="list">
     <table>
       <thead>
         <tr>
-          <th></th><th>OT</th><th>REGIONAL</th><th>TIPO DO JOB</th>
+          <th>OT</th><th>REGIONAL</th><th>TIPO DO JOB</th>
           <th>NOME TABLOIDE</th><th>COMPLEMENTO</th><th>UF</th><th>FILIAL(S)</th>
           <th>INI</th><th>FIM</th><th>TAM</th><th>QTD</th>
         </tr>
       </thead>
-      <tbody id="finzList"><tr><td colspan="12" class="hint">Carregando finalizados…</td></tr></tbody>
+      <tbody id="finzList">
+        <tr><td colspan="11" class="hint">Carregando finalizados…</td></tr>
+      </tbody>
     </table>
   </div>
-  <div class="actions"><button class="btn" id="finzFechar" type="button">Fechar</button></div>
 </div></dialog>
+
 
 <!-- MODAL: Dashboard -->
 <dialog id="modalDash"><div class="modal">
@@ -795,6 +858,76 @@
 
 <div id="busy"><div class="box">Sincronizando…</div></div>
 <div id="toast"></div>
+
+<!-- MODAL: Excluir jobs -->
+<dialog id="modalExcluir"><div class="modal">
+  <h3>Excluir jobs</h3>
+
+  <div class="frow" style="gap:10px;flex-wrap:wrap">
+    <div style="flex:1 1 220px;min-width:220px">
+      <label>Regional</label>
+      <select id="exReg">
+        <option value="(todas)">(todas)</option>
+      </select>
+    </div>
+
+    <div style="flex:1 1 260px;min-width:240px">
+      <label>Nome do tabloide</label>
+      <select id="exNome">
+        <option value="(todos)">(todos)</option>
+      </select>
+    </div>
+
+    <div style="flex:0 0 160px;min-width:160px">
+      <label>Data início</label>
+      <input id="exIni" type="date">
+    </div>
+
+    <div style="flex:0 0 160px;min-width:160px">
+      <label>Data término</label>
+      <input id="exFim" type="date">
+    </div>
+
+    <div style="align-self:flex-end">
+      <button class="btn" id="exFiltrar" type="button">Aplicar filtro</button>
+    </div>
+    <div style="align-self:flex-end">
+      <button class="btn" id="exSelTodos" type="button">Selecionar todos</button>
+    </div>
+    <div style="align-self:flex-end">
+      <button class="btn" id="exSelNenhum" type="button">Limpar</button>
+    </div>
+  </div>
+
+  <div class="list" style="margin-top:10px">
+    <table>
+      <thead>
+        <tr>
+          <th></th>
+          <th>OT</th>
+          <th>REGIONAL</th>
+          <th>TIPO DO JOB</th>
+          <th>NOME TABLOIDE</th>
+          <th>UF</th>
+          <th>FILIAL(S)</th>
+          <th>INI</th>
+          <th>FIM</th>
+          <th>TAM</th>
+          <th>QTD</th>
+          <th>STATUS</th>
+        </tr>
+      </thead>
+      <tbody id="exList">
+        <tr><td colspan="12" class="hint">Carregando…</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="actions">
+    <button class="btn" id="exCancelar" type="button">Cancelar</button>
+    <button class="btn danger" id="exExcluir" type="button">Excluir selecionados</button>
+  </div>
+</div></dialog>
 
 <!//--------------------------------------------------------------------------BOTÕES-----------------------------------------------------------------------//>
 
@@ -4252,44 +4385,55 @@
 
 <!-- ============ ETAPAS (botão "+"): abrir modal, registrar evento e SALVAR no jobs.csv ============ FIM -->
 
-<!-- ============ BOTÃO EXCLUIR: remove o job selecionado do jobs.csv e da tabela ============ -->
+<!// ====== EXCLUIR NOVO =============>
+
 <script>
 (function(){
-  /* ====== CONFIG GITHUB ====== */
+  "use strict";
+
+  /* ===== GH CONFIG ===== */
   const GH = {
-    owner:    'JPVectorsitem',
-    repo:     'LINKS-img',
-    branch:   'main',
-    jobsPath: 'jobs.csv'
+    owner:  'JPVectorsitem',
+    repo:   'LINKS-img',
+    branch: 'main',
+    jobsPath:  'jobs.csv',
+    namesPath: 'nome_tabloide.csv' // usado só para preencher o filtro de nomes
   };
 
-  /* ====== ELEMENTOS ====== */
-  const btnExcluir = document.getElementById('btnExcluir');
-  const tbody      = document.getElementById('jobsBody');
+  /* ===== ELEMENTOS ===== */
+  const btnAbrir   = document.getElementById('btnExcluir'); // seu botão "Excluir" no topo
+  const dlg        = document.getElementById('modalExcluir');
+  const selReg     = document.getElementById('exReg');
+  const selNome    = document.getElementById('exNome');
+  const inpIni     = document.getElementById('exIni');
+  const inpFim     = document.getElementById('exFim');
+  const btnFiltrar = document.getElementById('exFiltrar');
+  const btnTodos   = document.getElementById('exSelTodos');
+  const btnNenhum  = document.getElementById('exSelNenhum');
+  const btnCancelar= document.getElementById('exCancelar');
+  const btnExcluir = document.getElementById('exExcluir');
+  const listBody   = document.getElementById('exList');
+  const jobsBody   = document.getElementById('jobsBody'); // grid principal, p/ atualizar rápido
 
-  /* ====== HELPERS UX ====== */
-  function toast(m){ const t=document.getElementById('toast'); if(!t){ alert(m); return; } t.textContent=m; t.style.display='block'; setTimeout(()=>t.style.display='none',2200); }
-  function setBusy(v,msg){ const o=document.getElementById('busy'); if(!o) return; o.style.display=v?'grid':'none'; if(msg) o.querySelector('.box').textContent=msg; }
+  /* ===== STATE ===== */
+  let _head = [];
+  let _rows = []; // TODO: só ativos (carregados do jobs.csv)
+
+  /* ===== UX ===== */
+  function toast(m){ const t=document.getElementById('toast'); if(!t){ alert(m); return; } t.textContent=m; t.style.display='block'; setTimeout(()=> t.style.display='none', 2200); }
+  function setBusy(v,msg){ const o=document.getElementById('busy'); if(!o) return; o.style.display = v ? 'grid':'none'; if(msg) o.querySelector('.box').textContent = msg; }
   function getToken(){ try{ const s=JSON.parse(localStorage.getItem('wv_gh_cfg')||'{}'); return (window.gh&&window.gh.token)||s.token||''; }catch{ return (window.gh&&window.gh.token)||''; } }
-  const eqi=(a,b)=> String(a||'').trim().toLowerCase()===String(b||'').trim().toLowerCase();
 
-  /* ====== CSV ====== */
+  /* ===== CSV / GH HELPERS ===== */
   function parseCsv(t){
-    if(!t) return [];
-    const r=[]; let row=[], cur='', q=false;
+    if(!t) return []; const r=[]; let row=[],cur='',q=false;
     for(let i=0;i<t.length;i++){
       const c=t[i];
-      if(q){
-        if(c=='"'){ if(t[i+1]=='"'){cur+='"'; i++;} else q=false; } else cur+=c;
-      }else{
-        if(c=='"') q=true;
-        else if(c==','){ row.push(cur); cur=''; }
-        else if(c=='\r'){}
-        else if(c=='\n'){ row.push(cur); r.push(row); row=[]; cur=''; }
-        else cur+=c;
-      }
+      if(q){ if(c=='"'){ if(t[i+1]=='"'){cur+='"';i++;} else q=false; } else cur+=c; }
+      else { if(c=='"') q=true; else if(c==','){row.push(cur);cur='';}
+      else if(c=='\r'){} else if(c=='\n'){row.push(cur);r.push(row);row=[];cur='';} else cur+=c; }
     }
-    if(cur.length>0 || row.length>0){ row.push(cur); r.push(row); }
+    if(cur.length>0||row.length>0){ row.push(cur); r.push(row); }
     return r;
   }
   function csvToObjsAndHeader(text){
@@ -4297,8 +4441,7 @@
     const H=rows[0], out=[];
     for(let i=1;i<rows.length;i++){
       const rr=rows[i]; if(!rr || (rr.length===1 && rr[0]==='')) continue;
-      const o={}; for(let j=0;j<H.length;j++) o[H[j]]=rr[j]||'';
-      out.push(o);
+      const o={}; for(let j=0;j<H.length;j++) o[H[j]]=rr[j]||''; out.push(o);
     }
     return { header:H, rows:out };
   }
@@ -4308,12 +4451,9 @@
     const body=rows.map(o=> H.map(k=> csvEsc(o[k]??'')).join(',')).join('\n');
     return head + (body? body+'\n' : '');
   }
-
-  /* ====== GitHub ====== */
   const GH_API_VER='2022-11-28';
   const ghHeaders=(tok)=>({'Accept':'application/vnd.github+json','X-GitHub-Api-Version':GH_API_VER, ...(tok?{'Authorization':`Bearer ${tok}`}:{})});
-  function b64ToUtf8(b64){ const bin=atob(b64); const bytes=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i); return new TextDecoder().decode(bytes); }
-  function utf8ToB64(str){ const bytes=new TextEncoder().encode(str); let bin=''; for(let i=0;i<bytes.length;i++) bin+=String.fromCharCode(bytes[i]); return btoa(bin); }
+  function b64ToUtf8(b64){ const bin=atob(b64); const bytes=new Uint8Array(bin.length); for(let i=0;i<bytes.length;i++) bytes[i]=bin.charCodeAt(i); return new TextDecoder().decode(bytes); }
   async function ghGetFile(path, branch){
     const token=getToken(); if(!token) throw new Error('Token GitHub não configurado.');
     const url=`https://api.github.com/repos/${encodeURIComponent(GH.owner)}/${encodeURIComponent(GH.repo)}/contents/${encodeURIComponent(path)}?ref=${encodeURIComponent(branch||GH.branch)}`;
@@ -4323,67 +4463,184 @@
     const j=await r.json(); const text=j && j.content ? b64ToUtf8(j.content) : '';
     return { text, sha:j.sha||null };
   }
+  function utf8ToB64(str){ const bytes=new TextEncoder().encode(str); let bin=''; for(let i=0;i<bytes.length;i++) bin+=String.fromCharCode(bytes[i]); return btoa(bin); }
   async function ghPutFile(path, newText, message){
     const token=getToken(); if(!token) throw new Error('Token GitHub não configurado.');
     let sha=null; try{ const cur=await ghGetFile(path, GH.branch); sha=cur.sha; }catch{}
     const url=`https://api.github.com/repos/${encodeURIComponent(GH.owner)}/${encodeURIComponent(GH.repo)}/contents/${encodeURIComponent(path)}`;
     const body={ message:message||`chore(csv): update ${path}`, content:utf8ToB64(newText), branch:GH.branch, ...(sha?{sha}:{}) };
-    const r=await fetch(url,{method:'PUT', headers:{...ghHeaders(token), 'Content-Type':'application/json'}, body:JSON.stringify(body)});
+    const r=await fetch(url,{method:'PUT', headers:{...ghHeaders(token),'Content-Type':'application/json'}, body:JSON.stringify(body)});
     if(!r.ok){ const t=await r.text(); throw new Error('Falha ao salvar ('+r.status+'): '+t); }
     return true;
   }
 
-  /* ====== Limpador de sub-ação em “ESPECIAL NACIONAL” quando fica vazia ====== */
-  function cleanupActionIfEmpty(actionName){
-    if(!actionName) return;
-    const esc = (window.CSS && CSS.escape) ? CSS.escape : (s)=> String(s).replace(/"/g,'\\"');
-    const stillExists = tbody && tbody.querySelector(`tr[data-sub="${esc(actionName)}"][data-ot]`);
-    if(!stillExists){
-      const sub = tbody && tbody.querySelector(`tr.sub-row[data-sub="${esc(actionName)}"]`);
-      if(sub) sub.remove();
+  /* ===== UTILS ===== */
+  function clipHTML(full, max=60){
+    const s=String(full||'').trim();
+    if(!s) return '—';
+    const short = s.length>max ? s.slice(0,max-1)+'…' : s;
+    return `<span class="clip" data-full="${s.replace(/"/g,'&quot;')}">${short.replace(/</g,'&lt;')}</span>`;
+  }
+  function toDate(x){ const d=x?new Date(x):null; return (d && !isNaN(d)) ? d : null; }
+  function datesOverlap(jobIni, jobFim, fIni, fFim){
+    if(!fIni && !fFim) return true;
+    if(fIni && !fFim)  return !jobFim || jobFim >= fIni;
+    if(!fIni && fFim)  return !jobIni || jobIni <= fFim;
+    return !( (jobFim && jobFim < fIni) || (jobIni && jobIni > fFim) );
+  }
+
+  /* ===== NOME_TABLOIDE para filtro ===== */
+  async function loadNomeOptions(){
+    if(!selNome) return;
+    selNome.innerHTML = `<option value="(todos)">(todos)</option>`;
+    try{
+      const { text } = await ghGetFile(GH.namesPath, GH.branch);
+      const parsed = csvToObjsAndHeader(text);
+      let names=[];
+      if(parsed.header.length){
+        const idx = parsed.header.findIndex(h => String(h||'').trim().toLowerCase()==='nome');
+        if(idx>=0) names = parsed.rows.map(r=> r[parsed.header[idx]]).filter(Boolean);
+        else {
+          const raw=parseCsv(text);
+          for(let i=1;i<raw.length;i++){ const v=raw[i][0]; if(v) names.push(v); }
+        }
+      }
+      names = [...new Set(names.map(s=>String(s).trim()))].filter(Boolean)
+              .sort((a,b)=> a.localeCompare(b,'pt-BR',{sensitivity:'base'}));
+      const frag=document.createDocumentFragment();
+      names.forEach(n=>{ const o=document.createElement('option'); o.value=n; o.textContent=n; frag.appendChild(o); });
+      selNome.appendChild(frag);
+    }catch(e){ console.error(e); /* mantém somente (todos) */ }
+  }
+
+  /* ===== RENDER ===== */
+  function render(list){
+    if(!listBody) return;
+    if(!list.length){
+      listBody.innerHTML = `<tr><td colspan="12" class="hint">Nenhum job com esse filtro.</td></tr>`;
+      return;
+    }
+    // Ordena por OT numérica
+    list.sort((a,b)=>{
+      const na=parseInt(String(a.ot||'').match(/\d+/)?.[0]||'0',10);
+      const nb=parseInt(String(b.ot||'').match(/\d+/)?.[0]||'0',10);
+      return (na-nb)|| String(a.ot||'').localeCompare(String(b.ot||''));
+    });
+    const frag=document.createDocumentFragment();
+    list.forEach(r=>{
+      const tr=document.createElement('tr');
+      const id='ex_'+String(r.ot||'').replace(/[^a-z0-9]/gi,'_');
+      tr.innerHTML = `
+        <td><input type="checkbox" data-ot="${r.ot||''}" id="${id}"></td>
+        <td>${r.ot||'—'}</td>
+        <td>${r.regional||'—'}</td>
+        <td>${r.tipoJob||'—'}</td>
+        <td>${clipHTML(r.nome||'')}</td>
+        <td>${r.uf||'—'}</td>
+        <td>${clipHTML(r.filial||'')}</td>
+        <td>${r.ini||'—'}</td>
+        <td>${r.fim||'—'}</td>
+        <td>${r.tam||'—'}</td>
+        <td>${r.qtd||'—'}</td>
+        <td>${r.status||'—'}</td>`;
+      frag.appendChild(tr);
+    });
+    listBody.innerHTML=''; listBody.appendChild(frag);
+  }
+
+  /* ===== FILTER ===== */
+  function populateRegionaisFromData(rows){
+    if(!selReg) return;
+    const set=new Set(['(todas)']);
+    rows.forEach(r=>{ const v=(r.regional||'').trim(); if(v) set.add(v); });
+    selReg.innerHTML = '';
+    [...set].sort((a,b)=> a.localeCompare(b,'pt-BR')).forEach(v=>{
+      const o=document.createElement('option'); o.value=v; o.textContent=v; selReg.appendChild(o);
+    });
+  }
+  function applyFilter(){
+    const reg  = (selReg?.value || '(todas)').trim();
+    const nome = (selNome?.value || '(todos)').trim();
+    const fIni = toDate(inpIni?.value);
+    const fFim = toDate(inpFim?.value);
+    const out = _rows.filter(r=>{
+      // status: ativos → tudo que está no jobs.csv (você já não lista finalizados aqui)
+      const okReg  = reg==='(todas)' || String(r.regional||'')===reg;
+      const okNome = nome==='(todos)' || String(r.nome||'')===nome;
+      const jIni = toDate(r.ini), jFim = toDate(r.fim);
+      const okPer = datesOverlap(jIni, jFim, fIni, fFim);
+      return okReg && okNome && okPer;
+    });
+    render(out);
+  }
+
+  /* ===== OPEN ===== */
+  async function openExcluir(){
+    if(!getToken()){ toast('Configurar GitHub primeiro (⚙).'); return; }
+    setBusy(true,'Carregando jobs…');
+    try{
+      const { text } = await ghGetFile(GH.jobsPath, GH.branch);
+      const parsed = csvToObjsAndHeader(text);
+      _head = parsed.header || [];
+      _rows = parsed.rows   || [];
+
+      // Popula filtros
+      populateRegionaisFromData(_rows);
+      await loadNomeOptions();
+
+      // limpa datas
+      if(inpIni) inpIni.value='';
+      if(inpFim) inpFim.value='';
+
+      // render inicial (todos)
+      render(_rows);
+
+      dlg?.showModal();
+    }catch(e){
+      console.error(e);
+      toast('Falha ao carregar jobs.');
+      listBody.innerHTML = `<tr><td colspan="12" class="hint">Erro ao carregar.</td></tr>`;
+      dlg?.showModal();
+    }finally{
+      setBusy(false);
     }
   }
-  // expõe pra outros trechos que já referenciam
-  window.cleanupActionIfEmpty = window.cleanupActionIfEmpty || cleanupActionIfEmpty;
 
-  /* ====== Ação do botão EXCLUIR ====== */
-  async function handleExcluir(){
-    // selecionado (usa helper já existente no seu código)
-    const ot = (typeof window.getSelectedOT === 'function' ? window.getSelectedOT() : (window.selectedOT || null));
-    if(!ot){ toast('Selecione um job para excluir.'); return; }
+  /* ===== DELETE ===== */
+  async function doDelete(){
+    const sel = [...listBody.querySelectorAll('input[type="checkbox"][data-ot]:checked')].map(b=> b.getAttribute('data-ot'));
+    if(!sel.length){ toast('Selecione ao menos 1 job.'); return; }
     if(!getToken()){ toast('Configurar GitHub primeiro (⚙).'); return; }
 
-    // pega info da UI pra confirmar
-    const tr = tbody && tbody.querySelector(`tr[data-ot="${CSS.escape(ot)}"]`);
-    const nome = tr ? (tr.children[4]?.textContent || '').trim() : '';
-    const regional = tr ? (tr.children[1]?.textContent || '').trim() : '';
-    const msg = `Excluir o job?\n\nOT: ${ot}\nNome: ${nome || '—'}\nRegional: ${regional || '—'}\n\nEsta ação não pode ser desfeita.`;
-    if(!confirm(msg)) return;
+    // Confirmação rápida
+    if(!confirm(`Excluir ${sel.length} job(s) selecionado(s)? Esta ação não pode ser desfeita.`)) return;
 
-    setBusy(true,'Excluindo job…');
+    setBusy(true, 'Excluindo…');
     try{
-      // 1) lê jobs.csv
-      const { text } = await ghGetFile(GH.jobsPath, GH.branch);
-      const { header:H, rows } = csvToObjsAndHeader(text);
+      // Mantém apenas os que NÃO estão selecionados
+      const selSet = new Set(sel.map(String));
+      const nextRows = _rows.filter(r => !selSet.has(String(r.ot)));
 
-      // 2) encontra & remove
-      const exists = rows.some(r => eqi(r.ot, ot));
-      if(!exists){ toast('Job não encontrado no arquivo.'); setBusy(false); return; }
+      const csv = toCsv(_head, nextRows);
+      await ghPutFile(GH.jobsPath, csv, `chore(csv): delete ${sel.length} job(s)`);
 
-      const remain = rows.filter(r => !eqi(r.ot, ot));
-      const newCsv = toCsv(H, remain);
-      await ghPutFile(GH.jobsPath, newCsv, `chore(csv): delete job ${ot}`);
+      // Atualiza estado local
+      _rows = nextRows;
 
-      // 3) atualiza UI: remove linha + limpa sub-ação se precisar
-      if(tr){
-        const sub = tr.getAttribute('data-sub') || null;
-        tr.remove();
-        if(sub) cleanupActionIfEmpty(sub);
+      // Atualiza UI principal (remover linhas da tabela) — ou recarrega tudo
+      if(typeof window.loadJobsFromGitHub === 'function'){
+        await window.loadJobsFromGitHub();
+      }else if(jobsBody){
+        sel.forEach(ot=>{
+          const tr = jobsBody.querySelector(`tr[data-ot="${CSS.escape(ot)}"]`);
+          if(tr) tr.remove();
+        });
       }
-      if (window.JOBS instanceof Map) window.JOBS.delete(ot);
-      if (typeof window.clearJobSelection === 'function') window.clearJobSelection();
 
-      toast(`Job ${ot} excluído.`);
+      // Reaplica filtro na lista do modal
+      applyFilter();
+
+      toast(`${sel.length} job(s) excluídos.`);
     }catch(e){
       console.error(e);
       toast('Erro ao excluir. Tente novamente.');
@@ -4392,12 +4649,19 @@
     }
   }
 
-  if (btnExcluir){
-    btnExcluir.addEventListener('click', handleExcluir);
-  }
+  /* ===== BINDINGS ===== */
+  btnAbrir?.addEventListener('click', openExcluir);
+  btnFiltrar?.addEventListener('click', applyFilter);
+  btnTodos?.addEventListener('click', ()=> listBody?.querySelectorAll('input[type="checkbox"][data-ot]').forEach(b=> b.checked=true));
+  btnNenhum?.addEventListener('click', ()=> listBody?.querySelectorAll('input[type="checkbox"][data-ot]').forEach(b=> b.checked=false));
+  btnCancelar?.addEventListener('click', ()=> dlg?.close());
+  btnExcluir?.addEventListener('click', doDelete);
+
 })();
 </script>
-<//!-- ============ BOTÃO EXCLUIR: remove o job selecionado do jobs.csv e da tabela ============ FIM -->
+
+
+<!// ======EXCLUIR NOVO - FIM ========>
 
 <//!-- ============ BOTÃO ENCERRAR ============ -->
 
@@ -5098,7 +5362,8 @@
 
 
 
-<!-- ============ BOTÃO DUPLICAR — IMPLEMENTAÇÃO COMPLETA (passo 1 + passo 2 + ações nacionais + gravação em jobs.csv) ============ -->
+<!-- ============ BOTÃO DUPLICAR — IMPLEMENTAÇÃO COMPLETA (passo 1 + passo 2 + ações nacionais + gravação em jobs.csv) =================== -->
+
 <script>
 (function(){
   /* ====== CONFIG GITHUB ====== */
@@ -5107,6 +5372,7 @@
     repo:     'LINKS-img',
     branch:   'main',
     jobsPath: 'jobs.csv',
+    jobsEnc:  'jobs_encerrados.csv',
     namesPath:'nome_tabloide.csv'
   };
 
@@ -5115,8 +5381,9 @@
 
   // Passo 1 (seleção)
   const dlgSel       = document.getElementById('modalDup1');
+  const selFonte     = document.getElementById('dupFonte');
   const selReg       = document.getElementById('dupReg');
-  let   selNomeFiltro= null; // (vai substituir o input #dupNome por SELECT)
+  let   selNomeFiltro= null; // SELECT (substitui #dupNome)
   const btnFiltrar   = document.getElementById('dupFiltrar');
   const btnSelTodos  = document.getElementById('dupSelTodos');
   const btnSelNenhum = document.getElementById('dupSelNenhum');
@@ -5128,7 +5395,7 @@
   const dlgPar       = document.getElementById('modalDup2');
   const formPar      = document.getElementById('formDup2');
   const selTipoJob   = document.getElementById('dupTipoJob');
-  let   selNomeNovo  = null; // (vai substituir o input #dupNomeNovo por SELECT)
+  let   selNomeNovo  = null; // SELECT (substitui #dupNomeNovo)
   const inpIni       = document.getElementById('dupIni');
   const inpFim       = document.getElementById('dupFim');
   const selTam       = document.getElementById('dupTam');
@@ -5138,20 +5405,17 @@
   const radNacNao    = document.getElementById('dupAcaoNao');
   const radNacSim    = document.getElementById('dupAcaoSim');
   const inpAcaoNome  = document.getElementById('dupAcaoNome');
-  const btnPickAcao  = document.getElementById('btnDupEscolherAcao'); // “Nova ação…”
-  let   selAcaoExist = null; // SELECT dinâmico com ações existentes
+  const btnPickAcao  = document.getElementById('btnDupEscolherAcao');
+  let   selAcaoExist = null; // SELECT inserido ao lado
 
-  // Modal de ação nacional reutilizado
+  // Modal de ação nacional reutilizado (existente no seu app)
   const dlgAcao      = document.getElementById('modalAcao');
   const boxAcoes     = document.getElementById('acaoLista');
   const inpAcaoNova  = document.getElementById('acaoNova');
   const btnAcaoOk    = document.getElementById('acaoOk');
   const btnAcaoCanc  = document.getElementById('acaoCancelar');
 
-  // Área de trabalho (pra ler subpartes existentes de ESPECIAL NACIONAL)
-  const jobsBody     = document.getElementById('jobsBody');
-
-  // Resumo
+  const jobsBody     = document.getElementById('jobsBody'); // para listar ações existentes do ESPECIAL NACIONAL
   const dupResumo    = document.getElementById('dupResumo');
 
   /* ====== UX helpers ====== */
@@ -5174,8 +5438,7 @@
     const H=rows[0], out=[];
     for(let i=1;i<rows.length;i++){
       const rr=rows[i]; if(!rr || (rr.length===1&&rr[0]==='')) continue;
-      const o={}; for(let j=0;j<H.length;j++) o[H[j]]=rr[j]||'';
-      out.push(o);
+      const o={}; for(let j=0;j<H.length;j++) o[H[j]]=rr[j]||''; out.push(o);
     }
     return { header:H, rows:out };
   }
@@ -5214,9 +5477,9 @@
     'REGIONAL NORDESTE 1','REGIONAL NORDESTE 2','REGIONAL NORTE','REGIONAL PR','REGIONAL RJ - ES',
     'REGIONAL RS','REGIONAL SP','REGIONAL SC'
   ];
-  let _head = [];
-  let _rows = [];
-  let _selOTs = [];
+  let _head = [];          // header do arquivo carregado no Passo 1 (apenas para render)
+  let _rows = [];          // linhas do arquivo escolhido no Passo 1 (jobs.csv ou jobs_encerrados.csv)
+  let _selOTs = [];        // OTs selecionadas no Passo 1
   let _acaoPickerBound = false;
 
   /* ====== Helpers ====== */
@@ -5230,8 +5493,7 @@
     const old = document.getElementById(id);
     if (old && old.tagName === 'SELECT') return old;
     const sel = document.createElement('select');
-    sel.id = id;
-    if (minWidthPx) sel.style.minWidth = minWidthPx + 'px';
+    sel.id = id; if (minWidthPx) sel.style.minWidth = minWidthPx + 'px';
     if (old) old.replaceWith(sel);
     return sel;
   }
@@ -5246,11 +5508,11 @@
     if (radNacSim?.checked){
       parts.push('Ação nacional: Sim');
       if (inpAcaoNome?.value.trim()) parts.push(`Ação: ${inpAcaoNome.value.trim()}`);
-    } else {
-      parts.push('Ação nacional: Não');
-    }
+    } else parts.push('Ação nacional: Não');
     if (dupResumo) dupResumo.textContent = parts.join(' • ');
   }
+
+  // varre número de OT (sem considerar zeros à esquerda) — pega o MAIOR entre jobs + encerrados
   function extractMaxOTNumber(rows){
     let max=0;
     for(const r of rows){
@@ -5261,22 +5523,28 @@
     }
     return max;
   }
-  function nextOTFactory(allRows){
-    let maxN = extractMaxOTNumber(allRows);
-    return () => {
-      maxN += 1;
-      return `OT-${String(maxN).padStart(4,'0')}`;
-    };
+
+  async function getAllRowsForOTScope(){
+    const a = await ghGetFile(GH.jobsPath);
+    const b = await ghGetFile(GH.jobsEnc);
+    const A = csvToObjsAndHeader(a.text).rows || [];
+    const B = csvToObjsAndHeader(b.text).rows || [];
+    return A.concat(B);
   }
 
-  /* ====== nome_tabloide.csv → OPTIONS (acentos OK via textContent) ====== */
-  async function loadNomeOptionsIntoSelect(selectEl, includeBlank=true, blankLabel='— selecione —', listAllLabel='(todas)'){
+  // gera próximo OT SEM zeros: OT-1, OT-2, …
+  function nextOTFactoryNoPad(maxInitial){
+    let max = maxInitial|0;
+    return () => { max += 1; return `OT-${max}`; };
+  }
+
+  /* ====== nome_tabloide.csv → OPTIONS (acentos OK) ====== */
+  async function loadNomeOptionsIntoSelect(selectEl, includeBlank=true, blankText='— selecione —'){
     if (!selectEl) return;
     selectEl.innerHTML = '';
     if (includeBlank){
       const o = document.createElement('option');
-      o.value = '';
-      o.textContent = blankLabel;
+      o.value = ''; o.textContent = blankText;
       selectEl.appendChild(o);
     }
     try{
@@ -5284,8 +5552,8 @@
       const { header, rows } = csvToObjsAndHeader(text);
       let names = [];
       if (header.length){
-        const idxNome = header.findIndex(h => String(h||'').trim().toLowerCase() === 'nome');
-        if (idxNome >= 0) names = rows.map(r => r[header[idxNome]]).filter(Boolean);
+        const idx = header.findIndex(h => String(h||'').trim().toLowerCase() === 'nome');
+        if (idx >= 0) names = rows.map(r => r[header[idx]]).filter(Boolean);
         else {
           const raw = parseCsv(text);
           for (let i=1;i<raw.length;i++){ const v=raw[i][0]; if(v) names.push(v); }
@@ -5293,19 +5561,8 @@
       }
       names = [...new Set(names.map(s => String(s).trim()))].filter(Boolean)
               .sort((a,b)=> a.localeCompare(b,'pt-BR'));
-
-      // (modo filtro passo 1) se quiser “(todas)”
-      if (includeBlank && listAllLabel === '(todas)') {
-        selectEl.options[0].textContent = listAllLabel;
-      }
-
       const frag=document.createDocumentFragment();
-      names.forEach(n=>{
-        const o=document.createElement('option');
-        o.value = n;
-        o.textContent = n; // acentos OK
-        frag.appendChild(o);
-      });
+      names.forEach(n=>{ const o=document.createElement('option'); o.value=n; o.textContent=n; frag.appendChild(o); });
       selectEl.appendChild(frag);
     }catch(e){
       console.error(e);
@@ -5313,7 +5570,7 @@
     }
   }
 
-  /* ====== AÇÕES EXISTENTES (subpartes do ESPECIAL NACIONAL) ====== */
+  /* ====== AÇÕES EXISTENTES (ESPECIAL NACIONAL) ====== */
   function collectExistingActions(){
     const list = [];
     document.querySelectorAll('#jobsBody tr.sub-row[data-sub]').forEach(tr=>{
@@ -5323,58 +5580,36 @@
     return list.sort((a,b)=> a.localeCompare(b,'pt-BR'));
   }
   function ensureAcaoSelect(){
-    // onde fica o campo Ação no passo 2 (col-9)
     const wrap = document.getElementById('modalDup2')?.querySelector('.col-9');
     if (!wrap) return null;
     const row = wrap.querySelector('div[style*="align-items:center"]') || wrap;
     let sel = row.querySelector('#dupAcaoSel');
     if (sel) return sel;
-
     sel = document.createElement('select');
-    sel.id = 'dupAcaoSel';
-    sel.style.minWidth = '220px';
-    sel.style.flex = '0 0 auto';
-    sel.style.marginRight = '8px';
-
-    const beforeEl = btnPickAcao;
-    if (beforeEl && beforeEl.parentNode) beforeEl.parentNode.insertBefore(sel, beforeEl);
-    else row.prepend(sel);
-
-    sel.addEventListener('change', ()=>{
-      inpAcaoNome.value = sel.value || '';
-      updateResumo();
-    });
-
+    sel.id = 'dupAcaoSel'; sel.style.minWidth='220px'; sel.style.flex='0 0 auto'; sel.style.marginRight='8px';
+    const before = btnPickAcao; if (before && before.parentNode) before.parentNode.insertBefore(sel, before); else row.prepend(sel);
+    sel.addEventListener('change', ()=>{ inpAcaoNome.value = sel.value || ''; updateResumo(); });
     return sel;
   }
   function populateAcaoSelect(){
     selAcaoExist = ensureAcaoSelect();
     if (!selAcaoExist) return;
     const actions = collectExistingActions();
-
     selAcaoExist.innerHTML = '';
     const ph = document.createElement('option'); ph.value=''; ph.textContent='(selecionar)'; selAcaoExist.appendChild(ph);
-    actions.forEach(n=>{
-      const o=document.createElement('option'); o.value=n; o.textContent=n; selAcaoExist.appendChild(o);
-    });
-
-    // sincroniza com o input caso já tenha valor
-    const v = (inpAcaoNome.value||'').trim();
-    selAcaoExist.value = actions.includes(v) ? v : '';
+    actions.forEach(n=>{ const o=document.createElement('option'); o.value=n; o.textContent=n; selAcaoExist.appendChild(o); });
+    const v = (inpAcaoNome.value||'').trim(); selAcaoExist.value = actions.includes(v) ? v : '';
   }
   function openAcaoPicker(){
     if (!dlgAcao) return;
-    // lista existentes
     const subs = collectExistingActions();
     if (boxAcoes){
-      if (!subs.length){
-        boxAcoes.innerHTML = `<div class="hint">Nenhuma ação existente. Crie uma nova abaixo.</div>`;
-      } else {
-        boxAcoes.innerHTML = subs.map(n =>
+      boxAcoes.innerHTML = !subs.length
+        ? `<div class="hint">Nenhuma ação existente. Crie uma nova abaixo.</div>`
+        : subs.map(n =>
           `<label style="display:flex;gap:8px;align-items:center;padding:6px 4px;cursor:pointer">
              <input type="radio" name="acaoPick" value="${n.replace(/"/g,'&quot;')}"> <span>${n}</span>
            </label>`).join('');
-      }
     }
     if (inpAcaoNova) inpAcaoNova.value = '';
     dlgAcao.showModal();
@@ -5386,7 +5621,7 @@
         const chosen = sel ? sel.value : (inpAcaoNova?.value||'').trim();
         if (!chosen){ toast('Escolha ou digite uma ação.'); return; }
         inpAcaoNome.value = chosen;
-        populateAcaoSelect(); // repopula e seleciona se for novo
+        populateAcaoSelect();
         if (selAcaoExist) selAcaoExist.value = chosen;
         updateResumo();
         dlgAcao.close();
@@ -5396,17 +5631,11 @@
   }
   function onToggleNacional(){
     const isSim = radNacSim && radNacSim.checked;
-    if (btnPickAcao) {
-      btnPickAcao.disabled = !isSim;
-      btnPickAcao.textContent = 'Nova ação…';
-    }
+    if (btnPickAcao) { btnPickAcao.disabled = !isSim; btnPickAcao.textContent = 'Nova ação…'; }
     if (!selAcaoExist) selAcaoExist = ensureAcaoSelect();
     if (selAcaoExist) selAcaoExist.disabled = !isSim;
     if (isSim) populateAcaoSelect();
-    if (!isSim){
-      inpAcaoNome.value = '';
-      if (selAcaoExist) selAcaoExist.value = '';
-    }
+    if (!isSim){ inpAcaoNome.value = ''; if (selAcaoExist) selAcaoExist.value = ''; }
     updateResumo();
   }
 
@@ -5432,40 +5661,52 @@
     });
     tbodySel.innerHTML=''; tbodySel.appendChild(frag);
   }
+
   function applySelFilter(){
     const reg = (selReg?.value||'(todas)').trim();
     const nomeSelected = (selNomeFiltro?.value||'').trim();
-
     let list = _rows.slice();
     if (reg !== '(todas)') list = list.filter(r => (r.regional||'') === reg);
     if (nomeSelected)      list = list.filter(r => (r.nome||'') === nomeSelected);
-
     renderSelList(list);
   }
+
+  async function loadFonteRows(){
+    const path = (selFonte?.value || GH.jobsPath);
+    const { text } = await ghGetFile(path, GH.branch);
+    const parsed = csvToObjsAndHeader(text);
+    // padroniza status em “Finalizado” quando vier do encerrados (se não tiver)
+    const isEnc = path === GH.jobsEnc;
+    const rows = (parsed.rows||[]).map(r=>{
+      const o = {...r};
+      if (isEnc && !String(o.status||'').trim()) o.status = 'Finalizado';
+      return o;
+    });
+    _head = parsed.header||[];
+    _rows = rows;
+  }
+
   async function openStep1(){
     if(!getToken()){ toast('Configurar GitHub primeiro (⚙).'); return; }
     fillRegFilter();
 
-    // transforma campo de filtro de nome em SELECT e carrega nomes
+    // Nome (filtro) como SELECT
     selNomeFiltro = ensureSelectReplacingInput('dupNome', 220);
-    await loadNomeOptionsIntoSelect(selNomeFiltro, true, '(todas)', '(todas)');
+    await loadNomeOptionsIntoSelect(selNomeFiltro, true, '(todas)');
     selNomeFiltro.addEventListener('change', applySelFilter);
 
+    // limpa passo 2
     if (formPar) formPar.reset();
     inpAcaoNome.value = '';
-    if (btnPickAcao) btnPickAcao.disabled = true;
     if (!selAcaoExist) selAcaoExist = ensureAcaoSelect();
-    if (selAcaoExist) { selAcaoExist.innerHTML = '<option value="">(selecionar)</option>'; selAcaoExist.disabled = true; }
+    if (selAcaoExist){ selAcaoExist.innerHTML = '<option value="">(selecionar)</option>'; selAcaoExist.disabled = true; }
+    if (btnPickAcao) btnPickAcao.disabled = true;
 
     _selOTs = [];
 
-    setBusy(true,'Carregando jobs…');
+    setBusy(true,'Carregando…');
     try{
-      const { text } = await ghGetFile(GH.jobsPath, GH.branch);
-      const parsed = csvToObjsAndHeader(text);
-      _head = parsed.header || [];
-      _rows = parsed.rows   || [];
-
+      await loadFonteRows();
       renderSelList([]);
       dlgSel && dlgSel.showModal();
     }catch(e){
@@ -5476,15 +5717,29 @@
     }
   }
 
+  // troca de fonte recarrega lista
+  selFonte?.addEventListener('change', async ()=>{
+    setBusy(true,'Carregando…');
+    try{
+      await loadFonteRows();
+      applySelFilter();
+    }catch(e){
+      console.error(e);
+      toast('Erro ao ler a origem selecionada.');
+    }finally{
+      setBusy(false);
+    }
+  });
+
   /* ====== PASSO 2 ====== */
   async function openStep2(){
     if (formPar) formPar.reset();
     inpAcaoNome.value = '';
     if (!selAcaoExist) selAcaoExist = ensureAcaoSelect();
-    if (selAcaoExist) { selAcaoExist.innerHTML = '<option value="">(selecionar)</option>'; selAcaoExist.disabled = true; }
+    if (selAcaoExist){ selAcaoExist.innerHTML = '<option value="">(selecionar)</option>'; selAcaoExist.disabled = true; }
     if (btnPickAcao) btnPickAcao.disabled = true;
 
-    // Nome do tabloide no passo 2 como SELECT
+    // Nome do tabloide (parâmetros) como SELECT
     selNomeNovo = ensureSelectReplacingInput('dupNomeNovo', 240);
     await loadNomeOptionsIntoSelect(selNomeNovo, true, '— selecione —');
     selNomeNovo.addEventListener('change', updateResumo);
@@ -5521,6 +5776,7 @@
     const set = new Set(ots.map(String));
     return _rows.filter(r => set.has(String(r.ot)));
   }
+
   async function doDuplicate(){
     if(!_selOTs.length){ toast('Nenhum job selecionado para duplicar.'); return; }
     const params = validateDupParams();
@@ -5530,18 +5786,23 @@
     const origs = findJobsByOTs(_selOTs);
     if (!origs.length){ toast('Seleção vazia.'); return; }
 
-    const now = new Date().toISOString();
     setBusy(true,'Duplicando…');
+    const now = new Date().toISOString();
 
     try{
-      const rowsAll = _rows.slice();
-      const newRows = [];
-      const nextOT = nextOTFactory(rowsAll);
+      // 1) Carrega o jobs.csv (alvo) e também todos os jobs (alvo + encerrados) para garantir OT global
+      const curJobs   = csvToObjsAndHeader((await ghGetFile(GH.jobsPath)).text);
+      const encJobs   = csvToObjsAndHeader((await ghGetFile(GH.jobsEnc)).text);
+      const targetH   = curJobs.header || [];
+      const targetRws = curJobs.rows   || [];
+      const scopeAll  = (curJobs.rows||[]).concat(encJobs.rows||[]);
+      const nextOT    = nextOTFactoryNoPad(extractMaxOTNumber(scopeAll));
 
+      // 2) Duplicar
+      const newRows=[];
       for (const src of origs){
         const obj = { ...src };
-
-        obj.ot        = nextOT();
+        obj.ot        = nextOT();                 // <-- SEM zeros à esquerda
         obj.tipoJob   = params.tipoJob;
         obj.nome      = params.nomeComum;
         obj.ini       = params.ini;
@@ -5550,9 +5811,8 @@
         obj.qtd       = params.qtd;
 
         obj.isNacional = params.isNac ? 'sim' : 'nao';
-        obj.acaoNome   = params.isNac ? params.acao : (src.acaoNome || '');
+        obj.acaoNome   = params.isNac ? params.acao : '';
 
-        // reset de status/logs
         obj.status       = 'Novo';
         obj.statusStep   = 'novo';
         obj.logs         = '{}';
@@ -5560,20 +5820,20 @@
         obj.atualizado_em= now;
 
         newRows.push(obj);
-        rowsAll.push(obj);
+        targetRws.push(obj);
       }
 
-      const csv = toCsv(_head, rowsAll);
+      // 3) Salvar no jobs.csv
+      const csv = toCsv(targetH, targetRws);
       await ghPutFile(GH.jobsPath, csv, `chore(csv): duplicate ${newRows.length} job(s)`);
 
-      // Atualiza UI
+      // 4) Atualiza UI
       if (typeof window.loadJobsFromGitHub === 'function') {
         await window.loadJobsFromGitHub();
       }
 
-      toast(`${newRows.length} job(s) duplicados.`);
-      dlgPar?.close();
-      dlgSel?.close();
+      toast(`${newRows.length} job(s) duplicados (OT-x).`);
+      dlgPar?.close(); dlgSel?.close();
     }catch(e){
       console.error(e);
       toast('Erro ao duplicar. Tente novamente.');
@@ -5583,9 +5843,7 @@
   }
 
   /* ====== BINDS ====== */
-  if (btnDuplicar){
-    btnDuplicar.addEventListener('click', openStep1);
-  }
+  if (btnDuplicar){ btnDuplicar.addEventListener('click', openStep1); }
   btnFiltrar?.addEventListener('click', applySelFilter);
   btnSelTodos?.addEventListener('click', ()=> tbodySel?.querySelectorAll('input[type="checkbox"][data-ot]').forEach(b=> b.checked=true));
   btnSelNenhum?.addEventListener('click', ()=> tbodySel?.querySelectorAll('input[type="checkbox"][data-ot]').forEach(b=> b.checked=false));
@@ -5597,14 +5855,9 @@
     await openStep2();
   });
 
-  // passo 2
-  document.getElementById('dup2Voltar')?.addEventListener('click', ()=>{
-    dlgPar?.close();
-    dlgSel?.showModal();
-  });
+  document.getElementById('dup2Voltar')?.addEventListener('click', ()=>{ dlgPar?.close(); dlgSel?.showModal(); });
   document.getElementById('dup2Limpar')?.addEventListener('click', async ()=>{
-    formPar?.reset();
-    inpAcaoNome.value = '';
+    formPar?.reset(); inpAcaoNome.value = '';
     if (!selAcaoExist) selAcaoExist = ensureAcaoSelect();
     if (selAcaoExist){ selAcaoExist.innerHTML = '<option value="">(selecionar)</option>'; selAcaoExist.disabled = true; }
     if (btnPickAcao) btnPickAcao.disabled = true;
@@ -5614,9 +5867,9 @@
   });
   document.getElementById('dup2Lancar')?.addEventListener('click', doDuplicate);
 
-  ;[selTipoJob, inpIni, inpFim, selTam, inpQtd]?.forEach(el=>{
-    if(el) el.addEventListener('input', updateResumo);
-  });
+  [selTipoJob, inpIni, inpFim, selTam, inpQtd].forEach(el=>{ el && el.addEventListener('input', updateResumo); });
+  selFonte?.addEventListener('change', ()=>{ /* a lista é recarregada em loadFonteRows() */ });
+  selReg?.addEventListener('change', applySelFilter);
 
   radNacNao?.addEventListener('change', onToggleNacional);
   radNacSim?.addEventListener('change', onToggleNacional);
@@ -5626,484 +5879,6 @@
 </script>
 
 <!-- ============ BOTÃO DUPLICAR — IMPLEMENTAÇÃO COMPLETA (passo 1 + passo 2 + ações nacionais + gravação em jobs.csv) ============ FIM -->
-
-<!-- ============ DUPLICAR SELECIONADOS em “Visualizar finalizados” (#modalFinalizados) ============ -->
-<script>
-(function(){
-  /* ====== CONFIG ====== */
-  const GH = {
-    owner:    'JPVectorsitem',
-    repo:     'LINKS-img',
-    branch:   'main',
-    jobsPath: 'jobs.csv',
-    encPath:  'jobs_encerrados.csv',
-    namesPath:'nome_tabloide.csv'
-  };
-
-  /* ====== ELEMENTOS (Finalizados) ====== */
-  const dlgFinalizados = document.getElementById('modalFinalizados');
-  const finzList       = document.getElementById('finzList');
-  const btnFinzDup     = document.getElementById('finzDuplicar');
-
-  /* ====== ELEMENTOS (Passo 2 – reutiliza o modal do Duplicar) ====== */
-  const dlgPar      = document.getElementById('modalDup2');
-  const formPar     = document.getElementById('formDup2');
-  const selTipoJob  = document.getElementById('dupTipoJob');
-  const inpIni      = document.getElementById('dupIni');
-  const inpFim      = document.getElementById('dupFim');
-  const selTam      = document.getElementById('dupTam');
-  const inpQtd      = document.getElementById('dupQtd');
-  const dupResumo   = document.getElementById('dupResumo');
-
-  // Nome (vai virar <select>)
-  let selNomeNovo   = null; // substitui #dupNomeNovo
-
-  // Ação nacional
-  const radNacNao   = document.getElementById('dupAcaoNao');
-  const radNacSim   = document.getElementById('dupAcaoSim');
-  const inpAcaoNome = document.getElementById('dupAcaoNome');
-  const btnPickAcao = document.getElementById('btnDupEscolherAcao'); // “Nova ação…”
-  let   selAcaoExist = null; // select com ações existentes (criamos dinamicamente)
-
-  // Botões padrão do passo 2
-  const btnVoltar   = document.getElementById('dup2Voltar');
-  const btnLimpar   = document.getElementById('dup2Limpar');
-  const btnLancar   = document.getElementById('dup2Lancar'); // vamos esconder quando vier de Finalizados
-  let   btnLancarFinz = null; // botão temporário “Duplicar selecionados”
-
-  /* ====== STATE ====== */
-  let FINZ_MODE_ACTIVE = false;
-  let _finzSources = [];     // linhas (objetos) do jobs_encerrados.csv selecionadas
-  let _headJobs    = [];     // cabeçalho do jobs.csv (para salvar)
-  let _allJobsRows = [];     // linhas atuais do jobs.csv (para gerar nova OT)
-
-  /* ====== UX helpers ====== */
-  function toast(m){ const t=document.getElementById('toast'); if(!t){ alert(m); return; } t.textContent=m; t.style.display='block'; setTimeout(()=>t.style.display='none',2200); }
-  function setBusy(v,msg){ const o=document.getElementById('busy'); if(!o) return; o.style.display=v?'grid':'none'; if(msg) o.querySelector('.box').textContent=msg; }
-  function getToken(){ try{ const s=JSON.parse(localStorage.getItem('wv_gh_cfg')||'{}'); return (window.gh&&window.gh.token)||s.token||''; }catch{ return (window.gh&&window.gh.token)||''; } }
-
-  /* ====== CSV/GitHub helpers ====== */
-  function parseCsv(t){ if(!t) return []; const r=[]; let row=[],cur='',q=false;
-    for(let i=0;i<t.length;i++){ const c=t[i];
-      if(q){ if(c=='"'){ if(t[i+1]=='"'){cur+='"';i++;} else q=false; } else cur+=c; }
-      else{ if(c=='"') q=true; else if(c==','){row.push(cur);cur='';}
-      else if(c=='\r'){} else if(c=='\n'){row.push(cur);r.push(row);row=[];cur='';} else cur+=c; }
-    }
-    if(cur.length>0||row.length>0){ row.push(cur); r.push(row); }
-    return r;
-  }
-  function csvToObjsAndHeader(text){
-    const rows=parseCsv(text); if(!rows.length) return { header:[], rows:[] };
-    const H=rows[0], out=[];
-    for(let i=1;i<rows.length;i++){
-      const rr=rows[i]; if(!rr || (rr.length===1&&rr[0]==='')) continue;
-      const o={}; for(let j=0;j<H.length;j++) o[H[j]]=rr[j]||'';
-      out.push(o);
-    }
-    return { header:H, rows:out };
-  }
-  const csvEsc=v=>{ v=v==null?'':String(v); return /[",\n]/.test(v)?`"${v.replace(/"/g,'""')}"`:v; };
-  function toCsv(H, rows){
-    const head=H.join(',')+'\n';
-    const body=rows.map(o=> H.map(k=> csvEsc(o[k]??'')).join(',')).join('\n');
-    return head + (body? body+'\n' : '');
-  }
-  const GH_API_VER='2022-11-28';
-  const ghHeaders=(tok)=>({'Accept':'application/vnd.github+json','X-GitHub-Api-Version':GH_API_VER, ...(tok?{'Authorization':`Bearer ${tok}`}:{})});
-  function b64ToUtf8(b64){ const bin=atob(b64); const bytes=new Uint8Array(bin.length); for(let i=0;i<bytes.length;i++) bytes[i]=bin.charCodeAt(i); return new TextDecoder().decode(bytes); }
-  function utf8ToB64(str){ const bytes=new TextEncoder().encode(str); let bin=''; for(let i=0;i<bytes.length;i++) bin+=String.fromCharCode(bytes[i]); return btoa(bin); }
-  async function ghGetFile(path, branch){
-    const token=getToken(); if(!token) throw new Error('Token GitHub não configurado.');
-    const url=`https://api.github.com/repos/${encodeURIComponent(GH.owner)}/${encodeURIComponent(GH.repo)}/contents/${encodeURIComponent(path)}?ref=${encodeURIComponent(branch||GH.branch)}`;
-    const r=await fetch(url,{headers:ghHeaders(token)});
-    if(r.status===404) return { text:'', sha:null };
-    if(!r.ok) throw new Error('Falha ao ler ('+r.status+')');
-    const j=await r.json(); const text=j && j.content ? b64ToUtf8(j.content) : '';
-    return { text, sha:j.sha||null };
-  }
-  async function ghPutFile(path, newText, message){
-    const token=getToken(); if(!token) throw new Error('Token GitHub não configurado.');
-    let sha=null; try{ const cur=await ghGetFile(path, GH.branch); sha=cur.sha; }catch{}
-    const url=`https://api.github.com/repos/${encodeURIComponent(GH.owner)}/${encodeURIComponent(GH.repo)}/contents/${encodeURIComponent(path)}`;
-    const body={ message:message||`chore(csv): update ${path}`, content:utf8ToB64(newText), branch:GH.branch, ...(sha?{sha}:{}) };
-    const r=await fetch(url,{method:'PUT', headers:{...ghHeaders(token), 'Content-Type':'application/json'}, body:JSON.stringify(body)});
-    if(!r.ok){ const t=await r.text(); throw new Error('Falha ao salvar ('+r.status+'): '+t); }
-    return true;
-  }
-
-  /* ====== Helpers (UI passo 2) ====== */
-  function FinzDup_updateResumo(){
-    const parts=[];
-    parts.push(`Selecionados: ${_finzSources.length}`);
-    if (selTipoJob?.value) parts.push(`Tipo do JOB: ${selTipoJob.value}`);
-    if (selNomeNovo && selNomeNovo.value) parts.push(`Nome: ${selNomeNovo.value}`);
-    if (inpIni?.value && inpFim?.value) parts.push(`Período: ${inpIni.value} → ${inpFim.value}`);
-    if (selTam?.value) parts.push(`Tamanho: ${selTam.value}`);
-    if (inpQtd?.value) parts.push(`Páginas: ${inpQtd.value}`);
-    if (radNacSim?.checked){
-      parts.push('Ação nacional: Sim');
-      if (inpAcaoNome?.value.trim()) parts.push(`Ação: ${inpAcaoNome.value.trim()}`);
-    } else {
-      parts.push('Ação nacional: Não');
-    }
-    if (dupResumo) dupResumo.textContent = parts.join(' • ');
-  }
-  function FinzDup_extractMaxOTNumber(rows){
-    let max=0;
-    for(const r of rows){
-      const m = String(r.ot||'').match(/(\d+)/);
-      if(!m) continue;
-      const n = parseInt(m[1],10);
-      if (!isNaN(n) && n>max) max=n;
-    }
-    return max;
-  }
-  function FinzDup_nextOTFactory(allRows){
-    let maxN = FinzDup_extractMaxOTNumber(allRows);
-    return () => {
-      maxN += 1;
-      return `OT-${String(maxN).padStart(4,'0')}`;
-    };
-  }
-  function FinzDup_ensureSelectReplacingInput(id, minWidthPx){
-    const old = document.getElementById(id);
-    if (old && old.tagName === 'SELECT') return old;
-    const sel = document.createElement('select');
-    sel.id = id;
-    if (minWidthPx) sel.style.minWidth = minWidthPx + 'px';
-    if (old) old.replaceWith(sel);
-    return sel;
-  }
-  async function FinzDup_loadNomeOptionsIntoSelect(selectEl){
-    if (!selectEl) return;
-    selectEl.innerHTML = '';
-    const ph = document.createElement('option'); ph.value=''; ph.textContent='— selecione —'; selectEl.appendChild(ph);
-    try{
-      const { text } = await ghGetFile(GH.namesPath, GH.branch);
-      const { header, rows } = csvToObjsAndHeader(text);
-      let names=[];
-      if (header.length){
-        const idx = header.findIndex(h => String(h||'').trim().toLowerCase()==='nome');
-        if (idx>=0) names = rows.map(r=> r[header[idx]]).filter(Boolean);
-        else {
-          const raw=parseCsv(text);
-          for(let i=1;i<raw.length;i++){ const v=raw[i][0]; if(v) names.push(v); }
-        }
-      }
-      names = [...new Set(names.map(s=>String(s).trim()))].filter(Boolean)
-               .sort((a,b)=> a.localeCompare(b,'pt-BR'));
-      const frag=document.createDocumentFragment();
-      names.forEach(n=>{ const o=document.createElement('option'); o.value=n; o.textContent=n; frag.appendChild(o); });
-      selectEl.appendChild(frag);
-    }catch(e){
-      console.error(e);
-      toast('Não foi possível carregar nome_tabloide.csv');
-    }
-  }
-
-  /* ====== Ações existentes (subpartes de ESPECIAL NACIONAL) ====== */
-  function FinzDup_collectExistingActions(){
-    const list=[];
-    document.querySelectorAll('#jobsBody tr.sub-row[data-sub]').forEach(tr=>{
-      const name = (tr.getAttribute('data-sub')||'').trim();
-      if (name && !list.includes(name)) list.push(name);
-    });
-    return list.sort((a,b)=> a.localeCompare(b,'pt-BR'));
-  }
-  function FinzDup_ensureAcaoSelect(){
-    const wrap = document.getElementById('modalDup2')?.querySelector('.col-9');
-    if (!wrap) return null;
-    const row = wrap.querySelector('div[style*="align-items:center"]') || wrap;
-    let sel = row.querySelector('#dupAcaoSel');
-    if (sel) return sel;
-
-    sel = document.createElement('select');
-    sel.id = 'dupAcaoSel';
-    sel.style.minWidth = '220px';
-    sel.style.flex = '0 0 auto';
-    sel.style.marginRight = '8px';
-
-    const beforeEl = btnPickAcao;
-    if (beforeEl && beforeEl.parentNode) beforeEl.parentNode.insertBefore(sel, beforeEl); else row.prepend(sel);
-
-    sel.addEventListener('change', ()=>{
-      inpAcaoNome.value = sel.value || '';
-      FinzDup_updateResumo();
-    });
-
-    return sel;
-  }
-  function FinzDup_populateAcaoSelect(){
-    selAcaoExist = FinzDup_ensureAcaoSelect();
-    if (!selAcaoExist) return;
-    const actions = FinzDup_collectExistingActions();
-
-    selAcaoExist.innerHTML='';
-    const ph = document.createElement('option'); ph.value=''; ph.textContent='(selecionar)'; selAcaoExist.appendChild(ph);
-    actions.forEach(n=>{ const o=document.createElement('option'); o.value=n; o.textContent=n; selAcaoExist.appendChild(o); });
-
-    const v=(inpAcaoNome.value||'').trim();
-    selAcaoExist.value = actions.includes(v) ? v : '';
-  }
-  // Reaproveita seu modal de ação nacional (#modalAcao) já existente
-  function FinzDup_openAcaoPicker(){
-    const dlgAcao = document.getElementById('modalAcao');
-    const boxAcoes= document.getElementById('acaoLista');
-    const inpNova = document.getElementById('acaoNova');
-    const btnOk   = document.getElementById('acaoOk');
-    const btnCanc = document.getElementById('acaoCancelar');
-    if (!dlgAcao) return;
-
-    const subs = FinzDup_collectExistingActions();
-    if (boxAcoes){
-      if(!subs.length){
-        boxAcoes.innerHTML = `<div class="hint">Nenhuma ação existente. Crie uma nova abaixo.</div>`;
-      }else{
-        boxAcoes.innerHTML = subs.map(n =>
-          `<label style="display:flex;gap:8px;align-items:center;padding:6px 4px;cursor:pointer">
-             <input type="radio" name="acaoPick" value="${n.replace(/"/g,'&quot;')}"> <span>${n}</span>
-           </label>`).join('');
-      }
-    }
-    if (inpNova) inpNova.value='';
-
-    dlgAcao.showModal();
-
-    // bind one-off
-    const okHandler = ()=> {
-      const sel = dlgAcao.querySelector('input[name="acaoPick"]:checked');
-      const chosen = sel ? sel.value : (inpNova?.value||'').trim();
-      if (!chosen){ toast('Escolha ou digite uma ação.'); return; }
-      inpAcaoNome.value = chosen;
-      FinzDup_populateAcaoSelect();
-      if (selAcaoExist) selAcaoExist.value = chosen;
-      FinzDup_updateResumo();
-      dlgAcao.close();
-      btnOk.removeEventListener('click', okHandler);
-      btnCanc.removeEventListener('click', cancHandler);
-    };
-    const cancHandler = ()=> {
-      dlgAcao.close();
-      btnOk.removeEventListener('click', okHandler);
-      btnCanc.removeEventListener('click', cancHandler);
-    };
-    btnOk?.addEventListener('click', okHandler);
-    btnCanc?.addEventListener('click', cancHandler);
-  }
-  function FinzDup_onToggleNacional(){
-    const isSim = radNacSim && radNacSim.checked;
-    if (btnPickAcao){
-      btnPickAcao.disabled = !isSim;
-      btnPickAcao.textContent = 'Nova ação…';
-    }
-    if (!selAcaoExist) selAcaoExist = FinzDup_ensureAcaoSelect();
-    if (selAcaoExist) selAcaoExist.disabled = !isSim;
-    if (isSim) FinzDup_populateAcaoSelect();
-    if (!isSim){
-      inpAcaoNome.value='';
-      if (selAcaoExist) selAcaoExist.value='';
-    }
-    FinzDup_updateResumo();
-  }
-
-  /* ====== Coleta seleção no Finalizados ====== */
-  function FinzDup_selectedOTs(){
-    return [...(finzList?.querySelectorAll('input[type="checkbox"][data-ot]:checked')||[])]
-      .map(b=> b.getAttribute('data-ot')).filter(Boolean);
-  }
-
-  /* ====== Abrir PASSO 2 já com fontes do jobs_encerrados.csv ====== */
-  async function FinzDup_openStep2FromFinalizados(){
-    const sel = FinzDup_selectedOTs();
-    if (!sel.length){ toast('Selecione ao menos 1 job finalizado.'); return; }
-    if (!getToken()){ toast('Configurar GitHub primeiro (⚙).'); return; }
-
-    setBusy(true,'Preparando…');
-    try{
-      // 1) Ler enc + jobs (para header e gerar próxima OT)
-      const [encFile, jobsFile] = await Promise.all([
-        ghGetFile(GH.encPath, GH.branch),
-        ghGetFile(GH.jobsPath, GH.branch)
-      ]);
-      const encParsed  = csvToObjsAndHeader(encFile.text);
-      const jobsParsed = csvToObjsAndHeader(jobsFile.text);
-      _headJobs    = jobsParsed.header || [];
-      _allJobsRows = jobsParsed.rows   || [];
-
-      // 2) filtro fontes pelo OT
-      const set = new Set(sel.map(String));
-      _finzSources = (encParsed.rows||[]).filter(r => set.has(String(r.ot)));
-
-      if(!_finzSources.length){ toast('Não encontrei os itens selecionados.'); return; }
-
-      // 3) Preparar UI passo 2 (nome: select; ações nacionais; resumo)
-      if (formPar) formPar.reset();
-      // Nome em SELECT
-      selNomeNovo = FinzDup_ensureSelectReplacingInput('dupNomeNovo', 240);
-      await FinzDup_loadNomeOptionsIntoSelect(selNomeNovo);
-      selNomeNovo.addEventListener('change', FinzDup_updateResumo, { once:false });
-
-      // Ação nacional
-      inpAcaoNome.value='';
-      selAcaoExist = FinzDup_ensureAcaoSelect();
-      if (selAcaoExist){ selAcaoExist.innerHTML='<option value="">(selecionar)</option>'; selAcaoExist.disabled = true; }
-      if (btnPickAcao){
-        btnPickAcao.disabled = true;
-        btnPickAcao.onclick = FinzDup_openAcaoPicker;
-      }
-      radNacNao?.addEventListener('change', FinzDup_onToggleNacional, { once:false });
-      radNacSim?.addEventListener('change', FinzDup_onToggleNacional, { once:false });
-
-      // Troca botão “Lançar” por um específico desta jornada (para evitar conflito com outro fluxo)
-      FINZ_MODE_ACTIVE = true;
-      if (btnLancar){
-        btnLancar.style.display = 'none';
-      }
-      if (!btnLancarFinz){
-        btnLancarFinz = document.createElement('button');
-        btnLancarFinz.type = 'button';
-        btnLancarFinz.className = 'btn primary';
-        btnLancarFinz.id = 'dup2LancarFinz';
-        btnLancarFinz.textContent = 'Duplicar selecionados';
-        // injeta antes do “Lançar” original (ou no fim das actions)
-        const actions = formPar?.querySelector('.actions') || formPar;
-        actions?.appendChild(btnLancarFinz);
-      }
-      btnLancarFinz.onclick = FinzDup_doDuplicate;
-
-      // “Voltar” -> fecha passo 2 e reabre Finalizados
-      const onBack = ()=>{
-        dlgPar?.close();
-        dlgFinalizados?.showModal();
-        cleanupFinzMode();
-      };
-      btnVoltar?.addEventListener('click', onBack, { once:true });
-
-      // Atualiza resumo e mostra
-      FinzDup_updateResumo();
-      dlgFinalizados?.close();
-      dlgPar?.showModal();
-    }catch(e){
-      console.error(e);
-      toast('Erro ao preparar duplicação.');
-    }finally{
-      setBusy(false);
-    }
-  }
-
-  function cleanupFinzMode(){
-    FINZ_MODE_ACTIVE = false;
-    if (btnLancar) btnLancar.style.display = '';
-    if (btnLancarFinz){
-      btnLancarFinz.remove();
-      btnLancarFinz = null;
-    }
-  }
-
-  /* ====== Validar parâmetros ====== */
-  function FinzDup_validateParams(){
-    const tipoJob = (selTipoJob?.value||'').trim();
-    const nomeComum = (selNomeNovo && selNomeNovo.value || '').trim();
-    const ini = (inpIni?.value||'').trim();
-    const fim = (inpFim?.value||'').trim();
-    const tam = (selTam?.value||'').trim();
-    const qtd = (inpQtd?.value||'').trim();
-    const isNac = !!(radNacSim && radNacSim.checked);
-    const acao = (inpAcaoNome?.value||'').trim();
-
-    if (!tipoJob || !nomeComum || !ini || !fim || !tam || !qtd){
-      toast('Preencha Tipo do JOB, Nome, Período, Tamanho e Quantidade.');
-      return null;
-    }
-    if (isNac && !acao){
-      toast('Defina a ação nacional.');
-      return null;
-    }
-    const qn = parseInt(qtd,10);
-    if (isNaN(qn) || qn<=0){ toast('Quantidade de páginas inválida.'); return null; }
-
-    return { tipoJob, nomeComum, ini, fim, tam, qtd:String(qn), isNac, acao };
-  }
-
-  /* ====== DUPLICAR (a partir dos finalizados) ====== */
-  async function FinzDup_doDuplicate(){
-    if (!FINZ_MODE_ACTIVE) return; // proteção
-    const params = FinzDup_validateParams();
-    if(!params) return;
-    if(!_finzSources.length){ toast('Seleção vazia.'); return; }
-    if(!getToken()){ toast('Configurar GitHub primeiro (⚙).'); return; }
-
-    setBusy(true,'Duplicando…');
-    try{
-      // Gera novas OTs com base no jobs.csv atual
-      const rowsAll = _allJobsRows.slice();
-      const nextOT  = FinzDup_nextOTFactory(rowsAll);
-      const now = new Date().toISOString();
-      const newRows=[];
-
-      for(const src of _finzSources){
-        const obj = { ...src };
-
-        obj.ot        = nextOT();
-        obj.tipoJob   = params.tipoJob;
-        obj.nome      = params.nomeComum;
-        obj.ini       = params.ini;
-        obj.fim       = params.fim;
-        obj.tam       = params.tam;
-        obj.qtd       = params.qtd;
-
-        obj.isNacional = params.isNac ? 'sim' : 'nao';
-        obj.acaoNome   = params.isNac ? params.acao : '';
-
-        // mantém regional original (NÃO colocar “Especial Nacional” na coluna)
-        // zera fluxo/estado
-        obj.status       = 'Novo';
-        obj.statusStep   = 'novo';
-        obj.logs         = '{}';
-        obj.criado_em    = now;
-        obj.atualizado_em= now;
-
-        newRows.push(obj);
-        rowsAll.push(obj);
-      }
-
-      // Salva em jobs.csv
-      const nextText = toCsv(_headJobs, rowsAll);
-      await ghPutFile(GH.jobsPath, nextText, `chore(csv): duplicate from finalizados (${newRows.length})`);
-
-      // Atualiza UI principal
-      if (typeof window.loadJobsFromGitHub === 'function') {
-        await window.loadJobsFromGitHub();
-      }
-
-      toast(`${newRows.length} job(s) duplicados a partir dos finalizados.`);
-      dlgPar?.close();
-      dlgFinalizados?.close();
-      cleanupFinzMode();
-    }catch(e){
-      console.error(e);
-      toast('Erro ao duplicar. Tente novamente.');
-    }finally{
-      setBusy(false);
-    }
-  }
-
-  /* ====== Binds ====== */
-  if (btnFinzDup){
-    btnFinzDup.addEventListener('click', FinzDup_openStep2FromFinalizados);
-  }
-  // Atualiza resumo conforme digita
-  [selTipoJob, inpIni, inpFim, selTam, inpQtd].forEach(el=>{
-    el && el.addEventListener('input', FinzDup_updateResumo);
-  });
-  radNacNao?.addEventListener('change', FinzDup_onToggleNacional);
-  radNacSim?.addEventListener('change', FinzDup_onToggleNacional);
-  btnPickAcao && (btnPickAcao.onclick = FinzDup_openAcaoPicker);
-
-})();
-</script>
-
-<!-- ============ DUPLICAR SELECIONADOS em “Visualizar finalizados” (#modalFinalizados) ============ FIM -->
 
 <!-- ============ BOTÃO FILTRAR — corrigido: filtro de REGIONAIS funcionando (lê r.regional OU r.regionalGrupo) ============ -->
 <script>
@@ -7625,7 +7400,7 @@
 
 <//!PREMISSÕES SEPARADOS POR CARGOS - FIM ---->
 
-<!// AJUTES - Botão ver lojas + duplicar selecionados (visualizar finalizados) ---->
+<!-- AJUSTES — Ver Lojas + Duplicar selecionados + Normalizador de OT (OT-x) -->
 <script>
 (function(){
   "use strict";
@@ -7633,7 +7408,6 @@
   /* =========================================================
    * 1) COLUNA "FILIAL(S)" => BOTÃO "VER LOJAS" (+ modal)
    * ========================================================= */
-
   function makeVerLojasButton(full){
     const b = document.createElement('button');
     b.type = 'button';
@@ -7643,41 +7417,25 @@
     b.title = 'Clique para ver todas as filiais';
     return b;
   }
-
-  // Aplica ao TD (8ª coluna) do grid principal
   function decorateFiliaisTD(td){
     if (!td) return;
-    // Se já virou botão, não refaz
     if (td.querySelector('.btnVerLojas')) return;
-
-    // Pega conteúdo completo (prioriza data-full existente nos patches antigos)
     let full = '';
     const clip = td.querySelector('.clip[data-full]');
-    if (clip) {
-      full = clip.getAttribute('data-full') || '';
-    } else {
-      full = (td.textContent || '').trim();
-    }
-
-    // Se estiver vazio/traço, não vira botão
+    if (clip) full = clip.getAttribute('data-full') || '';
+    else full = (td.textContent || '').trim();
     if (!full || full === '—') return;
-
-    // Substitui por botão
     td.textContent = '';
     td.appendChild(makeVerLojasButton(full));
   }
-
-  // Decora todas as linhas do grid principal (#jobsBody)
   function decorateAllFiliaisMain(){
     const tbody = document.getElementById('jobsBody');
     if (!tbody) return;
     tbody.querySelectorAll('tr[data-ot]').forEach(tr=>{
-      const td = tr.children && tr.children[7]; // 8ª coluna = Filial(s)
+      const td = tr.children && tr.children[7];
       if (td) decorateFiliaisTD(td);
     });
   }
-
-  // Observa novas linhas no grid principal
   (function observeMainFiliais(){
     const tbody = document.getElementById('jobsBody');
     if (!tbody) return;
@@ -7694,40 +7452,30 @@
     mo.observe(tbody, { childList:true });
     decorateAllFiliaisMain();
   })();
-
-  // Também aplica dentro do modal "Visualizar finalizados" (#finzList)
   function decorateAllFiliaisFinalizados(){
     const tbody = document.getElementById('finzList');
     if (!tbody) return;
     tbody.querySelectorAll('tr').forEach(tr=>{
-      const td = tr.children && tr.children[7]; // 8ª col em "finalizados" é Filial(s)
+      const td = tr.children && tr.children[7];
       if (!td) return;
-
-      // Se veio como .clip (do código anterior), converte em botão
       const clip = td.querySelector('.clip[data-full]');
       if (clip) {
         const full = clip.getAttribute('data-full')||'';
         td.textContent = '';
         td.appendChild(makeVerLojasButton(full));
       } else {
-        // Caso futuro: se for texto direto
         decorateFiliaisTD(td);
       }
     });
   }
-
-  // Quando abrir o modal de finalizados, faz a troca
   (function hookFinalizadosOpen(){
     const btn = document.getElementById('btnVerFinalizados');
     const dlg = document.getElementById('modalFinalizados');
     if (!btn || !dlg) return;
     btn.addEventListener('click', ()=>{
-      // aguarda a tabela ser carregada pelo script existente e então decora
       setTimeout(decorateAllFiliaisFinalizados, 120);
     });
   })();
-
-  // Clique no botão "Ver lojas" (vale para ambos os lugares)
   document.addEventListener('click', (e)=>{
     const b = e.target.closest('.btnVerLojas');
     if (!b) return;
@@ -7736,7 +7484,6 @@
     const ttl  = document.getElementById('cellTitle');
     const body = document.getElementById('cellBody');
     if (!dlg || !ttl || !body) return;
-
     const items = full.split(',').map(s=>s.trim()).filter(Boolean);
     ttl.textContent = 'Filial(s)';
     body.style.whiteSpace = 'pre-wrap';
@@ -7746,14 +7493,8 @@
 
 
   /* =====================================================================
-   * 2) “DUPLICAR SELECIONADOS” (Visualizar finalizados) + AÇÃO NACIONAL
-   *    - Liga/desliga UI quando “Sim/Não”
-   *    - Botão “Definir ação…” lista subpartes existentes (ESPECIAL NACIONAL)
-   *    - Caso crie nova, usa o modalAcao já existente
-   *    - Na duplicação, a ação selecionada/ criada é usada
+   * 2) “DUPLICAR SELECIONADOS” (Finalizados) + chooser de AÇÃO NACIONAL
    * ===================================================================== */
-
-  // Lê ações existentes a partir do DOM do grid principal (sub-rows de ESPECIAL NACIONAL)
   function getExistingAcoes(){
     const body = document.getElementById('jobsBody');
     const set = new Set();
@@ -7764,7 +7505,6 @@
         if (name) set.add(name);
       });
     }
-    // fallback: se não encontrar nada no DOM, tenta via memória se existir
     if (!set.size && window.JOBS instanceof Map) {
       for (const [,j] of window.JOBS.entries()){
         if (String(j.isNacional).toLowerCase()==='true' && j.acaoNome) {
@@ -7774,31 +7514,20 @@
     }
     return Array.from(set).sort((a,b)=> a.localeCompare(b,'pt-BR'));
   }
-
   function setDupAcaoUIEnabled(enabled){
     const btn = document.getElementById('btnDupEscolherAcao');
     const inp = document.getElementById('dupAcaoNome');
     if (btn) btn.disabled = !enabled;
-    if (inp) {
-      inp.readOnly = true; // segue o padrão do app
-      if (!enabled) inp.value = '';
-    }
+    if (inp) { inp.readOnly = true; if (!enabled) inp.value = ''; }
   }
-
   function wireDupAcaoToggles(){
     const rSim = document.getElementById('dupAcaoSim');
     const rNao = document.getElementById('dupAcaoNao');
-    const onChange = ()=>{
-      const enabled = !!(rSim && rSim.checked);
-      setDupAcaoUIEnabled(enabled);
-    };
+    const onChange = ()=> setDupAcaoUIEnabled(!!(rSim && rSim.checked));
     if (rSim) rSim.addEventListener('change', onChange);
     if (rNao) rNao.addEventListener('change', onChange);
-    // estado inicial
     onChange();
   }
-
-  // Abre o modalAcao populando com as ações existentes e permite criar nova
   function openAcaoChooser(targetInputId){
     const dlg = document.getElementById('modalAcao');
     const box = document.getElementById('acaoLista');
@@ -7808,7 +7537,6 @@
     if (!dlg || !box || !btnOk) return;
 
     const actions = getExistingAcoes();
-    // render simples clicável
     let sel = null;
     box.innerHTML = actions.length
       ? actions.map(a=>`<div class="acaoItem" data-name="${a.replace(/"/g,'&quot;')}"
@@ -7820,11 +7548,10 @@
         box.querySelectorAll('.acaoItem').forEach(d=> d.style.background='transparent');
         div.style.background = 'rgba(255,255,255,.06)';
         sel = div.getAttribute('data-name') || '';
-        if (inp) inp.value = ''; // limpamos a criação se escolher existente
+        if (inp) inp.value = '';
       });
     });
-
-    if (inp) inp.value = ''; // limpa campo de nova ação
+    if (inp) inp.value = '';
 
     function close(){
       try { btnOk.removeEventListener('click', onOk); } catch {}
@@ -7841,7 +7568,6 @@
         return;
       }
       if (target) target.value = chosen;
-      // guarda no contexto de duplicação (usado por quem salva)
       window.WV = window.WV || {};
       window.WV._dupActionName = chosen;
       close();
@@ -7851,40 +7577,31 @@
     btnCancel && btnCancel.addEventListener('click', onCancel);
     dlg.showModal();
   }
-
-  // Conecta o botão "Definir ação…" do modalDup2 ao chooser acima
   (function wireDupAcaoChooser(){
     const btn = document.getElementById('btnDupEscolherAcao');
     if (!btn) return;
     btn.addEventListener('click', ()=>{
-      // só se marcado "Sim"
       const rSim = document.getElementById('dupAcaoSim');
       if (!rSim || !rSim.checked) return;
       openAcaoChooser('dupAcaoNome');
     });
   })();
-
-  // Integração com “Duplicar selecionados” do modal de Finalizados
   (function hookFinalizadosDuplicate(){
     const btnDupSel = document.getElementById('finzDuplicar');
-    const dlgDup2   = document.getElementById('modalDup2');      // parâmetros
+    const dlgDup2   = document.getElementById('modalDup2');
     const resumen   = document.getElementById('dupResumo');
     const list      = document.getElementById('finzList');
     if (!btnDupSel || !dlgDup2 || !list) return;
 
     btnDupSel.addEventListener('click', ()=>{
-      // coleta seleção
       const sel = [...list.querySelectorAll('input[type="checkbox"][data-ot]:checked')].map(b=> b.getAttribute('data-ot'));
       if (!sel.length){
         const t=document.getElementById('toast'); if(t){ t.textContent='Selecione pelo menos 1 job para duplicar.'; t.style.display='block'; setTimeout(()=>t.style.display='none',1500); }
         return;
       }
-
-      // marca contexto de duplicação originado de finalizados
       window.WV = window.WV || {};
       window.WV._dupContext = { from:'finalizados', ots: sel };
 
-      // limpa/ajusta UI do modalDup2
       const rNao = document.getElementById('dupAcaoNao');
       const rSim = document.getElementById('dupAcaoSim');
       const inpAcao = document.getElementById('dupAcaoNome');
@@ -7898,13 +7615,10 @@
         resumen.classList.add('muted');
         resumen.textContent = `${sel.length} job(s) selecionado(s) para duplicar a partir dos Finalizados. Defina os parâmetros e clique em “Lançar”.`;
       }
-
       dlgDup2.showModal();
     });
 
-    // Extra: se o código de duplicação já está implementado no seu projeto,
-    // ele provavelmente lê dupAcaoSim/dupAcaoNome quando salva.
-    // Apenas garantimos que WV._dupActionName esteja alinhado antes do "Lançar".
+    // ao clicar em "Lançar" dentro do modalDup2, iniciamos a normalização de OT
     const btnLaunch = document.getElementById('dup2Lancar');
     if (btnLaunch && !btnLaunch._wvPatched){
       btnLaunch.addEventListener('click', ()=>{
@@ -7912,25 +7626,141 @@
         const inp  = document.getElementById('dupAcaoNome');
         window.WV = window.WV || {};
         window.WV._dupActionName = (rSim && rSim.checked && inp) ? (inp.value||'').trim() : '';
-        // Observação:
-        //  - Se _dupActionName for não-vazia, o seu fluxo de duplicação deve gravar:
-        //      isNacional = true
-        //      acaoNome   = _dupActionName
-        //  - Se estiver vazia ou rNao marcado, gravar:
-        //      isNacional = false
-        //      acaoNome   = ''
-        //
-        // Se o launcher de duplicação for seu e quiser usar este contexto,
-        // leia também window.WV._dupContext (ots selecionadas dos finalizados).
+        ensureNormalizeLoop(); // <<< dispara o normalizador OT-x
       });
       btnLaunch._wvPatched = true;
     }
   })();
 
+
+  /* =========================================================
+   * 3) NORMALIZADOR — converte TUDO para “OT-x” (sem zeros)
+   *    - roda várias vezes após clicar em “Lançar” (duplica)
+   *    - corrige jobs.csv e jobs_encerrados.csv
+   * ========================================================= */
+  const GHCFG = { owner:'JPVectorsitem', repo:'LINKS-img', branch:'main', jobs:'jobs.csv', encerr:'jobs_encerrados.csv' };
+
+  function getToken(){
+    try{ const s=JSON.parse(localStorage.getItem('wv_gh_cfg')||'{}'); return (window.gh&&window.gh.token)||s.token||''; }
+    catch{ return (window.gh&&window.gh.token)||''; }
+  }
+  const GH_API_VER='2022-11-28';
+  const ghHeaders=(tok)=>({'Accept':'application/vnd.github+json','X-GitHub-Api-Version':GH_API_VER, ...(tok?{'Authorization':`Bearer ${tok}`}:{})});
+  function b64ToUtf8(b64){ const bin=atob(b64); const a=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) a[i]=bin.charCodeAt(i); return new TextDecoder().decode(a); }
+  function utf8ToB64(str){ const a=new TextEncoder().encode(str); let bin=''; for(let i=0;i<a.length;i++) bin+=String.fromCharCode(a[i]); return btoa(bin); }
+  async function ghGetFile(path){
+    const tok=getToken(); if(!tok) throw new Error('Token GitHub não configurado.');
+    const url=`https://api.github.com/repos/${encodeURIComponent(GHCFG.owner)}/${encodeURIComponent(GHCFG.repo)}/contents/${encodeURIComponent(path)}?ref=${encodeURIComponent(GHCFG.branch)}`;
+    const r=await fetch(url,{headers:ghHeaders(tok)});
+    if(r.status===404) return { text:'', sha:null };
+    if(!r.ok) throw new Error('Falha ao ler ('+r.status+')');
+    const j=await r.json(); return { text: j.content? b64ToUtf8(j.content):'', sha:j.sha||null };
+  }
+  async function ghPutFile(path, text, message){
+    const tok=getToken(); if(!tok) throw new Error('Token GitHub não configurado.');
+    let sha=null; try{ const cur=await ghGetFile(path); sha=cur.sha; }catch{}
+    const url=`https://api.github.com/repos/${encodeURIComponent(GHCFG.owner)}/${encodeURIComponent(GHCFG.repo)}/contents/${encodeURIComponent(path)}`;
+    const body={ message:message||`chore(csv): update ${path}`, content:utf8ToB64(text), branch:GHCFG.branch, ...(sha?{sha}:{}) };
+    const r=await fetch(url,{method:'PUT', headers:{...ghHeaders(tok),'Content-Type':'application/json'}, body:JSON.stringify(body)});
+    if(!r.ok){ const t=await r.text(); throw new Error('Falha ao salvar ('+r.status+'): '+t); }
+  }
+
+  function parseCsv(t){
+    if(!t) return []; const out=[]; let row=[],cur='',q=false;
+    for(let i=0;i<t.length;i++){
+      const c=t[i];
+      if(q){ if(c=='"'){ if(t[i+1]=='"'){cur+='"'; i++;} else q=false; } else cur+=c; }
+      else { if(c=='"') q=true; else if(c==','){row.push(cur);cur='';}
+             else if(c=='\r'){} else if(c=='\n'){row.push(cur); out.push(row); row=[]; cur='';}
+             else cur+=c; }
+    }
+    if(cur.length>0||row.length>0){ row.push(cur); out.push(row); }
+    return out;
+  }
+  function csvToObjsAndHeader(text){
+    const rows=parseCsv(text); if(!rows.length) return {header:[],rows:[]};
+    const H=rows[0]; const R=[];
+    for(let i=1;i<rows.length;i++){ const rr=rows[i]; if(!rr || (rr.length===1&&rr[0]==='')) continue; const o={}; for(let j=0;j<H.length;j++) o[H[j]]=rr[j]||''; R.push(o); }
+    return {header:H,rows:R};
+  }
+  const csvEsc=v=>{ v=v==null?'':String(v); return /[",\n]/.test(v)?`"${v.replace(/"/g,'""')}"`:v; };
+  function toCsv(H, rows){
+    const head=H.join(',')+'\n';
+    const body=rows.map(o=> H.map(k=> csvEsc(o[k]??'')).join(',')).join('\n');
+    return head + (body? body+'\n' : '');
+  }
+
+  const parseOTNum = ot => { const m=String(ot||'').match(/ot[-\s]*0*(\d+)$/i); return m? parseInt(m[1],10): null; };
+  const normOT     = ot => { const n=parseOTNum(ot); return n? `OT-${n}`: String(ot||''); };
+  const isBadOT    = ot => !/^OT-\d+$/.test(String(ot||'')); // inclui zeros à esquerda
+
+  async function normalizeFile(path){
+    const { text } = await ghGetFile(path);
+    if(!text) return false;
+    const { header:H, rows } = csvToObjsAndHeader(text);
+    if(!H.length || !rows.length) return false;
+
+    let changed=false;
+    for(const r of rows){
+      const cur=r.ot;
+      const norm = normOT(cur);
+      if(cur!==norm || isBadOT(cur)){ r.ot = norm; changed=true; }
+    }
+    if(!changed) return false;
+
+    const next = toCsv(H, rows);
+    await ghPutFile(path, next, `chore(csv): normalize OT -> OT-x (no zeros)`);
+    return true;
+  }
+
+  // roda algumas vezes em loop (para pegar o commit do duplicar que pode demorar um pouco)
+  let NORMALIZER_RUNNING = false;
+  function ensureNormalizeLoop(){
+    if(NORMALIZER_RUNNING) return;
+    NORMALIZER_RUNNING = true;
+
+    const attemptsMax = 12; // ~24s total
+    let n = 0;
+
+    const run = async () => {
+      try {
+        // normaliza ambos os arquivos
+        const a = await normalizeFile(GHCFG.jobs);
+        const b = await normalizeFile(GHCFG.encerr);
+        // se já não há mais OTs ruins, podemos encerrar antes
+        const { text } = await ghGetFile(GHCFG.jobs);
+        const { rows } = csvToObjsAndHeader(text);
+        const stillBad = rows.some(r => isBadOT(r.ot));
+        if(!stillBad){ NORMALIZER_RUNNING=false; return; }
+      } catch(e) {
+        // silencioso, vamos tentar novamente
+        console.warn('OT normalizer pass failed:', e);
+      }
+      n++;
+      if(n < attemptsMax){
+        setTimeout(run, 2000);
+      } else {
+        NORMALIZER_RUNNING=false;
+      }
+    };
+    run();
+  }
+
+  /* também engata no botão do “Duplicar” comum, se existir */
+  (function hookDuplicarComum(){
+    const b = document.getElementById('btnDupLancar')
+          || document.getElementById('btnDuplicarLancar')
+          || document.getElementById('btnDuplicarSalvar');
+    if(!b || b._otHooked) return;
+    b.addEventListener('click', ensureNormalizeLoop);
+    b._otHooked = true;
+  })();
+
 })();
 </script>
+<!-- /AJUSTES DUPLICAR COM OT sem zeros FIM-->
 
-<!// AJUTES - Botão ver lojas + duplicar selecionados (visualizar finalizados) FIM ---->
+
 
 <!// AJUTES - OT GLOBAL (Lançados e Finalizados) ---->
 
@@ -9192,6 +9022,611 @@
 })();
 </script>
 <!-- ======= /AJUSTES FINAIS v2 ======= FIM -->
+
+<!-- ============== OT-x HOOK (gera OT sem zeros no momento de salvar) ============== -->
+<script>
+(() => {
+  "use strict";
+
+  /* ===== CONFIG REPO ===== */
+  const GH = {
+    owner:  'JPVectorsitem',
+    repo:   'LINKS-img',
+    branch: 'main',
+    jobs:   'jobs.csv',
+    encerr: 'jobs_encerrados.csv'
+  };
+  const CONTENTS_BASE = `https://api.github.com/repos/${encodeURIComponent(GH.owner)}/${encodeURIComponent(GH.repo)}/contents/`;
+
+  /* ===== Helpers gerais ===== */
+  function getToken(){
+    try{
+      const s = JSON.parse(localStorage.getItem('wv_gh_cfg')||'{}');
+      return (window.gh && window.gh.token) || s.token || '';
+    }catch{ return (window.gh && window.gh.token) || ''; }
+  }
+  const GH_API_VER='2022-11-28';
+  const ghHeaders=(tok)=>({'Accept':'application/vnd.github+json','X-GitHub-Api-Version':GH_API_VER, ...(tok?{'Authorization':`Bearer ${tok}`}:{})});
+  function b64ToUtf8(b64){ const bin=atob(b64); const a=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) a[i]=bin.charCodeAt(i); return new TextDecoder().decode(a); }
+  function utf8ToB64(str){ const a=new TextEncoder().encode(str); let bin=''; for(let i=0;i<a.length;i++) bin+=String.fromCharCode(a[i]); return btoa(bin); }
+
+  /* ===== CSV ===== */
+  function parseCsv(t){
+    if(!t) return []; const out=[]; let row=[],cur='',q=false;
+    for(let i=0;i<t.length;i++){
+      const c=t[i];
+      if(q){ if(c=='"'){ if(t[i+1]=='"'){cur+='"'; i++;} else q=false; } else cur+=c; }
+      else { if(c=='"') q=true; else if(c==','){row.push(cur);cur='';}
+             else if(c=='\r'){} else if(c=='\n'){row.push(cur); out.push(row); row=[]; cur='';}
+             else cur+=c; }
+    }
+    if(cur.length>0||row.length>0){ row.push(cur); out.push(row); }
+    return out;
+  }
+  function csvToObjsAndHeader(text){
+    const rows=parseCsv(text); if(!rows.length) return {header:[],rows:[]};
+    const H=rows[0]; const R=[];
+    for(let i=1;i<rows.length;i++){ const rr=rows[i]; if(!rr || (rr.length===1&&rr[0]==='')) continue; const o={}; for(let j=0;j<H.length;j++) o[H[j]]=rr[j]||''; R.push(o); }
+    return {header:H,rows:R};
+  }
+  const csvEsc=v=>{ v=v==null?'':String(v); return /[",\n]/.test(v)?`"${v.replace(/"/g,'""')}"`:v; };
+  function toCsv(H, rows){
+    const head=H.join(',')+'\n';
+    const body=rows.map(o=> H.map(k=> csvEsc(o[k]??'')).join(',')).join('\n');
+    return head + (body? body+'\n' : '');
+  }
+
+  /* ===== OT utils ===== */
+  const rxGoodOT  = /^OT-(\d+)$/i;           // OT-123
+  const rxZeroOT  = /^OT-0+(\d+)$/i;         // OT-000123
+  const rxAnyNum  = /^OT-0*(\d+)$/i;         // OT-000123 ou OT-123
+
+  const getNum = (ot)=>{ const m=String(ot||'').match(rxAnyNum); return m? parseInt(m[1],10):null; };
+  const isGood = (ot)=> rxGoodOT.test(String(ot||''));
+  const isZero = (ot)=> rxZeroOT.test(String(ot||''));
+  const norm   = (n)=> `OT-${n}`;
+
+  /* ===== Cache do maior OT em jobs_encerrados ===== */
+  let MAX_ENC = 0;
+  let encCachedAt = 0;
+
+  async function fetchEncMaxIfNeeded(){
+    // revalida a cada 60s
+    if(MAX_ENC && (Date.now() - encCachedAt) < 60000) return MAX_ENC;
+    const tok = getToken();
+    if(!tok) return MAX_ENC||0;
+
+    const url = `${CONTENTS_BASE}${encodeURIComponent(GH.encerr)}?ref=${encodeURIComponent(GH.branch)}`;
+    try{
+      const r = await fetch(url, { headers: ghHeaders(tok) });
+      if(!r.ok) return MAX_ENC||0;
+      const j = await r.json();
+      const text = j && j.content ? b64ToUtf8(j.content) : '';
+      if(!text) return MAX_ENC||0;
+      const { header:H, rows } = csvToObjsAndHeader(text);
+      if(!H.length) return MAX_ENC||0;
+
+      let maxN = 0;
+      for(const r of rows){
+        const n = getNum(r.ot);
+        if(n!=null && isGood(r.ot)) maxN = Math.max(maxN, n);
+      }
+      MAX_ENC = maxN;
+      encCachedAt = Date.now();
+    }catch(_){}
+    return MAX_ENC||0;
+  }
+
+  /* ===== Patch de fetch para PUT de jobs.csv =====
+     Intercepta qualquer PUT para /contents/jobs.csv,
+     normaliza as OTs do payload para OT-x (sem zeros),
+     e garante que os zero-padded recém-criados recebam
+     números sequenciais > max(jobs.csv atual sem zeros, jobs_encerrados.csv).
+  */
+  const _origFetch = window.fetch.bind(window);
+
+  window.fetch = async function(url, options){
+    try{
+      const isPut = options && String(options.method||'').toUpperCase()==='PUT';
+      const isJobsPut = isPut && typeof url === 'string' && /\/contents\/jobs\.csv(?:\?|$)/.test(url);
+
+      if(!isJobsPut) return await _origFetch(url, options);
+
+      // tenta ler body JSON do PUT GitHub
+      let bodyObj = null;
+      try{ bodyObj = options && options.body ? JSON.parse(options.body) : null; }catch{}
+      if(!bodyObj || !bodyObj.content) return await _origFetch(url, options);
+
+      // decode CSV que está prestes a ser salvo
+      const incomingCsv = b64ToUtf8(bodyObj.content);
+      const { header:H, rows } = csvToObjsAndHeader(incomingCsv);
+      if(!H.length || !rows.length) return await _origFetch(url, options);
+
+      // 1) calcula maior OT "boa" já presente no CSV que será salvo
+      let maxJobs = 0;
+      for(const r of rows){
+        if(isGood(r.ot)){
+          const n = getNum(r.ot);
+          if(n!=null) maxJobs = Math.max(maxJobs, n);
+        }
+      }
+
+      // 2) inclui o maior de jobs_encerrados (sem zeros)
+      const maxEnc = await fetchEncMaxIfNeeded();
+      let next = Math.max(maxJobs, maxEnc);
+
+      // 3) reatribui apenas OTs "zeradas" OU formatos não conformes
+      for(const r of rows){
+        const ot = String(r.ot||'');
+        if(isGood(ot)) continue;            // já está certo, mantém
+        const n = getNum(ot);
+        if(n!=null && !isGood(ot)){         // zero-padded ou com espaços
+          next += 1;
+          r.ot = norm(next);
+        }
+      }
+
+      // 4) reserializa e segue com o PUT
+      const newCsv = toCsv(H, rows);
+      const newBody = { ...bodyObj, content: utf8ToB64(newCsv) };
+      const newOpts = { ...options, body: JSON.stringify(newBody) };
+      return await _origFetch(url, newOpts);
+    }catch(e){
+      // fallback seguro
+      return await _origFetch(url, options);
+    }
+  };
+
+})();
+</script>
+<!-- ============== /OT-x HOOK ============== FIM-->
+
+<!// OT sem zeros no LANÇAR ----->
+
+<script>
+(function(){
+  "use strict";
+
+  /* ====== CONFIG ====== */
+  const GH = {
+    owner: 'JPVectorsitem',
+    repo:  'LINKS-img',
+    branch:'main',
+    jobsPath: 'jobs.csv',
+    encPath:  'jobs_encerrados.csv'
+  };
+
+  /* ====== UX ====== */
+  const toast = (m)=>{
+    const t=document.getElementById('toast');
+    if(!t){ alert(m); return; }
+    t.textContent=m; t.style.display='block';
+    setTimeout(()=>t.style.display='none',1800);
+  };
+  const setBusy=(v,msg)=>{
+    const o=document.getElementById('busy'); if(!o) return;
+    o.style.display=v?'grid':'none';
+    if(msg) o.querySelector('.box').textContent=msg;
+  };
+  function getToken(){
+    try{
+      const s=JSON.parse(localStorage.getItem('wv_gh_cfg')||'{}');
+      return (window.gh&&window.gh.token)||s.token||'';
+    }catch{ return (window.gh&&window.gh.token)||''; }
+  }
+
+  /* ====== CSV utils ====== */
+  function parseCsv(t){
+    if(!t) return [];
+    const r=[]; let row=[], cur='', q=false;
+    for(let i=0;i<t.length;i++){
+      const c=t[i];
+      if(q){
+        if(c=='"'){ if(t[i+1]=='"'){cur+='"';i++;} else q=false; }
+        else cur+=c;
+      }else{
+        if(c=='"') q=true;
+        else if(c==','){ row.push(cur); cur=''; }
+        else if(c=='\r'){}
+        else if(c=='\n'){ row.push(cur); r.push(row); row=[]; cur=''; }
+        else cur+=c;
+      }
+    }
+    if(cur.length>0||row.length>0){ row.push(cur); r.push(row); }
+    return r;
+  }
+  const csvEsc=v=>{ v=v==null?'':String(v); return /[",\n]/.test(v)?`"${v.replace(/"/g,'""')}"`:v; };
+  function csvToObjsAndHeader(text){
+    const rows=parseCsv(text); if(!rows.length) return { header:[], rows:[] };
+    const H=rows[0].map(h=>String(h||'').trim()); const out=[];
+    for(let i=1;i<rows.length;i++){
+      const rr=rows[i]; if(!rr || (rr.length===1&&rr[0]==='')) continue;
+      const o={}; for(let j=0;j<H.length;j++) o[H[j]]=rr[j]??'';
+      out.push(o);
+    }
+    return { header:H, rows:out };
+  }
+  function toCsv(H, rows){
+    const head=H.join(',')+'\n';
+    const body=rows.map(o=> H.map(k=> csvEsc(o[k]??'')).join(',')).join('\n');
+    return head + (body? body+'\n' : '');
+  }
+  function ensureHeaderColumns(H, rows, needed){
+    const head=H.slice(); const have=new Set(head.map(h=>String(h)));
+    let changed=false;
+    needed.forEach(col=>{ if(!have.has(col)){ head.push(col); changed=true; } });
+    if(changed){ rows.forEach(r=> needed.forEach(col=>{ if(r[col]===undefined) r[col]=''; })); }
+    return { head, rows };
+  }
+
+  /* ====== GitHub helpers ====== */
+  const GH_API_VER='2022-11-28';
+  const ghHeaders=(tok)=>({'Accept':'application/vnd.github+json','X-GitHub-Api-Version':GH_API_VER, ...(tok?{'Authorization':`Bearer ${tok}`}:{})});
+  function b64ToUtf8(b64){ const bin=atob(b64); const bytes=new Uint8Array(bin.length); for(let i=0;i<bytes.length;i++) bytes[i]=bin.charCodeAt(i); return new TextDecoder().decode(bytes); }
+  function utf8ToB64(str){ const bytes=new TextEncoder().encode(str); let bin=''; for(let i=0;i<bytes.length;i++) bin+=String.fromCharCode(bytes[i]); return btoa(bin); }
+  async function ghGetFile(path, branch){
+    const token=getToken(); if(!token) throw new Error('Token GitHub não configurado.');
+    const url=`https://api.github.com/repos/${encodeURIComponent(GH.owner)}/${encodeURIComponent(GH.repo)}/contents/${encodeURIComponent(path)}?ref=${encodeURIComponent(branch||GH.branch)}`;
+    const r=await fetch(url,{headers:ghHeaders(token)});
+    if(r.status===404) return { text:'', sha:null };
+    if(!r.ok) throw new Error('Falha ao ler ('+r.status+')');
+    const j=await r.json(); const text=j && j.content ? b64ToUtf8(j.content) : '';
+    return { text, sha:j.sha||null };
+  }
+  async function ghPutFile(path, newText, message){
+    const token=getToken(); if(!token) throw new Error('Token GitHub não configurado.');
+    let sha=null; try{ const cur=await ghGetFile(path, GH.branch); sha=cur.sha; }catch{}
+    const url=`https://api.github.com/repos/${encodeURIComponent(GH.owner)}/${encodeURIComponent(GH.repo)}/contents/${encodeURIComponent(path)}`;
+    const body={ message:message||`chore(csv): update ${path}`, content:utf8ToB64(newText), branch:GH.branch, ...(sha?{sha}:{}) };
+    const r=await fetch(url,{method:'PUT', headers:{...ghHeaders(token),'Content-Type':'application/json'}, body:JSON.stringify(body)});
+    if(!r.ok){ const t=await r.text(); throw new Error('Falha ao salvar ('+r.status+'): '+t); }
+    return true;
+  }
+
+  /* ====== OT (sem zeros) ====== */
+  const parseOTnum = (ot)=> {
+    // aceita OT-7, OT-0007, ot:7 etc
+    const m=String(ot||'').match(/ot[-:\s]*0*([0-9]+)/i);
+    return m ? parseInt(m[1],10) : NaN;
+  };
+  async function getNextOTNoZeros(){
+    const [j, e] = await Promise.all([
+      ghGetFile(GH.jobsPath, GH.branch),
+      ghGetFile(GH.encPath,  GH.branch).catch(()=>({text:''}))
+    ]);
+    let maxN=0;
+    [j.text, e.text].forEach(text=>{
+      const {header, rows} = csvToObjsAndHeader(text||'');
+      const has = header.findIndex(h=>String(h).toLowerCase()==='ot');
+      if(has<0) return;
+      for(const r of rows){
+        const n = parseOTnum(r.ot);
+        if(!isNaN(n) && n>maxN) maxN=n;
+      }
+    });
+    return 'OT-' + (maxN+1);
+  }
+
+  /* ====== coleta seleção/params do modal DUP2 ====== */
+  function getDupContext(){
+    // 1) preferir contexto que salvamos quando o usuário clicou em “Avançar”/“Duplicar selecionados”
+    if(window.WV && window.WV._dupContext && Array.isArray(window.WV._dupContext.ots) && window.WV._dupContext.ots.length){
+      return { ots: window.WV._dupContext.ots.slice() };
+    }
+    // 2) fallback: pegar checados da tabela #finzList
+    const list=document.getElementById('finzList');
+    if(list){
+      const sel=[...list.querySelectorAll('input[type="checkbox"][data-ot]:checked')].map(b=> b.getAttribute('data-ot'));
+      if(sel.length) return { ots: sel };
+    }
+    return { ots: [] };
+  }
+  function getDupAcaoParams(){
+    const rSim=document.getElementById('dupAcaoSim');
+    const isNac=!!(rSim&&rSim.checked);
+    const nome=(document.getElementById('dupAcaoNome')?.value||'').trim();
+    return { isNacional: isNac, acaoNome: isNac ? nome : '' };
+  }
+
+  /* ====== DUPLICAR SALVANDO OTs SEM ZEROS ====== */
+  async function duplicateFinalizadosWithPlainOTs(){
+    if(!getToken()){ toast('Configure o token antes.'); return; }
+    const ctx = getDupContext();
+    if(!ctx.ots.length){ toast('Selecione itens em “Finalizados” e clique em Avançar.'); return; }
+
+    setBusy(true,'Duplicando…');
+    try{
+      // carrega enc + jobs
+      const [encFile, jobsFile] = await Promise.all([
+        ghGetFile(GH.encPath,  GH.branch),
+        ghGetFile(GH.jobsPath, GH.branch)
+      ]);
+      let { header: Hj, rows: rowsJobs } = csvToObjsAndHeader(jobsFile.text||'');
+      let { header: He, rows: rowsEnc  } = csvToObjsAndHeader(encFile.text||'');
+
+      // normaliza cabeçalhos mínimos
+      ({ head: Hj, rows: rowsJobs } = ensureHeaderColumns(Hj, rowsJobs, [
+        'ot','regional','tipoLoja','tipoJob','nome','compl','uf','filial','ini','fim','tam','qtd',
+        'status','statusStep','isNacional','acaoNome','link','logs','atualizado_em'
+      ]));
+
+      const encByOT = new Map(rowsEnc.map(r=> [String(r.ot||'').trim(), r]));
+      const params  = getDupAcaoParams();
+
+      // próximo número base
+      let nextOT = await getNextOTNoZeros();
+      let nextN  = parseOTnum(nextOT); // inteiro
+
+      const nowISO = new Date().toISOString();
+      const actor  = (window.currentUser && window.currentUser.nome) ? String(window.currentUser.nome) : '—';
+
+      const created = [];
+
+      for(const oldOT of ctx.ots){
+        const src = encByOT.get(String(oldOT).trim());
+        if(!src) continue;
+
+        const newOT = 'OT-' + (nextN++); // sempre sem zeros
+        const r = {
+          ot: newOT,
+          regional:   src.regional||'',
+          tipoLoja:   src.tipoLoja||'',
+          tipoJob:    src.tipoJob||'',
+          nome:       src.nome||'',
+          compl:      src.compl||'',
+          uf:         src.uf||'',
+          filial:     src.filial||'',
+          ini:        src.ini||'',
+          fim:        src.fim||'',
+          tam:        src.tam||'',
+          qtd:        src.qtd||'',
+          status:     'Novo',
+          statusStep: '',
+          isNacional: params.isNacional ? 'true' : 'false',
+          acaoNome:   params.isNacional ? (params.acaoNome||'') : '',
+          link:       src.link||'',
+          logs:       JSON.stringify({ duplicadoDe: String(oldOT), por: actor, ts: nowISO }),
+          atualizado_em: nowISO
+        };
+        rowsJobs.push(r);
+        created.push(newOT);
+      }
+
+      const nextCsv = toCsv(Hj, rowsJobs);
+      await ghPutFile(GH.jobsPath, nextCsv, `chore(csv): duplicar ${created.length} job(s) (OT sem zeros)`);
+
+      // fecha modal e recarrega UI se existir
+      try{ document.getElementById('modalDup2')?.close(); }catch{}
+      try{ document.getElementById('modalFinalizados')?.close(); }catch{}
+      if(typeof window.loadJobsFromGitHub==='function'){ await window.loadJobsFromGitHub(); }
+
+      toast(`${created.length} job(s) lançados: ${created.join(', ')}`);
+    }catch(e){
+      console.error(e);
+      toast('Falha ao duplicar. Tente novamente.');
+    }finally{
+      setBusy(false);
+    }
+  }
+
+  /* ====== PATCH do botão “Lançar” na 2ª janela do Duplicar ====== */
+  function patchDup2Lancar(){
+    const btn = document.getElementById('dup2Lancar');
+    if(!btn || btn._wvPatchedNoZeros) return;
+    btn.addEventListener('click', (ev)=>{
+      // cancela o handler antigo e usa o nosso
+      ev.preventDefault(); ev.stopImmediatePropagation();
+      duplicateFinalizadosWithPlainOTs();
+    }, true); // captura para vencer handlers existentes
+    btn._wvPatchedNoZeros = true;
+  }
+
+  /* ====== BOOT ====== */
+  // quando abrir o modal da 2ª etapa, aplicamos o patch
+  const dup2 = document.getElementById('modalDup2');
+  if(dup2){
+    dup2.addEventListener('show', patchDup2Lancar);
+    // alguns browsers não disparam 'show', então garantimos pós-click do abrir:
+    document.addEventListener('click', (e)=>{
+      if(e.target && e.target.id==='finzDuplicar'){ // seu botão que abre a 2ª janela
+        setTimeout(patchDup2Lancar, 50);
+      }
+      if(e.target && e.target.id==='finzAvancar'){   // caso use “Avançar”
+        setTimeout(patchDup2Lancar, 50);
+      }
+    });
+  }else{
+    // fallback: tenta patch periodicamente até achar o botão
+    const iv = setInterval(()=>{
+      patchDup2Lancar();
+      if(document.getElementById('dup2Lancar')?._wvPatchedNoZeros) clearInterval(iv);
+    }, 500);
+  }
+
+})();
+</script>
+<!// OT sem zeros no LANÇAR - FIM---->
+
+<!// NOVO MODELO VISUALIZAR FINALIZADOS---->
+
+<script>
+(function(){
+  "use strict";
+
+  /* ====== CONFIG GH ====== */
+  const GH = {
+    owner:  'JPVectorsitem',
+    repo:   'LINKS-img',
+    branch: 'main',
+    encPath:'jobs_encerrados.csv'
+  };
+
+  /* ====== ELEMENTOS ====== */
+  const btnOpen   = document.getElementById('btnVerFinalizados'); // botão que abre o modal
+  const dlg       = document.getElementById('modalFinalizados');
+  const selReg    = document.getElementById('finzReg');
+  const inpIni    = document.getElementById('finzIni');
+  const inpFim    = document.getElementById('finzFim');
+  const btnFilter = document.getElementById('finzFiltrar');
+  const btnClose  = document.getElementById('finzFechar');
+  const listBody  = document.getElementById('finzList');
+
+  /* ====== STATE ====== */
+  let _allRows = []; // linhas brutas de jobs_encerrados.csv (objetos)
+
+  /* ====== UX helpers ====== */
+  function toast(m){ const t=document.getElementById('toast'); if(!t){ alert(m); return; } t.textContent=m; t.style.display='block'; setTimeout(()=>t.style.display='none',2200); }
+  function setBusy(v,msg){ const o=document.getElementById('busy'); if(!o) return; o.style.display=v?'grid':'none'; if(msg) o.querySelector('.box').textContent=msg; }
+  function getToken(){ try{ const s=JSON.parse(localStorage.getItem('wv_gh_cfg')||'{}'); return (window.gh&&window.gh.token)||s.token||''; }catch{ return (window.gh&&window.gh.token)||''; } }
+
+  /* ====== CSV/GitHub ====== */
+  function parseCsv(t){
+    if(!t) return []; const r=[]; let row=[],cur='',q=false;
+    for(let i=0;i<t.length;i++){
+      const c=t[i];
+      if(q){ if(c=='"'){ if(t[i+1]=='"'){cur+='"';i++;} else q=false; } else cur+=c; }
+      else { if(c=='"') q=true; else if(c==','){row.push(cur);cur='';}
+      else if(c=='\r'){} else if(c=='\n'){row.push(cur);r.push(row);row=[];cur='';} else cur+=c; }
+    }
+    if(cur.length>0||row.length>0){ row.push(cur); r.push(row); }
+    return r;
+  }
+  function csvToObjsAndHeader(text){
+    const rows=parseCsv(text); if(!rows.length) return { header:[], rows:[] };
+    const H=rows[0], out=[];
+    for(let i=1;i<rows.length;i++){
+      const rr=rows[i]; if(!rr || (rr.length===1 && rr[0]==='')) continue;
+      const o={}; for(let j=0;j<H.length;j++) o[H[j]]=rr[j]||''; out.push(o);
+    }
+    return { header:H, rows:out };
+  }
+  const GH_API_VER='2022-11-28';
+  const ghHeaders=(tok)=>({'Accept':'application/vnd.github+json','X-GitHub-Api-Version':GH_API_VER, ...(tok?{'Authorization':`Bearer ${tok}`}:{})});
+  function b64ToUtf8(b64){ const bin=atob(b64); const bytes=new Uint8Array(bin.length); for(let i=0;i<bytes.length;i++) bytes[i]=bin.charCodeAt(i); return new TextDecoder().decode(bytes); }
+  async function ghGetFile(path, branch){
+    const token=getToken(); if(!token) throw new Error('Token GitHub não configurado.');
+    const url=`https://api.github.com/repos/${encodeURIComponent(GH.owner)}/${encodeURIComponent(GH.repo)}/contents/${encodeURIComponent(path)}?ref=${encodeURIComponent(branch||GH.branch)}`;
+    const r=await fetch(url,{headers:ghHeaders(token)});
+    if(r.status===404) return { text:'', sha:null };
+    if(!r.ok) throw new Error('Falha ao ler ('+r.status+')');
+    const j=await r.json(); const text=j && j.content ? b64ToUtf8(j.content) : '';
+    return { text, sha:j.sha||null };
+  }
+
+  /* ====== UTILS ====== */
+  // Trunca visualmente, mantendo original em data-full (útil p/ seu modalCell global, se existir)
+  function clipHTML(full, max=60){
+    const s = String(full||'').trim();
+    if(!s) return '—';
+    const short = s.length>max ? s.slice(0,max-1)+'…' : s;
+    return `<span class="clip" data-full="${s.replace(/"/g,'&quot;')}">${short.replace(/</g,'&lt;')}</span>`;
+  }
+  function toDate(x){ const d = x ? new Date(x) : null; return (d && !isNaN(d)) ? d : null; }
+  function datesOverlap(jobIni, jobFim, fIni, fFim){
+    if(!fIni && !fFim) return true;
+    if(fIni && !fFim)  return !jobFim || jobFim >= fIni;
+    if(!fIni && fFim)  return !jobIni || jobIni <= fFim;
+    // ambos
+    return !( (jobFim && jobFim < fIni) || (jobIni && jobIni > fFim) );
+  }
+
+  /* ====== RENDER ====== */
+  function render(list){
+    if(!listBody) return;
+    if(!list.length){
+      listBody.innerHTML = `<tr><td colspan="11" class="hint">Nenhum finalizado com esse filtro.</td></tr>`;
+      return;
+    }
+    // ordena por OT numérico
+    list.sort((a,b)=> {
+      const na = parseInt(String(a.ot||'').match(/\d+/)?.[0]||'0',10);
+      const nb = parseInt(String(b.ot||'').match(/\d+/)?.[0]||'0',10);
+      return (na-nb)|| String(a.ot||'').localeCompare(String(b.ot||''));
+    });
+
+    const frag=document.createDocumentFragment();
+    list.forEach(r=>{
+      const tr=document.createElement('tr');
+      tr.innerHTML = `
+        <td>${r.ot||'—'}</td>
+        <td>${r.regional||'—'}</td>
+        <td>${r.tipoJob||'—'}</td>
+        <td>${clipHTML(r.nome||'')}</td>
+        <td>${clipHTML(r.compl||'')}</td>
+        <td>${r.uf||'—'}</td>
+        <td>${clipHTML(r.filial||'')}</td>
+        <td>${r.ini||'—'}</td>
+        <td>${r.fim||'—'}</td>
+        <td>${r.tam||'—'}</td>
+        <td>${r.qtd||'—'}</td>`;
+      frag.appendChild(tr);
+    });
+    listBody.innerHTML=''; listBody.appendChild(frag);
+  }
+
+  /* ====== FILTER ====== */
+  function applyFilter(){
+    const reg = (selReg?.value || '(todas)').trim();
+    const fIni = toDate(inpIni?.value);
+    const fFim = toDate(inpFim?.value);
+
+    const out = _allRows.filter(r=>{
+      const okReg = reg==='(todas)' || String(r.regional||'')===reg;
+      const jIni = toDate(r.ini), jFim = toDate(r.fim);
+      const okPer = datesOverlap(jIni, jFim, fIni, fFim);
+      return okReg && okPer;
+    });
+    render(out);
+  }
+
+  function populateRegionaisFromData(rows){
+    if(!selReg) return;
+    const set = new Set(['(todas)']);
+    rows.forEach(r=>{ const v=(r.regional||'').trim(); if(v) set.add(v); });
+    selReg.innerHTML = '';
+    [...set].sort((a,b)=> a.localeCompare(b,'pt-BR')).forEach(v=>{
+      const o=document.createElement('option'); o.value=v; o.textContent=v; selReg.appendChild(o);
+    });
+  }
+
+  /* ====== OPEN ====== */
+  async function openFinalizados(){
+    if(!getToken()){ toast('Configurar GitHub primeiro (⚙).'); return; }
+    setBusy(true,'Carregando finalizados…');
+    try{
+      const { text } = await ghGetFile(GH.encPath, GH.branch);
+      const parsed = csvToObjsAndHeader(text);
+      _allRows = parsed.rows || [];
+
+      populateRegionaisFromData(_allRows);
+
+      // Zera filtros de data na abertura
+      if(inpIni) inpIni.value = '';
+      if(inpFim) inpFim.value = '';
+
+      // Render inicial (sem filtro = todos)
+      render(_allRows);
+
+      dlg && dlg.showModal();
+    }catch(e){
+      console.error(e);
+      toast('Falha ao carregar jobs finalizados.');
+      if(listBody) listBody.innerHTML = `<tr><td colspan="11" class="hint">Erro ao carregar.</td></tr>`;
+      dlg && dlg.showModal();
+    }finally{
+      setBusy(false);
+    }
+  }
+
+  /* ====== Binds ====== */
+  if(btnOpen)    btnOpen.addEventListener('click', openFinalizados);
+  if(btnFilter)  btnFilter.addEventListener('click', applyFilter);
+  if(btnClose)   btnClose.addEventListener('click', ()=> dlg && dlg.close());
+
+})();
+</script>
+
+<!// NOVO MODELO VISUALIZAR FINALIZADOS- FIM --->
 
 
 </body>
