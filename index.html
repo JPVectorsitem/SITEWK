@@ -4547,9 +4547,36 @@
 })();
 </script>
 
-<//!-- ============ BOTÃO ENCERRAR ============ FIM -->
+<!-- ============ BOTÃO EDITAR — v2 (token unificado + filiais reais + erros claros) ============ -->
+<style>
+  .btn-mini{
+    appearance:none;border:1px solid rgba(255,255,255,.16);background:#0d1628;color:#eaf0ff;
+    padding:6px 10px;border-radius:8px;cursor:pointer;font-weight:600;font-size:.85rem
+  }
+  .btn-mini:hover{transform:translateY(-1px);border-color:rgba(255,255,255,.28)}
+  dialog#dlgLojasView{ border:none; padding:0; width:min(720px,96vw); background:transparent; }
+  dialog#dlgLojasView::backdrop{ background:rgba(0,0,0,.75); }
+  #lojasCard{ background:#0e1730; color:#eaf0ff; border:1px solid rgba(255,255,255,.12);
+    border-radius:14px; box-shadow:0 24px 80px rgba(0,0,0,.5); overflow:hidden; }
+  #lojasCard header{ padding:14px 16px; border-bottom:1px solid rgba(255,255,255,.1); display:flex; justify-content:space-between; gap:10px; align-items:center }
+  #lojasCard header h3{ margin:0; font-size:1rem }
+  #lojasCard .body{ padding:14px 16px; white-space:pre-wrap; word-break:break-word; max-height:60vh; overflow:auto }
+  #lojasCard footer{ padding:12px 16px; border-top:1px solid rgba(255,255,255,.1); display:flex; justify-content:flex-end }
+</style>
 
-<!-- ============ BOTÃO EDITAR — configuração completa (com Nome como SELECT + “…” em Filial) ============ -->
+<dialog id="dlgLojasView">
+  <div id="lojasCard">
+    <header>
+      <h3>Lojas (Filiais)</h3>
+      <button type="button" id="closeLojasDlg" class="btn-mini">Fechar</button>
+    </header>
+    <div class="body" id="lojasBodyText"></div>
+    <footer>
+      <button type="button" id="copiarLojasBtn" class="btn-mini">Copiar</button>
+    </footer>
+  </div>
+</dialog>
+
 <script>
 (function(){
   /* ====== CONFIG ====== */
@@ -4561,7 +4588,7 @@
     namesPath: 'nome_tabloide.csv'
   };
 
-  /* ====== MAPEAMENTO UF por REGIONAL ====== */
+  /* ====== UF x Regional ====== */
   const UF_MAP = {
     'REGIONAL BA - SE':        ['BA','SE'],
     'REGIONAL DF - GO - TO':   ['DF','GO','TO'],
@@ -4577,7 +4604,6 @@
     'REGIONAL SP':             ['SP'],
     'REGIONAL SC':             ['SC']
   };
-
   const REGIONAIS = Object.keys(UF_MAP);
 
   /* ====== ELEMENTOS ====== */
@@ -4589,10 +4615,10 @@
   const selRegional  = document.getElementById('editRegional');
   const selTipoLoja  = document.getElementById('editTipoLoja');
   const selTipoJob   = document.getElementById('editTipoJob');
-  const inpNome      = document.getElementById('editNome');     // será trocado por <select>
+  const inpNome      = document.getElementById('editNome');     // será SELECT
   const inpCompl     = document.getElementById('editCompl');
   const selUF        = document.getElementById('editEstado');
-  const inpFilial    = document.getElementById('editFilial');
+  const inpFilial    = document.getElementById('editFilial');   // textarea/input
   const inpIni       = document.getElementById('editIni');
   const inpFim       = document.getElementById('editFim');
   const selTam       = document.getElementById('editTam');
@@ -4600,15 +4626,37 @@
   const btnCancel    = document.getElementById('btnEditCancelar');
   const btnSave      = document.getElementById('btnEditSalvar');
 
-  let selNomeBox     = null; // select (substitui #editNome input)
+  // Popup “Ver lojas”
+  const dlgLojas     = document.getElementById('dlgLojasView');
+  const lojasBody    = document.getElementById('lojasBodyText');
+  const closeLojas   = document.getElementById('closeLojasDlg');
+  const copiarLojas  = document.getElementById('copiarLojasBtn');
 
-  /* ====== UX helpers ====== */
+  let selNomeBox     = null;
+
+  /* ====== UX ====== */
   function toast(m){ const t=document.getElementById('toast'); if(!t){ alert(m); return; } t.textContent=m; t.style.display='block'; setTimeout(()=>t.style.display='none',2200); }
   function setBusy(v,msg){ const o=document.getElementById('busy'); if(!o) return; o.style.display=v?'grid':'none'; if(msg) o.querySelector('.box').textContent=msg; }
-  function getToken(){ try{ const s=JSON.parse(localStorage.getItem('wv_gh_cfg')||'{}'); return (window.gh&&window.gh.token)||s.token||''; }catch{ return (window.gh&&window.gh.token)||''; } }
-  const eqi = (a,b)=> (a||'').trim().toLowerCase() === (b||'').trim().toLowerCase();
 
-  /* ====== CSV/GitHub helpers ====== */
+  /* ====== TOKEN UNIFICADO ====== */
+  function getToken(){
+    try{
+      if (window.GH_TOKEN && typeof window.GH_TOKEN.get==='function'){
+        const t = window.GH_TOKEN.get(); if(t) return t.trim();
+      }
+    }catch{}
+    try{
+      const a = JSON.parse(localStorage.getItem('wv_gh_cfg')||'{}'); if(a.token) return String(a.token).trim();
+    }catch{}
+    try{
+      const b = JSON.parse(sessionStorage.getItem('wv_gh_cfg')||'{}'); if(b.token) return String(b.token).trim();
+    }catch{}
+    if (window.gh && window.gh.token) return String(window.gh.token).trim();
+    const c = localStorage.getItem('wv_gh_token') || sessionStorage.getItem('wv_gh_token');
+    return c ? String(c).trim() : '';
+  }
+
+  /* ====== CSV/GitHub ====== */
   function parseCsv(t){ if(!t) return []; const r=[]; let row=[],cur='',q=false;
     for(let i=0;i<t.length;i++){ const c=t[i];
       if(q){ if(c=='"'){ if(t[i+1]=='"'){cur+='"';i++;} else q=false; } else cur+=c; }
@@ -4634,26 +4682,47 @@
     const body=rows.map(o=> H.map(k=> csvEsc(o[k]??'')).join(',')).join('\n');
     return head + (body? body+'\n' : '');
   }
+  function ensureHeaderColumns(H, rows, needed){
+    const head=H.slice(); const have=new Set(head.map(h=>String(h)));
+    let changed=false; needed.forEach(col=>{ if(!have.has(col)){ head.push(col); changed=true; } });
+    if(changed) rows.forEach(r=> needed.forEach(col=>{ if(r[col]===undefined) r[col]=''; }));
+    return { head, rows };
+  }
+
   const GH_API_VER='2022-11-28';
   const ghHeaders=(tok)=>({'Accept':'application/vnd.github+json','X-GitHub-Api-Version':GH_API_VER, ...(tok?{'Authorization':`Bearer ${tok}`}:{})});
-  function b64ToUtf8(b64){ const bin=atob(b64); const bytes=new Uint8Array(bin.length); for(let i=0;i<bytes.length;i++) bytes[i]=bin.charCodeAt(i); return new TextDecoder().decode(bytes); }
+  function b64ToUtf8(b64){ const bin=atob(b64); const bytes=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i); return new TextDecoder().decode(bytes); }
   function utf8ToB64(str){ const bytes=new TextEncoder().encode(str); let bin=''; for(let i=0;i<bytes.length;i++) bin+=String.fromCharCode(bytes[i]); return btoa(bin); }
+
+  // Leitura: permite sem token (repo público)
   async function ghGetFile(path, branch){
-    const token=getToken(); if(!token) throw new Error('Token GitHub não configurado.');
+    const token=getToken();
     const url=`https://api.github.com/repos/${encodeURIComponent(GH.owner)}/${encodeURIComponent(GH.repo)}/contents/${encodeURIComponent(path)}?ref=${encodeURIComponent(branch||GH.branch)}`;
-    const r=await fetch(url,{headers:ghHeaders(token)});
+    const r=await fetch(url,{headers:ghHeaders(token||null)});
     if(r.status===404) return { text:'', sha:null };
-    if(!r.ok) throw new Error('Falha ao ler ('+r.status+')');
+    if(!r.ok){
+      const t=await r.text(); console.error('GH GET error:', r.status, t);
+      throw new Error('Falha ao ler ('+r.status+')');
+    }
     const j=await r.json(); const text=j && j.content ? b64ToUtf8(j.content) : '';
     return { text, sha:j.sha||null };
   }
+  // Escrita: exige token
   async function ghPutFile(path, newText, message){
-    const token=getToken(); if(!token) throw new Error('Token GitHub não configurado.');
-    let sha=null; try{ const cur=await ghGetFile(path, GH.branch); sha=cur.sha; }catch{}
+    const token=getToken();
+    if(!token){ throw new Error('Token ausente. Salve o token antes de salvar.'); }
+    let sha=null; try{ const cur=await ghGetFile(path, GH.branch); sha=cur.sha; }catch(e){ /* se 404, sha ficará null e cria */ }
     const url=`https://api.github.com/repos/${encodeURIComponent(GH.owner)}/${encodeURIComponent(GH.repo)}/contents/${encodeURIComponent(path)}`;
     const body={ message:message||`chore(csv): update ${path}`, content:utf8ToB64(newText), branch:GH.branch, ...(sha?{sha}:{}) };
     const r=await fetch(url,{method:'PUT', headers:{...ghHeaders(token), 'Content-Type':'application/json'}, body:JSON.stringify(body)});
-    if(!r.ok){ const t=await r.text(); throw new Error('Falha ao salvar ('+r.status+'): '+t); }
+    if(!r.ok){
+      const t=await r.text(); console.error('GH PUT error:', r.status, t);
+      let msg='Falha ao salvar ('+r.status+')';
+      if(r.status===401) msg+=' — token inválido.';
+      if(r.status===403) msg+=' — sem permissão (precisa scope repo:contents).';
+      if(r.status===409) msg+=' — conflito de versão; tente novamente.';
+      throw new Error(msg);
+    }
     return true;
   }
 
@@ -4688,7 +4757,6 @@
       }
       names = [...new Set(names.map(s=>String(s).trim()))].filter(Boolean)
                .sort((a,b)=> a.localeCompare(b,'pt-BR'));
-      // se o atual não estiver na lista, injeta no topo para não sumir
       if (currentValue && !names.includes(currentValue)) names.unshift(currentValue);
       selectEl.innerHTML = '';
       const ph = document.createElement('option'); ph.value=''; ph.textContent='— selecione —'; selectEl.appendChild(ph);
@@ -4701,27 +4769,67 @@
       toast('Falha ao carregar nome_tabloide.csv');
     }
   }
-  function populateRegionais(current){
-    fillSelect(selRegional, REGIONAIS, current);
-  }
+  function populateRegionais(current){ fillSelect(selRegional, Object.keys(UF_MAP), current); }
   function populateUFsForRegional(regional, currentUF){
     const list = UF_MAP[regional] || [];
     selUF.innerHTML = list.map(uf => `<option${uf===currentUF?' selected':''}>${uf}</option>`).join('');
+  }
+
+  // filiais na célula (DOM seguro)
+  function renderFilialCell(td, fullText){
+    if(!td) return;
+    td.innerHTML = '';
+    const data = String(fullText||'').trim();
+    if(!data) return;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'btn-mini ver-lojas';
+    btn.textContent = 'Ver lojas';
+    btn.dataset.full = data;
+    td.appendChild(btn);
+  }
+  function decorateFiliaisCellForOT(ot, fullText){
+    const tr = document.querySelector(`#jobsBody tr[data-ot="${CSS.escape(ot)}"]`);
+    if(!tr) return;
+    renderFilialCell(tr.children[7], fullText);
+  }
+  document.addEventListener('click', (e)=>{
+    const btn = e.target.closest('.ver-lojas');
+    if(!btn) return;
+    lojasBody.textContent = btn.dataset.full || '';
+    try{ dlgLojas.showModal(); }catch{}
+  });
+  if(closeLojas) closeLojas.addEventListener('click', ()=> dlgLojas.close());
+  if(copiarLojas) copiarLojas.addEventListener('click', async ()=>{
+    try{ await navigator.clipboard.writeText(lojasBody.textContent||''); toast('Copiado.'); }catch{ toast('Não foi possível copiar.'); }
+  });
+
+  // util: lê linha DOM
+  function readRowFromDOMByOT(ot){
+    const tr = document.querySelector(`#jobsBody tr[data-ot="${CSS.escape(ot)}"]`);
+    if (!tr) return null;
+    const td = i => (tr.children[i]?.textContent||'').trim();
+    const filialFull = tr.children[7]?.querySelector('[data-full]')?.dataset.full
+                    || tr.children[7]?.querySelector('.clip')?.getAttribute('data-full')
+                    || td(7);
+    return {
+      ot: td(0), regional: td(1), tipoLoja: td(2), tipoJob: td(3), nome: td(4),
+      compl: td(5), uf: td(6), filial: filialFull, ini: td(8), fim: td(9),
+      tam: td(10), qtd: td(11)
+    };
   }
   function getSelectedOT(){
     if (typeof window.getSelectedOT === 'function') return window.getSelectedOT();
     const tr = document.querySelector('#jobsBody tr.sel[data-ot]');
     return tr ? tr.getAttribute('data-ot') : null;
   }
-  function readRowFromDOMByOT(ot){
-    const tr = document.querySelector(`#jobsBody tr[data-ot="${CSS.escape(ot)}"]`);
-    if (!tr) return null;
-    const td = i => (tr.children[i]?.textContent||'').trim();
-    return {
-      ot: td(0), regional: td(1), tipoLoja: td(2), tipoJob: td(3), nome: td(4),
-      compl: td(5), uf: td(6), filial: (tr.children[7]?.querySelector('.clip')?.getAttribute('data-full') || td(7) || '').trim(),
-      ini: td(8), fim: td(9), tam: td(10), qtd: td(11)
-    };
+  async function fetchFilialFromCSV(ot){
+    try{
+      const { text } = await ghGetFile(GH.jobsPath, GH.branch);
+      const { rows } = csvToObjsAndHeader(text);
+      const r = rows.find(x => (String(x.ot||'').trim().toLowerCase() === String(ot||'').trim().toLowerCase()));
+      return (r && r.filial) ? String(r.filial) : '';
+    }catch{ return ''; }
   }
 
   /* ====== ABRIR EDITAR ====== */
@@ -4729,40 +4837,39 @@
     const ot = getSelectedOT();
     if (!ot){ toast('Selecione um job para editar.'); return; }
 
-    // lê valores atuais da linha (DOM)
     const cur = readRowFromDOMByOT(ot);
     if (!cur){ toast('Não consegui ler os dados do job.'); return; }
 
-    // Preenche cabeçalho OT
     lblOT.textContent = cur.ot || '—';
 
-    // Regionais e UF
     populateRegionais(cur.regional || '');
     populateUFsForRegional(cur.regional || '', cur.uf || '');
-    selRegional.onchange = ()=> populateUFsForRegional(selRegional.value, selUF.value);
+    selRegional.onchange = ()=> populateUFsForRegional(selRegional.value, '');
 
-    // Demais campos
     selTipoLoja.value = cur.tipoLoja || '';
-    selTipoJob.value  = cur.tipoJob || '';
+    selTipoJob.value  = cur.tipoJob  || '';
     inpCompl.value    = cur.compl    || '';
-    inpFilial.value   = cur.filial   || '';
     inpIni.value      = cur.ini      || '';
     inpFim.value      = cur.fim      || '';
     selTam.value      = cur.tam      || '';
     inpQtd.value      = cur.qtd      || '';
 
-    // Nome (select com nomes do CSV)
     const sel = ensureNomeSelect();
     await loadNomeTabloideOptions(sel, cur.nome || '');
+
+    let filialReal = cur.filial;
+    if(!filialReal || filialReal.toLowerCase()==='ver lojas' || filialReal==='...'){
+      filialReal = await fetchFilialFromCSV(ot);
+    }
+    inpFilial.value = filialReal || '';
 
     dlg.showModal();
   }
 
-  /* ====== SALVAR EDITAR ====== */
+  /* ====== SALVAR ====== */
   async function saveEditar(){
     const ot = (lblOT.textContent||'').trim();
     if (!ot){ toast('OT inválida.'); return; }
-    if (!getToken()){ toast('Configurar GitHub primeiro (⚙).'); return; }
 
     const regional = selRegional.value || '';
     const tipoLoja = selTipoLoja.value || '';
@@ -4776,7 +4883,6 @@
     const tam      = selTam.value || '';
     const qtd      = (inpQtd.value||'').trim();
 
-    // validações básicas
     if (!regional || !tipoLoja || !tipoJob || !nome || !uf || !ini || !fim || !tam || !qtd){
       toast('Preencha Regional, Tipo da loja, Tipo do JOB, Nome, UF, Período, Tamanho e Quantidade.');
       return;
@@ -4784,13 +4890,11 @@
     const qn = parseInt(qtd,10);
     if (isNaN(qn) || qn<=0){ toast('Quantidade inválida.'); return; }
 
-    // valida UF compatível com regional
     const allowedUFs = UF_MAP[regional] || [];
     if (allowedUFs.length && !allowedUFs.includes(uf)){
       toast('UF não é permitida para a regional selecionada.');
       return;
     }
-    // datas
     if (ini && fim && new Date(ini) > new Date(fim)){
       toast('Período inválido (início > término).');
       return;
@@ -4798,13 +4902,17 @@
 
     setBusy(true,'Salvando…');
     try{
-      // 1) Carregar jobs.csv
       const { text } = await ghGetFile(GH.jobsPath, GH.branch);
-      const { header:H, rows } = csvToObjsAndHeader(text);
-      if (!rows.length || !H.length) throw new Error('jobs.csv vazio ou sem cabeçalho.');
+      const parsed = csvToObjsAndHeader(text);
+      let H = parsed.header || [];
+      let rows = parsed.rows   || [];
+      if (!H.length) throw new Error('Cabeçalho ausente em jobs.csv');
 
-      // 2) Encontrar e atualizar a linha do OT
-      const idx = rows.findIndex(r => eqi(r.ot, ot));
+      ({ head:H, rows } = ensureHeaderColumns(H, rows, [
+        'ot','regional','tipoLoja','tipoJob','nome','compl','uf','filial','ini','fim','tam','qtd','status','logs','statusStep','atualizado_em'
+      ]));
+
+      const idx = rows.findIndex(r => (String(r.ot||'').trim().toLowerCase() === ot.toLowerCase()));
       if (idx < 0) throw new Error('OT não encontrada em jobs.csv');
 
       const now = new Date().toISOString();
@@ -4822,37 +4930,38 @@
       r.qtd      = String(qn);
       r.atualizado_em = now;
 
-      // 3) Salvar de volta
       const nextText = toCsv(H, rows);
       await ghPutFile(GH.jobsPath, nextText, `chore(csv): edit job ${ot}`);
 
-      // 4) Atualizar UI principal (recarrega e garante “+” e “…”)
+      decorateFiliaisCellForOT(ot, filial);
       if (typeof window.loadJobsFromGitHub === 'function') {
         await window.loadJobsFromGitHub();
-      }
-      if (typeof window.decorateFiliaisCellForOT === 'function') {
-        window.decorateFiliaisCellForOT(ot);
+        decorateFiliaisCellForOT(ot, filial);
       }
 
       toast('Alterações salvas.');
       dlg.close();
     }catch(e){
       console.error(e);
-      toast('Erro ao salvar edição.');
+      toast(e.message || 'Erro ao salvar edição.');
     }finally{
       setBusy(false);
     }
   }
 
-  /* ====== BINDS ====== */
+  /* ====== Binds ====== */
   if (btnEditar)   btnEditar.addEventListener('click', openEditar);
   if (btnCancel)   btnCancel.addEventListener('click', ()=> dlg.close());
   if (btnSave)     btnSave.addEventListener('click', saveEditar);
 
+  // expõe decorador
+  window.decorateFiliaisCellForOT = window.decorateFiliaisCellForOT || decorateFiliaisCellForOT;
+
 })();
 </script>
+<!-- ============ BOTÃO EDITAR — FIM ============ -->
 
-<!-- ============ BOTÃO EDITAR — configuração completa (com Nome como SELECT + “…” em Filial) ============ FIM -->
+
 
 <!-- ============ BOTÃO DUPLICAR — IMPLEMENTAÇÃO COMPLETA (passo 1 + passo 2 + ações nacionais + gravação em jobs.csv) ============ -->
 <script>
@@ -8311,64 +8420,60 @@
 
 <!// AJUTES - OT GLOBAL (OT sem zeros a esquerda) FIM ---->
 
-<!-- ====== GATE (Porta de Acesso) — COLE ANTES DE </body> ====== -->
+<!-- ============================ GATE (PORTA DE ACESSO) — MODAL SÓLIDO v2 ============================ -->
 <style>
-  /* Estilos do Gate (página inicial antes do login) */
-  #gateView{
-    width:min(1100px,100%);margin:0 auto;padding:24px;display:none;
-  }
-  #gateView .card{
-    background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.02));
-    border:1px solid rgba(255,255,255,.08); border-radius:16px; box-shadow:0 10px 30px rgba(0,0,0,.45); overflow:hidden;
-  }
-  #gateView .panel{padding:24px}
-  #gateView h2{margin:0 0 10px 0}
-  #gateView .muted{color:var(--muted)}
-  #gateView .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:12px}
-  #gateView .col-12{grid-column:span 12} .col-6{grid-column:span 6} .col-4{grid-column:span 4} .col-8{grid-column:span 8}
-  #gateView .field{display:grid;gap:6px}
-  #gateView input, #gateView button, #gateView select{
-    font-family:inherit;font-size:.95rem
-  }
-  #gateView input, #gateView select{
-    width:100%; padding:10px 12px; border-radius:10px; border:1px solid rgba(255,255,255,.12);
-    background:#0b1426; color:var(--text); outline:none; transition:.2s border-color,.2s box-shadow
-  }
-  #gateView input:focus, #gateView select:focus{border-color:var(--accent); box-shadow:var(--ring)}
-  #gateView .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-  #gateView .btn{appearance:none; border:1px solid rgba(255,255,255,.12); background:#0d1628; color:#eaf0ff;
-    padding:10px 14px; border-radius:10px; cursor:pointer;transition:.2s transform,.2s background,.2s border-color, .2s box-shadow; font-weight:600}
-  #gateView .btn:hover{transform:translateY(-1px); border-color:rgba(255,255,255,.25)}
-  #gateView .btn.primary{background:linear-gradient(180deg,#2a60ff,#1b47c9);border-color:transparent}
-  #gateView .btn.small{padding:6px 10px; font-size:.85rem}
-  #gateView .hint{color:var(--muted);font-size:.9rem}
-  #gateView .ok{color:#86efac} .warn{color:#facc15} .err{color:#f87171}
-  #gateView .captchaBox{border:1px dashed rgba(255,255,255,.18); padding:10px; border-radius:10px}
-  #gateView .chip{display:inline-block;padding:4px 8px;border-radius:999px;border:1px solid rgba(255,255,255,.18);font-size:.8rem}
-  #gateView .timer{font-variant-numeric:tabular-nums; font-weight:700}
-  #gateBlock{
-    position:fixed; inset:0; background:rgba(0,0,0,.8); display:none; place-items:center; z-index:99999
-  }
-  #gateBlock .box{
-    background:#0e1730;border:1px solid rgba(255,255,255,.12);padding:16px 18px;border-radius:12px; max-width:92vw
-  }
+  body.gate-locked { overflow: hidden; }
+  body.gate-locked #loginView,
+  body.gate-locked #jobsApp { display: none !important; }
+
+  dialog#gateModal { border:none; padding:0; width:min(900px,96vw); max-width:900px; background:transparent; }
+  dialog#gateModal::backdrop { background:rgba(0,0,0,.85); }
+
+  #gateWrap{ background:#0e1730; color:#eaf0ff; border:1px solid rgba(255,255,255,.12);
+    border-radius:16px; box-shadow:0 18px 60px rgba(0,0,0,.65); overflow:hidden; }
+  #gateHdr{ padding:18px 22px; border-bottom:1px solid rgba(255,255,255,.08) }
+  #gateHdr h1{ margin:0; font-size:1.25rem }
+  #gateHdr .muted{ margin:6px 0 0; color:#9fb0d0; font-size:.95rem }
+  #gateBody{ padding:20px 22px 8px }
+  #gateGrid{ display:grid; grid-template-columns:repeat(12,1fr); gap:12px }
+  .col-12{ grid-column:span 12 } .col-8{ grid-column:span 8 } .col-6{ grid-column:span 6 } .col-4{ grid-column:span 4 }
+  .field{ display:grid; gap:6px } .field label{ font-weight:600; font-size:.95rem }
+  .muted{ color:#9fb0d0 }
+  #gateBody input, #gateBody button{ font-family:inherit; font-size:.95rem }
+  #gateBody input{ width:100%; padding:10px 12px; border-radius:10px; border:1px solid rgba(255,255,255,.16);
+    background:#0b1426; color:#eaf0ff; outline:none; transition:.2s border-color,.2s box-shadow }
+  #gateBody input:focus{ border-color:#2a60ff; box-shadow:0 0 0 3px rgba(42,96,255,.15) }
+  .btn{ appearance:none; border:1px solid rgba(255,255,255,.16); background:#0d1628; color:#eaf0ff; padding:10px 14px;
+    border-radius:10px; cursor:pointer; font-weight:700; transition:.2s transform,.2s background,.2s border-color,.2s box-shadow }
+  .btn:hover{ transform:translateY(-1px); border-color:rgba(255,255,255,.28) }
+  .btn.primary{ background:linear-gradient(180deg,#2a60ff,#1b47c9); border-color:transparent }
+  .btn.small{ padding:6px 10px; font-size:.85rem }
+  .chip{ display:inline-block; padding:4px 8px; border-radius:999px; border:1px solid rgba(255,255,255,.18); font-size:.8rem }
+  .ok{ color:#86efac } .warn{ color:#facc15 } .err{ color:#f87171 }
+  .captchaBox{ border:1px dashed rgba(255,255,255,.18); padding:10px; border-radius:10px }
+  .row{ display:flex; gap:10px; align-items:center; flex-wrap:wrap }
+  .timer{ font-variant-numeric:tabular-nums; font-weight:700 }
+  #gateFoot{ padding:16px 22px 18px; display:flex; justify-content:flex-end; gap:10px; border-top:1px solid rgba(255,255,255,.08) }
+  /* por padrão, o botão de gerar fica oculto; JS mostra só quando expira */
+  #gateGen{ display:none; }
 </style>
 
-<div id="gateView" class="app">
-  <div class="title" style="text-align:center;line-height:1.2">
-    <h1>Workflow Vector — Porta de Acesso</h1>
-    <p class="muted">Este aplicativo é uma ferramenta de uso interno e exclusivo. Para obter acesso, siga os procedimentos abaixo junto ao setor de Tecnologia da Informação (TI).</p>
-  </div>
+<dialog id="gateModal">
+  <div id="gateWrap" role="dialog" aria-modal="true" aria-labelledby="gateTitle">
+    <div id="gateHdr">
+      <h1 id="gateTitle">Workflow Vector — Porta de Acesso</h1>
+      <p class="muted">Ferramenta de uso interno. Preencha os passos para liberar o acesso.</p>
+    </div>
 
-  <section class="card">
-    <div class="panel">
-      <div class="grid">
-        <div class="col-12"><h2>1) Token de acesso</h2></div>
+    <div id="gateBody">
+      <div id="gateGrid">
+        <!-- 1) TOKEN -->
+        <div class="col-12"><h2 style="margin:0 0 6px 0">1) Token de acesso</h2></div>
         <div class="col-8">
           <div class="field">
-            <label>Insira o token de acesso</label>
-            <input id="gateTok" type="password" placeholder="ghp_xxx..." autocomplete="off"/>
-            <div class="hint">Salvar token antes de passar para etapa 2.</div>
+            <label for="gateTok">Insira o token</label>
+            <input id="gateTok" type="password" placeholder="ghp_xxx..." autocomplete="off">
+            <div class="muted">Ao salvar, uma senha global de 10 min será gerada automaticamente.</div>
           </div>
         </div>
         <div class="col-4" style="display:flex;align-items:end">
@@ -8377,22 +8482,24 @@
 
         <div class="col-12"><hr style="border-color:rgba(255,255,255,.12)"></div>
 
-        <div class="col-12"><h2>2) Senha de liberação</h2></div>
+        <!-- 2) SENHA GLOBAL (10 min) -->
+        <div class="col-12"><h2 style="margin:0 0 6px 0">2) Senha de liberação</h2></div>
         <div class="col-6">
           <div class="field">
-            <label>Insira a senha</label>
-            <input id="gatePassInput" type="password" placeholder="Digite a senha vigente" autocomplete="off"/>
-            <div class="hint">Coloque a senha correta dentro do tempo de: <span id="gateTimer" class="timer">--:--</span></div>
+            <label for="gatePassInput">Senha vigente</label>
+            <input id="gatePassInput" type="password" placeholder="Digite a senha" autocomplete="off">
+            <div class="muted">Tempo restante: <span id="gateTimer" class="timer">--:--</span></div>
           </div>
         </div>
         <div class="col-6">
-          <div class="row" style="gap:8px;margin-top:26px">
-            <button id="gateGen" class="btn small">Atualizar/Gerar senha</button>
+          <div class="row" style="margin-top:26px">
+            <button id="gateGen" class="btn small" type="button">Atualizar/Gerar senha</button>
             <span id="gatePassState" class="chip">Aguardando…</span>
           </div>
         </div>
 
-        <div class="col-12"><h2>3) Não sou um robô</h2></div>
+        <!-- 3) CAPTCHA -->
+        <div class="col-12"><h2 style="margin:4px 0 6px 0">3) Não sou um robô</h2></div>
         <div class="col-12">
           <div class="captchaBox">
             <div class="row">
@@ -8402,57 +8509,50 @@
             <div id="gateQA" class="row" style="margin-top:10px;display:none;align-items:flex-end">
               <div style="flex:1 1 480px">
                 <div class="field">
-                  <label>Pergunta</label>
-                  <input id="gateQ" type="text" readonly/>
+                  <label for="gateQ">Pergunta</label>
+                  <input id="gateQ" type="text" readonly>
                 </div>
               </div>
               <div style="flex:1 1 260px">
                 <div class="field">
-                  <label>Resposta</label>
-                  <input id="gateA" type="text" placeholder="Digite a resposta"/>
+                  <label for="gateA">Resposta</label>
+                  <input id="gateA" type="text" placeholder="Digite a resposta">
                 </div>
               </div>
               <button id="gateNewQ" class="btn small" type="button">Trocar pergunta</button>
             </div>
-            <div class="hint" style="margin-top:6px">Responda as perguntas<strong> CORRETAMENTE </strong>para ter acesso.</div>
+            <div class="muted" style="margin-top:6px">Responda corretamente para liberar o acesso.</div>
           </div>
-        </div>
-
-        <div class="col-12" style="display:flex;justify-content:flex-end;margin-top:8px">
-          <button id="gateAccess" class="btn primary">Acessar</button>
         </div>
       </div>
     </div>
-  </section>
-</div>
 
-<div id="gateBlock"><div class="box">
-  <div style="font-weight:700;margin-bottom:6px">Muitas tentativas inválidas</div>
-  <div class="muted">Aguarde a senha expirar para tentar novamente.</div>
-  <div style="margin-top:6px">Tempo restante: <span id="gateBlockLeft" class="timer">--:--</span></div>
-</div></div>
+    <div id="gateFoot">
+      <button id="gateAccess" class="btn primary">Acessar</button>
+    </div>
+  </div>
+</dialog>
 
 <script>
-(function(){
+(()=> {
   /* ===================== CONFIG REPO ===================== */
   const GH = {
     owner:  'JPVectorsitem',
     repo:   'LINKS-img',
     branch: 'main',
-    passPath: 'segurancaallow_ip.txt',    // armazena senha global (10min)
-    qaPath:  'perguntas_respostas.csv'    // perguntas,respostas
+    passPath: 'segurancaallow_ip.txt',  // WV_PASS/CREATED/EXPIRES
+    qaPath:  'perguntas_respostas.csv'
   };
 
   /* ===================== ELEMENTOS ===================== */
-  const gateView  = ensureGateView();
-  const loginView = document.getElementById('loginView');
-  const jobsApp   = document.getElementById('jobsApp');
+  const dlg       = document.getElementById('gateModal');
+  const wrap      = document.getElementById('gateWrap');
   const elTok     = document.getElementById('gateTok');
   const btSaveTok = document.getElementById('gateSaveTok');
-  const btGen     = document.getElementById('gateGen');
   const elPassInp = document.getElementById('gatePassInput');
   const elTimer   = document.getElementById('gateTimer');
   const elPassSt  = document.getElementById('gatePassState');
+  const btGen     = document.getElementById('gateGen');
   const chkBot    = document.getElementById('gateChk');
   const capState  = document.getElementById('gateCaptchaState');
   const qaWrap    = document.getElementById('gateQA');
@@ -8460,206 +8560,85 @@
   const elA       = document.getElementById('gateA');
   const btNewQ    = document.getElementById('gateNewQ');
   const btAccess  = document.getElementById('gateAccess');
-  const blockLay  = document.getElementById('gateBlock');
-  const blockLeft = document.getElementById('gateBlockLeft');
+
+  const loginView = document.getElementById('loginView');
+  const jobsApp   = document.getElementById('jobsApp');
 
   /* ===================== STATE ===================== */
-  let PASS_VALUE = '';        // senha global vigente (do arquivo)
-  let PASS_EXP   = null;      // ISO
+  let PASS_VALUE = '';
+  let PASS_EXP   = null; // ISO
   let tickTimer  = null;
-  let QA = [];                // [{q,a}]
+  let QA = [];
   let curIdx = -1;
-  let attempts = +(localStorage.getItem('wv_gate_attempts')||'0')|0;
 
   /* ===================== UTILS ===================== */
-  function toast(msg){
-    const el = document.getElementById('toast');
-    if(!el){ alert(msg); return; }
-    el.textContent = msg;
-    el.style.display = 'block';
-    setTimeout(()=> el.style.display='none', 2200);
-  }
-  function setBusy(v,msg){
-    const o=document.getElementById('busy'); if(!o) return;
-    o.style.display = v ? 'grid' : 'none';
-    if(msg) o.querySelector('.box').textContent = msg;
-  }
-  function getToken(){
-    try{
-      const saved = JSON.parse(localStorage.getItem('wv_gh_cfg')||'{}');
-      return (window.gh && window.gh.token) || saved.token || '';
-    }catch{ return (window.gh && window.gh.token) || ''; }
-  }
-  function setToken(tok){
-    window.gh = window.gh || {};
-    window.gh.token = tok;
-    try{ localStorage.setItem('wv_gh_cfg', JSON.stringify({ token: tok })); }catch{}
-  }
-  function fmtMMSS(ms){
-    const s = Math.max(0, Math.floor(ms/1000));
-    const m = Math.floor(s/60);
-    const r = s%60;
-    return String(m).padStart(2,'0')+':'+String(r).padStart(2,'0');
-  }
-  function rand12(){
-    const alpha='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // sem 0/O/1/I
-    let o=''; for(let i=0;i<12;i++) o+=alpha[Math.floor(Math.random()*alpha.length)];
-    return o;
-  }
+  function toast(m){ const t=document.getElementById('toast'); if(!t){ console.log('[GATE]',m); return; }
+    t.textContent=m; t.style.display='block'; setTimeout(()=>t.style.display='none',2200); }
+  function setBusy(v,msg){ const o=document.getElementById('busy'); if(!o) return; o.style.display=v?'grid':'none'; if(msg) o.querySelector('.box').textContent=msg; }
+  function getToken(){ try{ const s=JSON.parse(localStorage.getItem('wv_gh_cfg')||'{}'); return (window.gh&&window.gh.token)||s.token||''; }catch{ return (window.gh&&window.gh.token)||''; } }
+  function setToken(tok){ window.gh=window.gh||{}; window.gh.token=tok; try{ localStorage.setItem('wv_gh_cfg', JSON.stringify({token:tok})); }catch{} }
+  function fmtMMSS(ms){ const s=Math.max(0,Math.floor(ms/1000)); const m=Math.floor(s/60); const r=s%60; return String(m).padStart(2,'0')+':'+String(r).padStart(2,'0'); }
+  function msLeft(expISO){ const t=Date.parse(expISO); if(isNaN(t)) return 0; return Math.max(0,t-Date.now()); }
 
-  /* ===================== CSV & TXT PARSERS ===================== */
-  function parseCsv(text){
-    if(!text) return [];
-    const out=[]; let row=[],cur='',q=false;
-    for(let i=0;i<text.length;i++){
-      const c=text[i];
-      if(q){
-        if(c=='"'){ if(text[i+1]=='"'){cur+='"';i++;} else q=false; }
-        else cur+=c;
-      }else{
-        if(c=='"') q=true;
-        else if(c==','){ row.push(cur); cur=''; }
-        else if(c=='\r'){}
-        else if(c=='\n'){ row.push(cur); out.push(row); row=[]; cur=''; }
-        else cur+=c;
-      }
-    }
-    if(cur.length>0 || row.length>0){ row.push(cur); out.push(row); }
-    return out;
-  }
-  function csvToQAs(csv){
-    const rows = parseCsv(csv);
-    if(!rows.length) return [];
-    const H = rows[0].map(h=>String(h||'').trim().toLowerCase());
-    const iQ = H.indexOf('perguntas');
-    const iA = H.indexOf('respostas');
-    if(iQ<0 || iA<0) return [];
-    const arr=[];
-    for(let i=1;i<rows.length;i++){
-      const r = rows[i]; if(!r || (!r[iQ] && !r[iA])) continue;
-      arr.push({ q: r[iQ]||'', a: r[iA]||'' });
-    }
-    return arr;
-  }
-  // >>>>>>> CORRIGIDO: divide só no primeiro ":" e datas robustas
-  function parseTxt(txt){
-    const out = { pass:'', exp:null, createdAt:null };
-    String(txt||'').split(/\r?\n/).forEach(line=>{
-      const s = line.trim();
-      if(!s) return;
-      const idx = s.indexOf(':');
-      if(idx < 0) return;
-      const k = s.slice(0, idx).trim().toUpperCase();
-      const v = s.slice(idx + 1).trim();
-      if(k === 'WV_PASS')   out.pass = v;
-      else if(k === 'EXPIRES')  out.exp = v;
-      else if(k === 'CREATED')  out.createdAt = v;
-    });
-    return out;
-  }
-  function msLeft(exp){
-    const t = Date.parse(exp);
-    if (isNaN(t)) return 0;
-    return Math.max(0, t - Date.now());
-  }
+  /* ===================== PARSERS ===================== */
+  function parseCsv(text){ if(!text) return []; const out=[]; let row=[],cur='',q=false;
+    for(let i=0;i<text.length;i++){ const c=text[i];
+      if(q){ if(c=='"'){ if(text[i+1]=='"'){cur+='"';i++;} else q=false; } else cur+=c; }
+      else{ if(c=='"') q=true; else if(c==','){row.push(cur);cur='';}
+        else if(c=='\r'){} else if(c=='\n'){row.push(cur);out.push(row);row=[];cur='';} else cur+=c; } }
+    if(cur.length>0||row.length>0){ row.push(cur); out.push(row); } return out; }
+  function csvToQAs(csv){ const rows=parseCsv(csv); if(!rows.length) return []; const H=rows[0].map(h=>String(h||'').trim().toLowerCase());
+    const iQ=H.indexOf('perguntas'), iA=H.indexOf('respostas'); if(iQ<0||iA<0) return []; const arr=[];
+    for(let i=1;i<rows.length;i++){ const r=rows[i]; if(!r||(!r[iQ]&&!r[iA])) continue; arr.push({q:r[iQ]||'', a:r[iA]||''}); } return arr; }
+  function parseTxt(txt){ const out={pass:'',exp:null,created:null};
+    String(txt||'').split(/\r?\n/).forEach(line=>{ const s=line.trim(); if(!s) return; const idx=s.indexOf(':'); if(idx<0) return;
+      const k=s.slice(0,idx).trim().toUpperCase(); const v=s.slice(idx+1).trim();
+      if(k==='WV_PASS') out.pass=v; else if(k==='EXPIRES') out.exp=v; else if(k==='CREATED') out.created=v; });
+    return out; }
 
   /* ===================== GITHUB HELPERS ===================== */
   const GH_API_VER='2022-11-28';
-  const ghHeaders = (tok) => ({
-    'Accept':'application/vnd.github+json',
-    'X-GitHub-Api-Version': GH_API_VER,
-    ...(tok ? { 'Authorization':`Bearer ${tok}` } : {})
-  });
-  function b64ToUtf8(b64){
-    const bin = atob(b64); const bytes = new Uint8Array(bin.length);
-    for(let i=0;i<bytes.length;i++) bytes[i] = bin.charCodeAt(i);
-    return new TextDecoder().decode(bytes);
-  }
-  function utf8ToB64(str){
-    const bytes = new TextEncoder().encode(str); let bin='';
-    for(let i=0;i<bytes.length;i++) bin+=String.fromCharCode(bytes[i]);
-    return btoa(bin);
-  }
-  async function ghGetFile(path, branch){
-    const token = getToken();
-    if(!token) throw new Error('Token GitHub não configurado.');
-    const url = `https://api.github.com/repos/${encodeURIComponent(GH.owner)}/${encodeURIComponent(GH.repo)}/contents/${encodeURIComponent(path)}?ref=${encodeURIComponent(branch||GH.branch)}`;
-    const r = await fetch(url, { headers: ghHeaders(token) });
-    if(r.status===404) return { text:'', sha:null };
-    if(!r.ok) throw new Error('Falha ao ler ('+r.status+')');
-    const j = await r.json();
-    const content = j && j.content ? b64ToUtf8(j.content) : '';
-    return { text: content, sha: j.sha || null };
-  }
-  async function ghPutFile(path, newText, message){
-    const token = getToken();
-    if(!token) throw new Error('Token GitHub não configurado.');
-    // buscar SHA
-    let sha = null;
-    try{ const cur = await ghGetFile(path, GH.branch); sha = cur.sha; }catch{}
-    const url = `https://api.github.com/repos/${encodeURIComponent(GH.owner)}/${encodeURIComponent(GH.repo)}/contents/${encodeURIComponent(path)}`;
-    const body = {
-      message: message || `chore(gate): update ${path}`,
-      content: utf8ToB64(newText),
-      branch: GH.branch,
-      ...(sha ? { sha } : {})
-    };
-    const r = await fetch(url, {
-      method:'PUT',
-      headers:{...ghHeaders(token), 'Content-Type':'application/json'},
-      body: JSON.stringify(body)
-    });
-    if(!r.ok){ const t=await r.text(); throw new Error('Falha ao salvar ('+r.status+'): '+t); }
-    return true;
-  }
+  const ghHeaders=(tok)=>({'Accept':'application/vnd.github+json','X-GitHub-Api-Version':GH_API_VER, ...(tok?{'Authorization':`Bearer ${tok}`}:{})});
+  function b64ToUtf8(b64){ const bin=atob(b64); const bytes=new Uint8Array(bin.length); for(let i=0;i<bytes.length;i++) bytes[i]=bin.charCodeAt(i); return new TextDecoder().decode(bytes); }
+  function utf8ToB64(str){ const bytes=new TextEncoder().encode(str); let bin=''; for(let i=0;i<bytes.length;i++) bin+=String.fromCharCode(bytes[i]); return btoa(bin); }
+  async function ghGetFile(path, branch){ const token=getToken(); if(!token) throw new Error('Token GitHub não configurado.');
+    const url=`https://api.github.com/repos/${encodeURIComponent(GH.owner)}/${encodeURIComponent(GH.repo)}/contents/${encodeURIComponent(path)}?ref=${encodeURIComponent(branch||GH.branch)}`;
+    const r=await fetch(url,{headers:ghHeaders(token)}); if(r.status===404) return {text:'',sha:null}; if(!r.ok) throw new Error('Falha ao ler ('+r.status+')');
+    const j=await r.json(); const text=j&&j.content ? b64ToUtf8(j.content) : ''; return {text, sha:j.sha||null}; }
+  async function ghPutFile(path,newText,message){ const token=getToken(); if(!token) throw new Error('Token GitHub não configurado.');
+    let sha=null; try{ const cur=await ghGetFile(path,GH.branch); sha=cur.sha; }catch{}
+    const url=`https://api.github.com/repos/${encodeURIComponent(GH.owner)}/${encodeURIComponent(GH.repo)}/contents/${encodeURIComponent(path)}`;
+    const body={message:message||`chore(gate): update ${path}`, content:utf8ToB64(newText), branch:GH.branch, ...(sha?{sha}:{})};
+    const r=await fetch(url,{method:'PUT', headers:{...ghHeaders(token),'Content-Type':'application/json'}, body:JSON.stringify(body)});
+    if(!r.ok){ const t=await r.text(); throw new Error('Falha ao salvar ('+r.status+'): '+t); } return true; }
 
-  /* ===================== UI BUILD/TOGGLE ===================== */
-  function ensureGateView(){
-    // se já existe no HTML (inserido acima), apenas retorna
-    const el = document.getElementById('gateView');
-    if(el) return el;
-    // fallback defensivo (não deve entrar)
-    const div = document.createElement('div'); div.id='gateView';
-    document.body.prepend(div);
-    return div;
+  /* ===================== UI STATE HELPERS ===================== */
+  function showGen(show){ btGen.style.display = show ? 'inline-block' : 'none'; }
+  function updateGenVisibility(){
+    const left = msLeft(PASS_EXP);
+    if(!PASS_VALUE || left<=0){ setPassState('Expirada ou ausente','err'); showGen(true); elTimer.textContent='00:00'; }
+    else { setPassState('Ativa','ok'); showGen(false); }
   }
-  function showGate(){
-    if(gateView){ gateView.style.display='block'; gateView.setAttribute('aria-hidden','false'); }
-    if(loginView){ loginView.classList.add('hide'); loginView.setAttribute('aria-hidden','true'); }
-    if(jobsApp){ jobsApp.classList.add('hide'); jobsApp.setAttribute('aria-hidden','true'); }
-  }
-  function showLogin(){
-    if(gateView){ gateView.style.display='none'; gateView.setAttribute('aria-hidden','true'); }
-    if(loginView){ loginView.classList.remove('hide'); loginView.setAttribute('aria-hidden','false'); }
-  }
-  function setPassState(txt, cls){
-    elPassSt.textContent = txt;
-    elPassSt.className = 'chip ' + (cls||'');
-  }
-  function setCaptchaState(txt, cls){
-    capState.textContent = txt;
-    capState.className = 'chip ' + (cls||'');
-  }
+  function setPassState(txt, cls){ elPassSt.textContent=txt; elPassSt.className='chip '+(cls||''); }
+  function setCaptchaState(txt, cls){ capState.textContent=txt; capState.className='chip '+(cls||''); }
 
   /* ===================== TIMER ===================== */
   function startTimer(){
     stopTimer();
-    const tick = ()=>{
-      const ms = msLeft(PASS_EXP);
+    const tick=()=>{
+      const ms=msLeft(PASS_EXP);
       elTimer.textContent = fmtMMSS(ms);
-      if(blockLay.style.display==='grid') blockLeft.textContent = fmtMMSS(ms);
       if(ms<=0){
-        setPassState('Expirada', 'err');
-        btGen.disabled = false;
+        elTimer.textContent='00:00';
+        setPassState('Expirada','err');
+        showGen(true);
         stopTimer();
       }
     };
-    tickTimer = setInterval(tick, 1000);
-    tick();
+    tickTimer=setInterval(tick,1000);
+    tick(); // já pinta
   }
-  function stopTimer(){
-    if(tickTimer){ clearInterval(tickTimer); tickTimer=null; }
-  }
+  function stopTimer(){ if(tickTimer){ clearInterval(tickTimer); tickTimer=null; } }
 
   /* ===================== LOADERS ===================== */
   async function loadPass(){
@@ -8667,209 +8646,194 @@
     const meta = parseTxt(text);
     PASS_VALUE = meta.pass || '';
     PASS_EXP   = meta.exp  || null;
-    const left = msLeft(PASS_EXP);
-    if(!PASS_VALUE || left<=0){
-      setPassState('Expirada ou ausente', 'err');
-      btGen.disabled = false;
-      elTimer.textContent='00:00';
-      stopTimer();
-    }else{
-      setPassState('Ativa', 'ok');
-      btGen.disabled = false;     // deixa gerar de novo se for admin
-      startTimer();
-    }
+    updateGenVisibility();
+    if(PASS_VALUE && msLeft(PASS_EXP)>0) startTimer(); else stopTimer();
   }
   async function loadQA(){
     const { text } = await ghGetFile(GH.qaPath, GH.branch);
     QA = csvToQAs(text);
-    if(!QA.length){
-      setCaptchaState('Perguntas indisponíveis', 'err');
-    }
+    if(!QA.length){ setCaptchaState('Perguntas indisponíveis','err'); } else { setCaptchaState('Pronto para desafio','ok'); }
   }
 
-  /* ===================== ACTIONS ===================== */
+  /* ===================== ROTATE PASS (+ iniciar contador) ===================== */
+  async function rotatePassAndStart(){
+    const alpha='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let pass=''; for(let i=0;i<12;i++) pass+=alpha[Math.floor(Math.random()*alpha.length)];
+    const now=new Date(); const exp=new Date(now.getTime()+10*60*1000);
+    const txt=[`WV_PASS:${pass}`,`CREATED:${now.toISOString()}`,`EXPIRES:${exp.toISOString()}`].join('\n')+'\n';
+    await ghPutFile(GH.passPath, txt, 'chore(gate): rotate WV_PASS (10min)');
+    PASS_VALUE=pass; PASS_EXP=exp.toISOString();
+    setPassState('Ativa','ok'); showGen(false); startTimer();
+  }
+
+  /* ===================== AÇÕES ===================== */
   async function saveToken(){
-    const tok = (elTok.value||'').trim();
-    if(!tok){ toast('Informe o token.'); return; }
+    const tok=(elTok.value||'').trim(); if(!tok){ toast('Informe o token.'); return; }
     setToken(tok);
-    toast('Token salvo.');
     try{
-      setBusy(true,'Carregando dados do repositório…');
-      await loadQA();
-      await loadPass();
+      setBusy(true,'Carregando…');
+      await loadQA();                 // carrega perguntas
+      await rotatePassAndStart();     // já gera a senha e inicia timer
       setBusy(false);
-      setCaptchaState('Pronto para desafio', 'ok');
+      toast('Token salvo e senha gerada.');
     }catch(e){
-      console.error(e);
-      setBusy(false);
-      setCaptchaState('Erro ao carregar', 'err');
-      setPassState('Erro ao ler senha', 'err');
+      console.error(e); setBusy(false); toast('Erro ao salvar token/gerar senha.');
     }
   }
-
   async function genPass(){
     if(!getToken()){ toast('Salve o token primeiro.'); return; }
-    const pass = rand12();
-    const now = new Date();
-    const exp = new Date(now.getTime() + 10*60*1000);
-    const txt = [
-      `WV_PASS:${pass}`,
-      `CREATED:${now.toISOString()}`,
-      `EXPIRES:${exp.toISOString()}`
-    ].join('\n') + '\n';
     try{
       setBusy(true,'Gerando senha…');
-      await ghPutFile(GH.passPath, txt, 'chore(gate): rotate WV_PASS (10min)');
+      await rotatePassAndStart();
       setBusy(false);
-      toast('Senha gerada/atualizada.');
-      // recarrega meta
-      await loadPass();
-    }catch(e){
-      console.error(e);
-      setBusy(false);
-      toast('Falha ao gerar senha.');
-    }
+      toast('Senha gerada.');
+    }catch(e){ console.error(e); setBusy(false); toast('Falha ao gerar senha.'); }
   }
+  function pickQuestion(){ if(!QA.length){ elQ.value=''; elA.value=''; return; } const i=Math.floor(Math.random()*QA.length); elQ.value=QA[i].q||''; elA.value=''; }
 
-  function pickQuestion(){
-    if(!QA.length){ elQ.value=''; elA.value=''; return; }
-    curIdx = Math.floor(Math.random()*QA.length);
-    elQ.value = QA[curIdx].q || '';
-    elA.value = '';
+  function isUnlocked(){ return localStorage.getItem('wv_gate_ok')==='1'; }
+  function lockUnderlay(on){
+    document.body.classList.toggle('gate-locked', !!on);
+    if(loginView) loginView.inert = !!on;
+    if(jobsApp)   jobsApp.inert   = !!on;
   }
-
-  function blockUntilExpire(){
-    blockLay.style.display = 'grid';
-    // contador já é atualizado pelo startTimer()
-  }
-  function unblock(){
-    blockLay.style.display = 'none';
-    attempts = 0;
-    localStorage.removeItem('wv_gate_attempts');
-  }
+  function ensureOpen(){ if(!isUnlocked()){ try{ if(!dlg.open && dlg.showModal) dlg.showModal(); }catch{} lockUnderlay(true); } }
 
   async function access(){
-    // checa se já está bloqueado pelo contador (expiração)
-    if(msLeft(PASS_EXP)<=0){
-      setPassState('Expirada', 'err');
-      blockUntilExpire();
-      return;
-    }
-    // valida token
+    // valida expiração
+    if(msLeft(PASS_EXP)<=0){ setPassState('Expirada','err'); toast('Senha expirada. Gere novamente.'); return; }
+    // token
     if(!getToken()){ toast('Salve o token primeiro.'); return; }
-    // valida senha
-    const typed = (elPassInp.value||'').trim();
-    if(!typed){ toast('Digite a senha de liberação.'); return; }
-    // precisamos da senha do arquivo
-    if(!PASS_VALUE){ toast('Senha do arquivo indisponível. Atualize/Gere.'); return; }
-    // valida captcha
-    if(!chkBot.checked){
-      toast('Marque "Não sou um robô".');
-      return;
-    }
-    if(curIdx<0 || !QA.length){
-      toast('Carregando pergunta… clique em "Trocar pergunta".');
-      return;
-    }
-    const ans = (elA.value||'').trim().toLowerCase();
-    const okAns = (QA[curIdx].a||'').trim().toLowerCase();
-    const okPass = (typed === PASS_VALUE);
+    // senha
+    const typed=(elPassInp.value||'').trim();
+    if(!typed){ toast('Digite a senha.'); return; }
+    if(!PASS_VALUE){ toast('Senha indisponível. Gere/atualize.'); return; }
+    // captcha
+    if(!chkBot.checked){ toast('Marque "Não sou um robô".'); return; }
+    if(!QA.length || !elQ.value){ toast('Carregando pergunta…'); return; }
+    const qa = QA.find(q=> q.q===elQ.value) || {a:''};
+    const okAns=(qa.a||'').trim().toLowerCase();
+    const okPass=(typed===PASS_VALUE);
+    const ans   =(elA.value||'').trim().toLowerCase();
+    if(!okPass || ans!==okAns){ toast(!okPass ? 'Senha incorreta.' : 'Resposta incorreta.'); pickQuestion(); return; }
 
-    if(!okPass || ans!==okAns){
-      attempts++;
-      localStorage.setItem('wv_gate_attempts', String(attempts));
-      if(!okPass && ans!==okAns) toast('Senha e resposta incorretas.');
-      else if(!okPass) toast('Senha incorreta.');
-      else toast('Resposta incorreta.');
-      pickQuestion(); // muda pergunta
-      if(attempts>=3){
-        blockUntilExpire();
-      }
-      return;
-    }
-
-    // SUCESSO
-    localStorage.setItem('wv_gate_ok','1'); // não mostrar mais o gate neste navegador
-    unblock();
+    localStorage.setItem('wv_gate_ok','1');
+    try{ dlg.close(); }catch{}
+    lockUnderlay(false);
     toast('Acesso liberado.');
-    showLogin();
   }
 
   /* ===================== BINDINGS ===================== */
-  if(btSaveTok) btSaveTok.addEventListener('click', saveToken);
-  if(btGen)     btGen.addEventListener('click', genPass);
-  if(chkBot){
-    chkBot.addEventListener('change', ()=>{
-      if(chkBot.checked){
-        qaWrap.style.display='flex';
-        setCaptchaState('Desafio ativo','ok');
-        if(!QA.length){
-          // tentar carregar se ainda não carregou
-          loadQA().then(pickQuestion).catch(()=> setCaptchaState('Erro ao carregar','err'));
-        }else pickQuestion();
-      }else{
-        qaWrap.style.display='none';
-        setCaptchaState('Desativado','');
-      }
-    });
-  }
-  if(btNewQ) btNewQ.addEventListener('click', pickQuestion);
-  if(btAccess) btAccess.addEventListener('click', access);
+  btSaveTok.addEventListener('click', saveToken);
+  btGen.addEventListener('click', genPass);
+  btAccess.addEventListener('click', access);
+  btNewQ.addEventListener('click', pickQuestion);
+  chkBot.addEventListener('change', ()=>{ if(chkBot.checked){ qaWrap.style.display='flex'; setCaptchaState('Desafio ativo','ok'); if(!QA.length) loadQA().then(pickQuestion); else pickQuestion(); }else{ qaWrap.style.display='none'; setCaptchaState('Desativado',''); } });
+  document.addEventListener('keydown', (e)=>{ if(e.key==='Enter' && dlg.open){ e.preventDefault(); access(); } });
 
-  // Se bloqueado visualmente, some quando expirar
-  const unblockCheck = setInterval(()=>{
-    if(blockLay.style.display==='grid' && msLeft(PASS_EXP)<=0){
-      unblock();
-      blockLay.style.display='none';
-      elPassInp.value = '';
-      setPassState('Expirada', 'err');
-      elTimer.textContent='00:00';
-    }
-  }, 1000);
-
-  // Enter para “Acessar”
-  document.addEventListener('keydown', (e)=>{
-    if(e.key==='Enter' && gateView && gateView.style.display!=='none'){
-      e.preventDefault();
-      access();
-    }
-  });
+  // Esconde botão "Configurar GitHub" do login (se existir)
+  const cfgBtn=document.getElementById('btnConfigGH'); if(cfgBtn) cfgBtn.style.display='none';
 
   /* ===================== BOOT ===================== */
   (async function boot(){
-    // se já liberado neste navegador, pula o gate
-    if(localStorage.getItem('wv_gate_ok')==='1'){
-      showLogin();
-      return;
-    }
-    // mostra gate e esconde login/jobs
-    showGate();
-
-    // pré-popula token se existir
-    const tok = getToken();
-    if(tok && elTok) elTok.value = tok;
-
-    // tenta carregar pass/qa se já tem token salvo
+    if(isUnlocked()){ lockUnderlay(false); try{ dlg.close(); }catch{} return; }
+    ensureOpen();
+    const tok=getToken(); if(tok) elTok.value=tok;
     if(tok){
       try{
         setBusy(true,'Preparando…');
         await Promise.all([loadQA(), loadPass()]);
         setBusy(false);
-        setCaptchaState('Responda as perguntas!','ok');
       }catch(e){
-        console.error(e);
-        setBusy(false);
-        setPassState('Erro ao ler','err');
-        setCaptchaState('Erro ao carregar','err');
+        console.error(e); setBusy(false);
+        setPassState('Erro ao ler senha','err'); setCaptchaState('Erro ao carregar','err');
       }
     }else{
       setPassState('Informe o token primeiro','warn');
+      elTimer.textContent='00:00';
+      showGen(true); // deixar visível para quando token for salvo e usuário quiser gerar manualmente
     }
   })();
-
 })();
 </script>
-<!-- ====== /GATE ====== FIM -->
+<!-- ============================ /GATE — MODAL SÓLIDO v2 ============================ -->
+
+
+<!-- ===== Ocultar "Config GitHub" no LOGIN ===== -->
+<style>
+  /* se souber algum id/classe específico, já esconde por CSS também */
+  #loginView #btnConfigGH,
+  #loginView #btnConfigGithub,
+  #loginView #btnGithub,
+  #loginView #btnConfig,
+  #loginView .btn-config-gh,
+  #loginView [data-role="cfg-gh"]{
+    display:none !important;
+  }
+</style>
+<script>
+(function(){
+  function hideGitCfgInLogin(){
+    const login = document.getElementById('loginView');
+    if(!login) return;
+
+    // 1) Seletores comuns (ids/classes/atributos)
+    const selectors = [
+      '#btnConfigGH','#btnConfigGithub','#btnGithub','#btnConfig','#btnCFG',
+      '.btn-config-gh','.btnCfgGh','.btn-gh-config',
+      '[data-role="cfg-gh"]','button[data-action="configGithub"]',
+      'button[aria-label*="GitHub" i]','button[title*="GitHub" i]'
+    ];
+    selectors.forEach(sel=>{
+      login.querySelectorAll(sel).forEach(el=>{
+        el.style.display='none';
+        el.setAttribute('aria-hidden','true');
+        el.tabIndex = -1;
+        try{ el.disabled = true; }catch{}
+      });
+    });
+
+    // 2) Fallback por texto (caso o botão não tenha id/classe previsível)
+    const maybe = login.querySelectorAll('button, a, [role="button"]');
+    maybe.forEach(el=>{
+      const t = (el.textContent||'').toLowerCase().replace(/\s+/g,' ').trim();
+      if(
+        (t.includes('config') && (t.includes('github') || t.includes('git hub'))) ||
+        t.includes('configurar github') ||
+        t === '⚙'
+      ){
+        el.style.display='none';
+        el.setAttribute('aria-hidden','true');
+        el.tabIndex = -1;
+        try{ el.disabled = true; }catch{}
+      }
+    });
+
+    // 3) Se existir algum modal de config que apareça automaticamente no login, garante oculto
+    const strayModals = login.querySelectorAll('[id*="config"][id*="gh" i], [class*="config"][class*="gh" i]');
+    strayModals.forEach(m=>{
+      m.style.display='none';
+      m.setAttribute('aria-hidden','true');
+    });
+  }
+
+  // roda já e também após pequenas mudanças na DOM do login
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', hideGitCfgInLogin);
+  }else{
+    hideGitCfgInLogin();
+  }
+
+  // observa mutações no #loginView (ex.: frameworks que montam depois)
+  const login = document.getElementById('loginView');
+  if(login && 'MutationObserver' in window){
+    const mo = new MutationObserver(()=> hideGitCfgInLogin());
+    mo.observe(login, { childList:true, subtree:true });
+  }
+})();
+</script>
+<!-- ===== /Ocultar "Config GitHub" no LOGIN ===== -->
+
 
 </body>
 </html>
