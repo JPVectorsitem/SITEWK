@@ -3145,8 +3145,7 @@
 
 <!-- PLUS na coluna ETAPAS + cores por etapa no modal FIM -->
 
-<!//========BOTÃO NOVO=======>
-
+<!//========BOTÃO NOVO=======> 
 <script>
 (function(){
   /* ================== CONFIG GH ================== */
@@ -3176,16 +3175,19 @@
     'REGIONAL SC':             ['SC']
   };
 
-  /* ================== ELEMENTOS ================== */
+  /* ================== ELEMENTOS (Novo) ================== */
   const dlgNovo       = document.getElementById('modalNovo');
+  const formNovo      = document.getElementById('formNovo');
   const btnNovo       = document.getElementById('btnNovo');
+  const btnSalvar     = document.getElementById('btnNovoSalvar');
+  const btnCancelar   = document.getElementById('btnNovoCancelar');
 
   const selRegional   = document.getElementById('novoRegional');
   const selTipoLoja   = document.getElementById('novoTipoLoja');
   const selTipoJob    = document.getElementById('novoTipoJob');
 
   const selNome       = document.getElementById('novoNomeSel');
-  const inputNomeEsp  = document.getElementById('novoNome');
+  const inputNomeEsp  = document.getElementById('novoNome'); // espelho (hidden)
   const btnNomeNovo   = document.getElementById('btnNomeNovo');
 
   const dlgNome       = document.getElementById('modalNomeTab');
@@ -3202,99 +3204,108 @@
 
   const selTam        = document.getElementById('novoTam');
   const inpQtd        = document.getElementById('novoQtd');
-  const inpLink       = document.getElementById('novoLink');
+  const inpLink       = document.getElementById('novoLink'); // pode estar oculto
 
   const radioNao      = document.getElementById('novoAcaoNao');
   const radioSim      = document.getElementById('novoAcaoSim');
-  const btnAcao       = document.getElementById('btnEscolherAcao');
-  const inpAcaoNome   = document.getElementById('novoAcaoNome');
+  const inpAcaoNome   = document.getElementById('novoAcaoNome');   // usa seu campo já existente
+  const btnAcao       = document.getElementById('btnEscolherAcao'); // abre modal de ação
 
   const btnAddLinha   = document.getElementById('novoAddLinha');
   const listWrap      = document.getElementById('novoBatchList');
 
-  const btnCancelar   = document.getElementById('btnNovoCancelar');
-  const btnSalvar     = document.getElementById('btnNovoSalvar');
+  /* ================== ELEMENTOS (Modal Ação nacional) ================== */
+  const dlgAcao       = document.getElementById('modalAcao');
+  const boxLista      = document.getElementById('acaoLista');
+  const inpAcNova     = document.getElementById('acaoNova');
+  const btnAcCan      = document.getElementById('acaoCancelar');
+  const btnAcOK       = document.getElementById('acaoOk');
 
   /* ================== UX HELPERS ================== */
-  function toast(m){ const t=document.getElementById('toast'); if(!t){ alert(m); return; } t.textContent=m; t.style.display='block'; setTimeout(()=>t.style.display='none',2000); }
-  function setBusy(v,msg){ const o=document.getElementById('busy'); if(!o) return; o.style.display=v?'grid':'none'; if(msg) o.querySelector('.box').textContent=msg; }
+  function toast(m){ const t=document.getElementById('toast'); if(!t){ alert(m); return; } t.textContent=m; t.style.display='block'; setTimeout(()=>t.style.display='none',2200); }
+  function setBusy(v,msg){ const o=document.getElementById('busy'); if(!o) return; o.style.display=v?'grid':'none'; if(msg) o.querySelector('.box').textContent=msg||'Aguarde…'; }
   function getToken(){ try{ const s=JSON.parse(localStorage.getItem('wv_gh_cfg')||'{}'); return (window.gh&&window.gh.token)||s.token||''; }catch{ return (window.gh&&window.gh.token)||''; } }
+  function nowISO(){ return new Date().toISOString(); }
+  function normalizeCmp(s){ return String(s||'').trim().replace(/\s+/g,' ').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); }
 
   /* ================== CSV / GH ================== */
   const csvEsc = v => { v=v==null?'':String(v); return /[",\n]/.test(v)?`"${v.replace(/"/g,'""')}"`:v; };
-  function parseCsv(t){ if(!t) return []; const r=[]; let row=[],cur='',q=false;
-    for(let i=0;i<t.length;i++){ const c=t[i];
-      if(q){ if(c=='"'){ if(t[i+1]=='"'){cur+='"'; i++;} else q=false; } else cur+=c; }
-      else{ if(c=='"') q=true; else if(c==','){row.push(cur);cur='';}
-      else if(c=='\r'){} else if(c=='\n'){row.push(cur);r.push(row);row=[];cur='';} else cur+=c; }
+  function parseCsv(text){
+    if(!text) return [];
+    const r=[]; let row=[], cur='', q=false;
+    for(let i=0;i<text.length;i++){
+      const c=text[i];
+      if(q){
+        if(c=='"'){ if(text[i+1]=='"'){cur+='"'; i++;} else q=false; } else cur+=c;
+      }else{
+        if(c=='"') q=true;
+        else if(c==','){ row.push(cur); cur=''; }
+        else if(c=='\r'){ }
+        else if(c=='\n'){ row.push(cur); r.push(row); row=[]; cur=''; }
+        else cur+=c;
+      }
     }
-    if(cur.length>0||row.length>0){ row.push(cur); r.push(row); }
+    if(cur.length>0 || row.length>0){ row.push(cur); r.push(row); }
     return r;
   }
   function csvToObjsAndHeader(text){
     const rows=parseCsv(text); if(!rows.length) return { header:[], rows:[] };
     const H=rows[0], out=[];
-    for(let i=1;i<rows.length;i++){ const rr=rows[i]; if(!rr || (rr.length===1&&rr[0]==='')) continue; const o={}; for(let j=0;j<H.length;j++) o[H[j]]=rr[j]||''; out.push(o); }
+    for(let i=1;i<rows.length;i++){
+      const rr=rows[i]; if(!rr || (rr.length===1 && rr[0]==='')) continue;
+      const o={}; for(let j=0;j<H.length;j++) o[H[j]]=rr[j]||''; out.push(o);
+    }
     return { header:H, rows:out };
   }
-  function toCsv(H, rows){
-    const head=H.join(',')+'\n';
-    const body=rows.map(o=> H.map(k=> csvEsc(o[k]??'')).join(',')).join('\n');
+  function toCsv(H, objs){
+    const head = H.join(',')+'\n';
+    const body = objs.map(o => H.map(k => csvEsc(o[k] ?? '')).join(',')).join('\n');
     return head + (body? body+'\n' : '');
   }
-  function b64ToSmartText(b64){
-    const bin=atob(b64); const bytes=new Uint8Array(bin.length); for(let i=0;i<bytes.length;i++) bytes[i]=bin.charCodeAt(i);
-    let utf8=new TextDecoder('utf-8',{fatal:false}).decode(bytes);
-    if(!/Ã.|�/.test(utf8)) return utf8;
-    try{
-      const lat=new TextDecoder('windows-1252',{fatal:false}).decode(bytes);
-      const score=s=>(s.match(/[çáéíóúâêôãõÇÁÉÍÓÚÂÊÔÃÕ]/g)||[]).length-(s.match(/Ã.|�/g)||[]).length;
-      return score(lat)>score(utf8)?lat:utf8;
-    }catch{ return utf8; }
-  }
+
   const GH_API_VER='2022-11-28';
-  const ghHeaders=(tok)=>({'Accept':'application/vnd.github+json','X-GitHub-Api-Version':GH_API_VER, ...(tok?{'Authorization':`Bearer ${tok}`}:{})});
+  const ghHeaders = (tok)=>({'Accept':'application/vnd.github+json','X-GitHub-Api-Version':GH_API_VER, ...(tok?{'Authorization':`Bearer ${tok}`}:{})});
+  function b64ToUtf8(b64){ const bin=atob(b64); const bytes=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i); return new TextDecoder().decode(bytes); }
+  function utf8ToB64(str){ const bytes=new TextEncoder().encode(str); let bin=''; for(let i=0;i<bytes.length;i++) bin+=String.fromCharCode(bytes[i]); return btoa(bin); }
   async function ghGetFile(path, branch){
     const token=getToken(); if(!token) throw new Error('Token GitHub não configurado.');
     const url=`https://api.github.com/repos/${encodeURIComponent(GH.owner)}/${encodeURIComponent(GH.repo)}/contents/${encodeURIComponent(path)}?ref=${encodeURIComponent(branch||GH.branch)}`;
-    const r=await fetch(url,{headers:ghHeaders(token)});
-    if(r.status===404) return { text:'', sha:null };
+    const r=await fetch(url,{headers:ghHeaders(token)}); if(r.status===404) return { text:'', sha:null };
     if(!r.ok) throw new Error('Falha ao ler ('+r.status+')');
-    const j=await r.json(); return { text: j && j.content ? b64ToSmartText(j.content) : '', sha:j.sha||null };
+    const j=await r.json(); const text = j && j.content ? b64ToUtf8(j.content) : '';
+    return { text, sha:j.sha||null };
   }
-  function utf8ToB64(str){ const bytes=new TextEncoder().encode(str); let bin=''; for(let i=0;i<bytes.length;i++) bin+=String.fromCharCode(bytes[i]); return btoa(bin); }
   async function ghPutFile(path, newText, message){
     const token=getToken(); if(!token) throw new Error('Token GitHub não configurado.');
     let sha=null; try{ const cur=await ghGetFile(path, GH.branch); sha=cur.sha; }catch{}
     const url=`https://api.github.com/repos/${encodeURIComponent(GH.owner)}/${encodeURIComponent(GH.repo)}/contents/${encodeURIComponent(path)}`;
-    const body={ message:message||`chore(csv): update ${path}`, content:utf8ToB64(newText), branch:GH.branch, ...(sha?{sha}:{}) };
-    const r=await fetch(url,{method:'PUT', headers:{...ghHeaders(token),'Content-Type':'application/json'}, body:JSON.stringify(body)});
+    const body={ message: message||`chore(csv): update ${path}`, content:utf8ToB64(newText), branch:GH.branch, ...(sha?{sha}:{}) };
+    const r=await fetch(url,{method:'PUT', headers:{...ghHeaders(token), 'Content-Type':'application/json'}, body:JSON.stringify(body)});
     if(!r.ok){ const t=await r.text(); throw new Error('Falha ao salvar ('+r.status+'): '+t); }
     return true;
   }
 
-  /* ================== NOMES DO TABLOIDE ================== */
-  function normalizeCmp(s){ return String(s||'').trim().replace(/\s+/g,' ').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); }
-  function parseNomes(text){
-    if(!text.trim()) return { header:'nome', list:[] };
-    text=text.replace(/^\uFEFF/,'');
-    const rows=parseCsv(text); if(!rows.length) return { header:'nome', list:[] };
-    const H=rows[0].map(h=>String(h||'').trim()); let idx=H.findIndex(h=>h.toLowerCase()==='nome'), start=1;
-    if(idx===-1){ idx=0; start=0; }
-    const list=[]; for(let i=start;i<rows.length;i++){ const rr=rows[i]; if(!rr) continue; const v=String(rr[idx]??'').trim(); if(v) list.push(v); }
-    const seen=new Set(), out=[]; for(const n of list){ const k=normalizeCmp(n); if(!seen.has(k)){ seen.add(k); out.push(n); } }
-    return { header:(idx===-1?'nome':H[idx]||'nome'), list:out };
-  }
-  function buildNomesCsv(header, names){ return (header||'nome')+'\n'+names.map(n=>csvEsc(n)).join('\n')+(names.length?'\n':''); }
+  /* ================== NOMES DO TABLOIDE (mantém seu fluxo) ================== */
   async function loadNomesIntoSelect(){
     if(!selNome) return;
     setBusy(true,'Carregando nomes…');
     try{
       const { text } = await ghGetFile(GH.nomesPath, GH.branch);
-      const { list } = parseNomes(text);
-      list.sort((a,b)=>a.localeCompare(b,'pt-BR',{sensitivity:'base'}));
+      const rows=parseCsv(text);
+      let idx=0, start=0;
+      if(rows.length){
+        const H=rows[0]; const found=H.findIndex(h=>String(h||'').toLowerCase().trim()==='nome');
+        if(found>=0){ idx=found; start=1; }
+      }
+      const list=[];
+      for(let i=start;i<rows.length;i++){
+        const v=String(rows[i][idx]||'').trim(); if(v) list.push(v);
+      }
+      const seen=new Set(), out=[];
+      list.forEach(n=>{ const k=normalizeCmp(n); if(!seen.has(k)){ seen.add(k); out.push(n); } });
+      out.sort((a,b)=>a.localeCompare(b,'pt-BR',{sensitivity:'base'}));
       const cur=selNome.value||'';
-      selNome.innerHTML='<option value="">— selecione —</option>'+list.map(n=>`<option>${n.replace(/</g,'&lt;')}</option>`).join('');
+      selNome.innerHTML='<option value="">— selecione —</option>'+out.map(n=>`<option>${n.replace(/</g,'&lt;')}</option>`).join('');
       if(cur){ const opt=[...selNome.options].find(o=>normalizeCmp(o.value)===normalizeCmp(cur)); if(opt) opt.selected=true; }
       if(inputNomeEsp) inputNomeEsp.value = selNome.value || '';
     }catch(e){ console.error(e); toast('Não foi possível carregar os nomes.'); }
@@ -3306,10 +3317,12 @@
     setBusy(true,'Salvando nome…');
     try{
       const { text } = await ghGetFile(GH.nomesPath, GH.branch);
-      const parsed=parseNomes(text);
-      if(!parsed.list.some(n=>normalizeCmp(n)===normalizeCmp(nome))) parsed.list.push(nome);
-      parsed.list.sort((a,b)=>a.localeCompare(b,'pt-BR',{sensitivity:'base'}));
-      await ghPutFile(GH.nomesPath, buildNomesCsv(parsed.header, parsed.list), `chore(csv): add nome_tabloide "${nome}"`);
+      const rows=parseCsv(text); let H=rows[0]||['nome']; if(rows.length===0) rows.push(H);
+      if(!H.map(h=>String(h).toLowerCase()).includes('nome')){ H=['nome']; rows.splice(0,0,H); }
+      const all = new Set(rows.slice(1).map(r=>normalizeCmp(r[0]||'')));
+      if(!all.has(normalizeCmp(nome))) rows.push([nome]);
+      const next = H.join(',')+'\n'+rows.slice(1).map(r=>csvEsc(r[0]||'')).join('\n')+'\n';
+      await ghPutFile(GH.nomesPath, next, `chore(csv): add nome_tabloide "${nome}"`);
       await loadNomesIntoSelect();
       const opt=[...selNome.options].find(o=>normalizeCmp(o.value)===normalizeCmp(nome)); if(opt) opt.selected=true;
       if(inputNomeEsp) inputNomeEsp.value=nome;
@@ -3324,7 +3337,6 @@
     const r=selRegional?.value||''; const list=UF_MAP[r]||[];
     selUF.innerHTML = list.length ? list.map(uf=>`<option>${uf}</option>`).join('') : '<option value="">—</option>';
   }
-  selRegional?.addEventListener('change', fillUFs);
 
   /* ================== LOTE (+) ================== */
   const itemCss='display:grid;grid-template-columns:120px 1fr 170px 170px 36px;gap:8px;align-items:center;';
@@ -3368,25 +3380,188 @@
       if(ufs.length && !ufs.includes(c.uf)){ toast('UF não é permitida para a regional selecionada.'); return false; }
       if(c.ini && c.fim && new Date(c.ini)>new Date(c.fim)){ toast('Período inválido em uma das linhas.'); return false; }
     }
-    if(radioSim.checked && !required(inpAcaoNome.value)){ toast('Defina/Selecione a Ação nacional.'); return false; }
+    if(radioSim && radioSim.checked && !required(inpAcaoNome?.value)){ toast('Defina o nome da Ação nacional.'); return false; }
     return true;
   }
 
-  /* ================== OT GLOBAL (OT-x) ================== */
+  /* ================== OT GLOBAL (OT-x, sem zeros) ================== */
   function extractMaxOT(rows){
     let max=0;
     for(const r of rows){
-      const v=String(r.ot||''); const m=v.match(/(\d+)/);
+      const m=String(r.ot||'').match(/(\d+)/);
       if(m){ const n=parseInt(m[1],10); if(n>max) max=n; }
     }
     return max;
   }
-  function ensureHeaderColumns(H, rows, needed){
-    const head=H.slice(); const have=new Set(head);
-    let changed=false; needed.forEach(col=>{ if(!have.has(col)){ head.push(col); changed=true; } });
-    if(changed){ rows.forEach(r=> needed.forEach(col=>{ if(r[col]===undefined) r[col]=''; })); }
-    return { head, rows };
+  function nextOTFrom(allJobsRows, closedRows){
+    const a = extractMaxOT(allJobsRows||[]);
+    const b = extractMaxOT(closedRows||[]);
+    return 'OT-' + (Math.max(a,b) + 1); // sem zeros à esquerda
   }
+
+  /* ================== AÇÃO NACIONAL: usa SEU modal existente ================== */
+  function toggleAcaoUI(){
+    const sim = !!(radioSim && radioSim.checked);
+    if(btnAcao) btnAcao.disabled = !sim;
+    if(!sim && inpAcaoNome) inpAcaoNome.value = '';
+  }
+  if(radioNao) radioNao.addEventListener('change', toggleAcaoUI);
+  if(radioSim) radioSim.addEventListener('change', toggleAcaoUI);
+  toggleAcaoUI();
+
+  /* Modal de Ação: popular e escolher/criar */
+  async function loadAcoesLista(){
+    if(!boxLista) return;
+    boxLista.innerHTML = 'Carregando ações…';
+    try{
+      const { text } = await ghGetFile(GH.jobsPath, GH.branch);
+      const { rows } = csvToObjsAndHeader(text);
+      const seen=new Set(), acoes=[];
+      rows.forEach(r=>{
+        const flag = String(r.isNacional||r.acaoNacional||'').trim().toLowerCase();
+        const nome = String(r.acaoNome||'').trim();
+        if((flag==='sim'||flag==='true'||flag==='1'||flag==='yes') && nome){
+          const k=normalizeCmp(nome); if(!seen.has(k)){ seen.add(k); acoes.push(nome); }
+        }
+      });
+      acoes.sort((a,b)=>a.localeCompare(b,'pt-BR',{sensitivity:'base'}));
+      const frag=document.createDocumentFragment();
+      if(!acoes.length){
+        const d=document.createElement('div'); d.className='hint'; d.textContent='Nenhuma ação existente. Crie uma no campo abaixo.'; frag.appendChild(d);
+      }else{
+        acoes.forEach((nome,i)=>{
+          const id='acao_'+i;
+          const wrap=document.createElement('div'); wrap.style.padding='6px 0';
+          wrap.innerHTML = `<label style="display:flex;gap:8px;align-items:center;cursor:pointer">
+              <input type="radio" name="acaoPick" value="${nome.replace(/"/g,'&quot;')}" id="${id}">
+              <span>${nome.replace(/</g,'&lt;')}</span>
+            </label>`;
+          frag.appendChild(wrap);
+        });
+      }
+      boxLista.innerHTML=''; boxLista.appendChild(frag);
+    }catch(e){
+      console.error(e);
+      boxLista.innerHTML = '<div class="hint">Erro ao carregar ações.</div>';
+    }
+  }
+  if(btnAcao && dlgAcao){
+    btnAcao.addEventListener('click', ()=>{
+      if(!(radioSim && radioSim.checked)) return;
+      if(inpAcNova) inpAcNova.value='';
+      loadAcoesLista();
+      dlgAcao.showModal();
+    });
+  }
+  if(btnAcCan && dlgAcao){ btnAcCan.addEventListener('click', ()=> dlgAcao.close()); }
+  if(btnAcOK && dlgAcao){
+    btnAcOK.addEventListener('click', ()=>{
+      const radios = dlgAcao.querySelectorAll('input[name="acaoPick"]');
+      let picked = ''; radios.forEach(r=>{ if(r.checked) picked = r.value; });
+      const novo = (inpAcNova?.value||'').trim().replace(/\s+/g,' ');
+      const final = novo || picked;
+      if(!final){ toast('Selecione uma ação ou digite uma nova.'); return; }
+      if(inpAcaoNome) inpAcaoNome.value = final;
+      dlgAcao.close();
+    });
+  }
+
+  /* ================== AGRUPAMENTO NA TELA (ESPECIAL NACIONAL) ================== */
+  function esc(s){ try{ return CSS.escape(String(s)); } catch{ return String(s).replace(/"/g,'\\"'); } }
+  function jobsBody(){ return document.getElementById('jobsBody'); }
+
+  function findEspecialHeader(){
+    const tbody = jobsBody(); if (!tbody) return null;
+    const sep = [...tbody.querySelectorAll('tr.sep-row')].find(tr => (tr.textContent||'').trim().toUpperCase()==='ESPECIAL NACIONAL');
+    return sep || null;
+  }
+  function firstDataColspan(){
+    const tbody = jobsBody(); if(!tbody) return 14;
+    const anyRow = tbody.querySelector('tr:not(.sep-row):not(.sub-row)');
+    return (anyRow && anyRow.children ? anyRow.children.length : 14);
+  }
+  function ensureSubRow(acaoNome){
+    const anchor = findEspecialHeader(); if(!anchor) return null;
+    const key = String(acaoNome||'').trim(); if(!key) return null;
+    // procura sub-row existente
+    let n = anchor.nextElementSibling;
+    while(n && !n.classList.contains('sep-row')){
+      if(n.classList.contains('sub-row') && (n.getAttribute('data-sub')||'')===key) return n;
+      n = n.nextElementSibling;
+    }
+    // cria se não existir
+    const sub = document.createElement('tr');
+    sub.className='sub-row';
+    sub.setAttribute('data-sub', key);
+    const td=document.createElement('td');
+    td.colSpan = firstDataColspan();
+    td.textContent = 'AÇÃO — ' + key;
+    sub.appendChild(td);
+    anchor.after(sub);
+    return sub;
+  }
+  function insertAfterGroup(anchorRow, tr){
+    let cursor=anchorRow, last=anchorRow;
+    while(cursor && (cursor = cursor.nextElementSibling)){
+      if(cursor.classList.contains('sep-row')) break;
+      if(cursor.classList.contains('sub-row')){
+        const a=anchorRow.getAttribute('data-sub')||'';
+        const b=cursor.getAttribute('data-sub')||'';
+        if(a!==b) break;
+      }
+      last = cursor;
+    }
+    last.after(tr);
+  }
+  function moveRowUnderAction(ot, acaoNome){
+    const tbody = jobsBody(); if(!tbody) return;
+    const tr = tbody.querySelector(`tr[data-ot="${esc(ot)}"]`); if(!tr) return;
+    const sub = ensureSubRow(acaoNome); if(!sub) return;
+    tr.setAttribute('data-nacional','1');                    // marca
+    tr.querySelectorAll('.btnVerLojas').forEach(b=>b.remove()); // some "Ver lojas" só em nacionais
+    insertAfterGroup(sub, tr);
+  }
+
+  async function regroupAllNacionais(allNew = []){
+    // tenta usar mapa global; se não, faz leitura leve do CSV
+    if (window.JOBS instanceof Map){
+      window.JOBS.forEach((job, ot)=>{
+        const flag = String(job.acaoNacional || job.isNacional || '').toLowerCase();
+        const isNac = (flag==='sim'||flag==='true'||flag==='1'||flag==='yes');
+        const nome  = (job.acaoNome||'').trim();
+        if(isNac && nome) moveRowUnderAction(ot, nome);
+      });
+      // também garante os recém-criados
+      allNew.forEach(n=>{ if(n.acaoNacional==='Sim' && n.acaoNome) moveRowUnderAction(n.ot, n.acaoNome); });
+    }else{
+      try{
+        const { text } = await ghGetFile(GH.jobsPath, GH.branch);
+        const { rows } = csvToObjsAndHeader(text);
+        rows.forEach(r=>{
+          const ot=(r.ot||'').trim();
+          const flag=String(r.acaoNacional||r.isNacional||'').toLowerCase();
+          const isNac=(flag==='sim'||flag==='true'||flag==='1'||flag==='yes');
+          const nome=(r.acaoNome||'').trim();
+          if(ot && isNac && nome) moveRowUnderAction(ot, nome);
+        });
+        // garante os recém-criados
+        allNew.forEach(n=>{ if(n.acaoNacional==='Sim' && n.acaoNome) moveRowUnderAction(n.ot, n.acaoNome); });
+      }catch(e){ console.warn('regroupAllNacionais:', e); }
+    }
+  }
+
+  // Hooka loadJobsFromGitHub uma única vez
+  (function hookOnce(){
+    if(typeof window.loadJobsFromGitHub==='function' && !window.__WV_HOOKED_NAC){
+      const _orig = window.loadJobsFromGitHub;
+      window.loadJobsFromGitHub = async function(){
+        const r = await _orig.apply(this, arguments);
+        requestAnimationFrame(()=>regroupAllNacionais());
+        return r;
+      };
+      window.__WV_HOOKED_NAC = true;
+    }
+  })();
 
   /* ================== SALVAR (EM LOTE) ================== */
   async function salvarLote(){
@@ -3394,46 +3569,50 @@
     if(!validFormBase()) return;
 
     // Coleta base
-    const regional=selRegional.value, tipoLoja=selTipoLoja.value, tipoJob=selTipoJob.value;
-    const nome=selNome.value, compl=inpCompl.value||'';
-    const tam=selTam.value, qtd=String(parseInt(inpQtd.value,10));
-    const link=inpLink.value||'';
-    const acaoNacional = radioSim.checked ? 'Sim' : 'Não';
-    const acaoNome = radioSim.checked ? (inpAcaoNome.value||'') : '';
-    const combos=collectCombos(true);
+    const regional    = selRegional.value;
+    const tipoLoja    = selTipoLoja.value;
+    const tipoJob     = selTipoJob.value;
+    const nome        = selNome.value;
+    const compl       = inpCompl.value||'';
+    const tam         = selTam.value;
+    const qtd         = String(parseInt(inpQtd.value,10));
+    const link        = (inpLink && inpLink.value) ? inpLink.value.trim() : '';
+    const acaoNacional = (radioSim && radioSim.checked) ? 'Sim' : 'Não';
+    const acaoNome     = (radioSim && radioSim.checked) ? (inpAcaoNome?.value||'').trim() : '';
+    const combos      = collectCombos(true);
 
     setBusy(true,'Gravando jobs…');
 
     try{
-      // Lê jobs e encerrados pra calcular OT global
+      // Lê jobs e encerrados para calcular OT global
       const [curJobs, curClosed] = await Promise.all([
         ghGetFile(GH.jobsPath, GH.branch),
-        ghGetFile(GH.jobsClosedPath, GH.branch)
+        GH.jobsClosedPath ? ghGetFile(GH.jobsClosedPath, GH.branch) : Promise.resolve({ text:'' })
       ]);
       const pj = csvToObjsAndHeader(curJobs.text);
       const pc = csvToObjsAndHeader(curClosed.text);
+      const rows = pj.rows || [];
+      const closedRows = pc.rows || [];
+      const Hcur = pj.header || [];
 
-      // garante colunas
-      const need=['ot','regional','tipoLoja','tipoJob','nome','compl','uf','filial','ini','fim','tam','qtd','link','acaoNacional','acaoNome','status','statusStep','logs','criado_em','atualizado_em'];
-      let ensured = ensureHeaderColumns(pj.header, pj.rows, need);
-      let H = ensured.head, rows = ensured.rows;
+      // header desejado (inclui isNacional + acaoNacional)
+      const DESIRED = ['ot','regional','tipoLoja','tipoJob','nome','compl','uf','filial','ini','fim','tam','qtd','link','isNacional','acaoNacional','acaoNome','status','statusStep','logs','criado_em','atualizado_em'];
+      const H = Hcur.slice(); DESIRED.forEach(k=>{ if(!H.includes(k)) H.push(k); });
 
-      const maxJ = extractMaxOT(rows);
-      const maxC = extractMaxOT(pc.rows||[]);
-      let next = Math.max(maxJ, maxC);
+      // próximo OT (sem zeros à esquerda)
+      let nextNum = Math.max(extractMaxOT(rows), extractMaxOT(closedRows)) + 1;
 
-      const agora = new Date().toISOString();
+      const agora = nowISO();
       const resp  = (window.currentUser && window.currentUser.nome) ? String(window.currentUser.nome) : '—';
 
-      // cria N novas linhas (um OT por combo)
-      const novos = [];
+      // monta novas linhas
+      const novos=[];
       for(const c of combos){
-        next += 1;
-        const ot = 'OT-' + next; // sem zeros à esquerda
-        const logs = { criado:[{nome:resp, ts:agora}] };
+        const ot = 'OT-' + nextNum; nextNum += 1;
+        const logs = { criado:[{ nome:resp, ts:agora }] };
         const row = {
           ot,
-          regional,
+          regional,                  // mantém regional escolhida
           tipoLoja,
           tipoJob,
           nome,
@@ -3445,28 +3624,32 @@
           tam,
           qtd,
           link,
-          acaoNacional,
-          acaoNome,
-          status: 'Novo',
-          statusStep: '',
+          isNacional: (acaoNacional==='Sim') ? 'true' : '', // <- chave para o agrupamento
+          acaoNacional,                                   // compatibilidade
+          acaoNome,                                       // subparte
+          status:'Novo',
+          statusStep:'',
           logs: JSON.stringify(logs),
-          criado_em: agora,
-          atualizado_em: agora
+          criado_em:agora,
+          atualizado_em:agora
         };
-        novos.push(row);
-        rows.push(row);
+        rows.push(row); novos.push(row);
       }
 
-      // grava uma vez só
       const nextCsv = toCsv(H, rows);
       await ghPutFile(GH.jobsPath, nextCsv, `chore(csv): add ${novos.length} job(s) [lote]`);
 
-      // atualiza UI se existir
-      if(typeof window.loadJobsFromGitHub==='function'){
+      // feedback + atualizar UI + reagrupar na tela
+      if(formNovo) formNovo.reset();
+      if(inpAcaoNome) inpAcaoNome.value='';
+      toggleAcaoUI();
+
+      if(typeof window.loadJobsFromGitHub === 'function'){
+        setBusy(true,'Atualizando lista…');
         await window.loadJobsFromGitHub();
+        requestAnimationFrame(()=>regroupAllNacionais(novos));
       }
 
-      // Limpa e fecha
       listWrap.innerHTML='';
       dlgNovo?.close();
       toast(`${novos.length} job(s) criado(s) com sucesso.`);
@@ -3483,22 +3666,20 @@
     btnNovo.addEventListener('click', async ()=>{
       fillUFs();
       await loadNomesIntoSelect();
+      toggleAcaoUI(); // liga/desliga o botão "Escolher ação" conforme Sim/Não
       dlgNovo.showModal();
     });
   }
+
+  selRegional?.addEventListener('change', fillUFs);
   selNome?.addEventListener('change', ()=>{ if(inputNomeEsp) inputNomeEsp.value = selNome.value || ''; });
 
   btnNomeNovo?.addEventListener('click', ()=>{ if(inpNomeNovo) inpNomeNovo.value=''; dlgNome?.showModal(); });
   btnNomeCancel?.addEventListener('click', ()=> dlgNome?.close());
   btnNomeSave?.addEventListener('click', saveNovoNome);
 
-  function syncAcao(){ btnAcao.disabled = !radioSim.checked; }
-  radioSim?.addEventListener('change', syncAcao);
-  radioNao?.addEventListener('change', syncAcao);
-  syncAcao();
-
   btnCancelar?.addEventListener('click', ()=>{ dlgNovo?.close(); listWrap.innerHTML=''; });
-  btnSalvar?.addEventListener('click', salvarLote);
+  if(btnSalvar) btnSalvar.addEventListener('click', salvarLote);
 })();
 </script>
 <!//========BOTÃO NOVO=======FIM>
@@ -3608,298 +3789,6 @@
 </script>
 
 <!-- // UF POR REGIONAL — mapeia e preenche #novoEstado (e #editEstado) FIM -->
-
-<!-- // NOVO — SALVAR (grava em jobs.csv) + AÇÃO NACIONAL (selecionar/criar) -->
-<script>
-(function(){
-  /* ====== CONFIG GH ====== */
-  const GH = { owner:'JPVectorsitem', repo:'LINKS-img', branch:'main', jobsPath:'jobs.csv' };
-
-  /* ====== ELEMENTOS (Novo) ====== */
-  const dlgNovo     = document.getElementById('modalNovo');
-  const formNovo    = document.getElementById('formNovo');
-  const btnSalvar   = document.getElementById('btnNovoSalvar');
-
-  const selRegional = document.getElementById('novoRegional');
-  const selTipoLoja = document.getElementById('novoTipoLoja');
-  const selTipoJob  = document.getElementById('novoTipoJob');
-  const selNome     = document.getElementById('novoNomeSel');
-  const inpNomeEsp  = document.getElementById('novoNome'); // hidden (espelho)
-  const inpCompl    = document.getElementById('novoCompl');
-  const selUF       = document.getElementById('novoEstado');
-  const inpFilial   = document.getElementById('novoFilial');
-  const inpIni      = document.getElementById('novoIni');
-  const inpFim      = document.getElementById('novoFim');
-  const selTam      = document.getElementById('novoTam');
-  const inpQtd      = document.getElementById('novoQtd');
-  const inpLink     = document.getElementById('novoLink');
-
-  const rAcNao      = document.getElementById('novoAcaoNao');
-  const rAcSim      = document.getElementById('novoAcaoSim');
-  const inpAcaoNome = document.getElementById('novoAcaoNome');
-  const btnAcao     = document.getElementById('btnEscolherAcao');
-
-  /* ====== ELEMENTOS (Modal Ação nacional) ====== */
-  const dlgAcao   = document.getElementById('modalAcao');
-  const boxLista  = document.getElementById('acaoLista');
-  const inpAcNova = document.getElementById('acaoNova');
-  const btnAcCan  = document.getElementById('acaoCancelar');
-  const btnAcOK   = document.getElementById('acaoOk');
-
-  /* ====== UX helpers ====== */
-  function toast(m){ const t=document.getElementById('toast'); if(!t){ alert(m); return; } t.textContent=m; t.style.display='block'; setTimeout(()=>t.style.display='none',2200); }
-  function setBusy(v,msg){ const o=document.getElementById('busy'); if(!o) return; o.style.display=v?'grid':'none'; if(msg) o.querySelector('.box').textContent=msg; }
-  function getToken(){ try{ const s=JSON.parse(localStorage.getItem('wv_gh_cfg')||'{}'); return (window.gh&&window.gh.token)||s.token||''; }catch{ return (window.gh&&window.gh.token)||''; } }
-
-  /* ====== CSV ====== */
-  function parseCsv(text){
-    if(!text) return [];
-    const r=[]; let row=[], cur='', q=false;
-    for(let i=0;i<text.length;i++){
-      const c=text[i];
-      if(q){
-        if(c=='"'){ if(text[i+1]=='"'){cur+='"'; i++;} else q=false; }
-        else cur+=c;
-      }else{
-        if(c=='"') q=true;
-        else if(c==','){ row.push(cur); cur=''; }
-        else if(c=='\r'){ }
-        else if(c=='\n'){ row.push(cur); r.push(row); row=[]; cur=''; }
-        else cur+=c;
-      }
-    }
-    if(cur.length>0 || row.length>0){ row.push(cur); r.push(row); }
-    return r;
-  }
-  function csvToObjsAndHeader(text){
-    const rows=parseCsv(text); if(!rows.length) return { header:[], rows:[] };
-    const H=rows[0], out=[];
-    for(let i=1;i<rows.length;i++){
-      const rr=rows[i]; if(!rr || (rr.length===1 && rr[0]==='')) continue;
-      const o={}; for(let j=0;j<H.length;j++) o[H[j]]=rr[j]||'';
-      out.push(o);
-    }
-    return { header:H, rows:out };
-  }
-  const csvEsc = v => { v=v==null?'':String(v); return /[",\n]/.test(v)?`"${v.replace(/"/g,'""')}"`:v; };
-  function toCsv(H, objs){
-    const head = H.join(',')+'\n';
-    const body = objs.map(o => H.map(k => csvEsc(o[k] ?? '')).join(',')).join('\n');
-    return head + body + (objs.length?'\n':'');
-  }
-
-  /* ====== GitHub ====== */
-  const GH_API_VER='2022-11-28';
-  const ghHeaders = (tok)=>({'Accept':'application/vnd.github+json','X-GitHub-Api-Version':GH_API_VER, ...(tok?{'Authorization':`Bearer ${tok}`}:{})});
-  function b64ToUtf8(b64){ const bin=atob(b64); const bytes=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i); return new TextDecoder().decode(bytes); }
-  function utf8ToB64(str){ const bytes=new TextEncoder().encode(str); let bin=''; for(let i=0;i<bytes.length;i++) bin+=String.fromCharCode(bytes[i]); return btoa(bin); }
-  async function ghGetFile(path, branch){
-    const token=getToken(); if(!token) throw new Error('Token GitHub não configurado.');
-    const url=`https://api.github.com/repos/${encodeURIComponent(GH.owner)}/${encodeURIComponent(GH.repo)}/contents/${encodeURIComponent(path)}?ref=${encodeURIComponent(branch||GH.branch)}`;
-    const r=await fetch(url,{headers:ghHeaders(token)}); if(r.status===404) return { text:'', sha:null };
-    if(!r.ok) throw new Error('Falha ao ler ('+r.status+')');
-    const j=await r.json(); const text = j && j.content ? b64ToUtf8(j.content) : '';
-    return { text, sha:j.sha||null };
-  }
-  async function ghPutFile(path, newText, message){
-    const token=getToken(); if(!token) throw new Error('Token GitHub não configurado.');
-    let sha=null; try{ const cur=await ghGetFile(path, GH.branch); sha=cur.sha; }catch{}
-    const url=`https://api.github.com/repos/${encodeURIComponent(GH.owner)}/${encodeURIComponent(GH.repo)}/contents/${encodeURIComponent(path)}`;
-    const body={ message: message||`chore(csv): update ${path}`, content:utf8ToB64(newText), branch:GH.branch, ...(sha?{sha}:{}) };
-    const r=await fetch(url,{method:'PUT', headers:{...ghHeaders(token), 'Content-Type':'application/json'}, body:JSON.stringify(body)});
-    if(!r.ok){ const t=await r.text(); throw new Error('Falha ao salvar ('+r.status+'): '+t); }
-    return true;
-  }
-
-  /* ====== Helpers ====== */
-  function nowISO(){ return new Date().toISOString(); }
-  function normalizeCmp(s){
-    return String(s||'').trim().replace(/\s+/g,' ')
-      .toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-  }
-  function nextOT(rows){
-    let max=0, maxLen=3;
-    for(const r of rows){
-      const m=String(r.ot||'').match(/(\d+)/);
-      if(m){ const num=parseInt(m[1],10); if(!isNaN(num)) { max=Math.max(max,num); maxLen=Math.max(maxLen, m[1].length); } }
-    }
-    const n = (max+1).toString().padStart(Math.max(3,maxLen),'0');
-    return `OT- ${n}`;
-  }
-
-  /* ====== AÇÃO NACIONAL: ligar/desligar, listar, escolher/criar ====== */
-  function toggleAcaoUI(){
-    const sim = rAcSim && rAcSim.checked;
-    if(btnAcao) btnAcao.disabled = !sim;
-    if(!sim && inpAcaoNome) inpAcaoNome.value = '';
-  }
-  if(rAcNao) rAcNao.addEventListener('change', toggleAcaoUI);
-  if(rAcSim) rAcSim.addEventListener('change', toggleAcaoUI);
-  toggleAcaoUI();
-
-  async function loadAcoesLista(){
-    boxLista.innerHTML = 'Carregando ações…';
-    try{
-      const { text } = await ghGetFile(GH.jobsPath, GH.branch);
-      const { rows } = csvToObjsAndHeader(text);
-      const acoes = [];
-      const seen = new Set();
-      rows.forEach(r=>{
-        const on = String(r.isNacional||'').trim().toLowerCase();
-        const nome = (r.acaoNome||'').trim();
-        if(['1','true','yes','sim'].includes(on) && nome){
-          const k = normalizeCmp(nome);
-          if(!seen.has(k)){ seen.add(k); acoes.push(nome); }
-        }
-      });
-      acoes.sort((a,b)=> a.localeCompare(b,'pt-BR',{sensitivity:'base'}));
-
-      if(!acoes.length){
-        boxLista.innerHTML = '<div class="hint">Nenhuma ação existente. Crie uma no campo abaixo.</div>';
-        return;
-      }
-      // desenha radios
-      const frag = document.createDocumentFragment();
-      acoes.forEach((nome,i)=>{
-        const id='acao_'+i;
-        const wrap=document.createElement('div');
-        wrap.style.padding='6px 0';
-        wrap.innerHTML = `<label style="display:flex;gap:8px;align-items:center;cursor:pointer">
-            <input type="radio" name="acaoPick" value="${nome.replace(/"/g,'&quot;')}" id="${id}">
-            <span>${nome.replace(/</g,'&lt;')}</span>
-          </label>`;
-        frag.appendChild(wrap);
-      });
-      boxLista.innerHTML = '';
-      boxLista.appendChild(frag);
-    }catch(e){
-      console.error(e);
-      boxLista.innerHTML = '<div class="hint">Erro ao carregar ações.</div>';
-    }
-  }
-
-  if(btnAcao && dlgAcao){
-    btnAcao.addEventListener('click', ()=>{ if(!rAcSim || !rAcSim.checked){ return; } inpAcNova.value=''; loadAcoesLista(); dlgAcao.showModal(); });
-  }
-  if(btnAcCan && dlgAcao){ btnAcCan.addEventListener('click', ()=> dlgAcao.close()); }
-  if(btnAcOK && dlgAcao){
-    btnAcOK.addEventListener('click', ()=>{
-      const radios = dlgAcao.querySelectorAll('input[name="acaoPick"]');
-      let picked = '';
-      radios.forEach(r=>{ if(r.checked) picked = r.value; });
-      const novo = (inpAcNova.value||'').trim().replace(/\s+/g,' ');
-      const final = novo || picked;
-      if(!final){ toast('Selecione uma ação ou digite uma nova.'); return; }
-      inpAcaoNome.value = final;
-      dlgAcao.close();
-    });
-  }
-
-  /* ====== VALIDAR CAMPOS ====== */
-  function getNomeTabloide(){
-    const fromSel = (selNome && selNome.value) ? selNome.value.trim() : '';
-    const fromHidden = (inpNomeEsp && inpNomeEsp.value) ? inpNomeEsp.value.trim() : '';
-    return fromSel || fromHidden || '';
-  }
-  function validate(){
-    const errs = [];
-    if(!getToken()) errs.push('Configurar GitHub primeiro (⚙).');
-    if(!selRegional || !selRegional.value) errs.push('Selecione a Regional.');
-    if(!selTipoLoja || !selTipoLoja.value) errs.push('Selecione o Tipo da loja.');
-    if(!selTipoJob  || !selTipoJob.value)  errs.push('Selecione o Tipo do JOB.');
-    if(!getNomeTabloide()) errs.push('Defina o Nome do tabloide.');
-    if(!selUF || !selUF.value) errs.push('Selecione a UF.');
-    if(!inpIni || !inpIni.value) errs.push('Defina a Validade início.');
-    if(!inpFim || !inpFim.value) errs.push('Defina a Validade término.');
-    if(!selTam || !selTam.value) errs.push('Selecione o Tamanho da página.');
-    if(!inpQtd || !inpQtd.value) errs.push('Informe a Quantidade de páginas.');
-
-    const isNac = rAcSim && rAcSim.checked;
-    if(isNac && (!inpAcaoNome || !inpAcaoNome.value.trim())){
-      errs.push('Defina o nome da Ação nacional.');
-    }
-    return errs;
-  }
-
-  /* ====== SALVAR ====== */
-  async function salvarNovo(){
-    const errs = validate();
-    if(errs.length){ toast(errs[0]); return; }
-
-    setBusy(true,'Salvando job…');
-    try{
-      // lê jobs atuais
-      const read = await ghGetFile(GH.jobsPath, GH.branch);
-      const parsed = csvToObjsAndHeader(read.text);
-      const rows = parsed.rows || [];
-      const Hcur = parsed.header || [];
-
-      // gera OT
-      const ot = nextOT(rows);
-
-      // dados
-      const isNac = rAcSim && rAcSim.checked;
-      const acao  = isNac ? (inpAcaoNome.value||'').trim() : '';
-
-      const novo = {
-        ot,
-        regional:   selRegional.value || '',
-        tipoLoja:   selTipoLoja.value || '',
-        tipoJob:    selTipoJob.value || '',
-        nome:       getNomeTabloide(),
-        compl:      inpCompl.value || '',
-        uf:         selUF.value || '',
-        filial:     (inpFilial.value||'').trim(),
-        ini:        inpIni.value || '',
-        fim:        inpFim.value || '',
-        tam:        selTam.value || '',
-        qtd:        inpQtd.value || '',
-        isNacional: isNac ? 'sim' : '',
-        acaoNome:   acao,
-        status:     'Novo',
-        statusStep: 'novo',
-        logs:       '{}',
-        link:       (inpLink && inpLink.value) ? inpLink.value.trim() : '',
-        criado_em:  nowISO(),
-        atualizado_em: nowISO()
-      };
-
-      // header desejado (garante colunas importantes)
-      const DESIRED = ['ot','regional','tipoLoja','tipoJob','nome','compl','uf','filial','ini','fim','tam','qtd','isNacional','acaoNome','status','statusStep','logs','link','criado_em','atualizado_em'];
-      const H = Hcur.slice();
-      DESIRED.forEach(k=>{ if(!H.includes(k)) H.push(k); });
-
-      // monta lista final (append)
-      const all = rows.concat([novo]);
-
-      // grava
-      const nextCsv = toCsv(H, all);
-      await ghPutFile(GH.jobsPath, nextCsv, `chore(csv): add job ${ot}`);
-
-      // feedback + atualizar UI
-      toast('Job salvo.');
-      if(formNovo) formNovo.reset();
-      if(inpAcaoNome) inpAcaoNome.value = '';
-      toggleAcaoUI();
-      if(dlgNovo) dlgNovo.close();
-
-      if (typeof window.loadJobsFromGitHub === 'function'){
-        setBusy(true,'Atualizando lista…');
-        await window.loadJobsFromGitHub();
-      }
-    }catch(e){
-      console.error(e);
-      toast('Falha ao salvar job.');
-    }finally{
-      setBusy(false);
-    }
-  }
-
-  if(btnSalvar) btnSalvar.addEventListener('click', salvarNovo);
-})();
-</script>
-
-<!-- // NOVO — SALVAR (grava em jobs.csv) + AÇÃO NACIONAL (selecionar/criar) FIM -->
 
 <!-- // FIX: garantir botão "+" na coluna ETAPAS PRODUÇÃO para todas as linhas -->
 <script>
@@ -8547,256 +8436,6 @@
 </script>
 <!-- ===== /Ocultar "Config GitHub" no LOGIN ===== -->
 
-<!//===== AJUSTE SALVAR EM LOTE ======>
-<script>
-/* ===== AJUSTE: Salvar em LOTE no botão "Novo" ===== */
-(function(){
-  const GH = {
-    owner:'JPVectorsitem',
-    repo:'LINKS-img',
-    branch:'main',
-    jobsPath:'jobs.csv',
-    jobsClosedPath:'jobs_encerrados.csv'
-  };
-  const UF_MAP = {
-    'REGIONAL BA - SE':        ['BA','SE'],
-    'REGIONAL DF - GO - TO':   ['DF','GO','TO'],
-    'REGIONAL MG':             ['MG'],
-    'REGIONAL MS':             ['MS'],
-    'REGIONAL MT - RO - AC':   ['MT','RO','AC'],
-    'REGIONAL NORDESTE 1':     ['AL','PB','PE','RN'],
-    'REGIONAL NORDESTE 2':     ['CE','PI','MA'],
-    'REGIONAL NORTE':          ['AM','AP','PA','RR'],
-    'REGIONAL PR':             ['PR'],
-    'REGIONAL RJ - ES':        ['RJ','ES'],
-    'REGIONAL RS':             ['RS'],
-    'REGIONAL SP':             ['SP'],
-    'REGIONAL SC':             ['SC']
-  };
-
-  /* === util === */
-  function el(id){ return document.getElementById(id); }
-  function toast(m){ const t=el('toast'); if(!t){ alert(m); return; } t.textContent=m; t.style.display='block'; setTimeout(()=>t.style.display='none',2000); }
-  function setBusy(v,msg){ const o=el('busy'); if(!o) return; o.style.display=v?'grid':'none'; if(msg) o.querySelector('.box').textContent=msg; }
-  function getToken(){ try{ const s=JSON.parse(localStorage.getItem('wv_gh_cfg')||'{}'); return (window.gh&&window.gh.token)||s.token||''; }catch{ return (window.gh&&window.gh.token)||''; } }
-  const csvEsc=v=>{ v=v==null?'':String(v); return /[",\n]/.test(v)?`"${v.replace(/"/g,'""')}"`:v; };
-  function parseCsv(t){ if(!t) return []; const r=[]; let row=[],cur='',q=false;
-    for(let i=0;i<t.length;i++){ const c=t[i];
-      if(q){ if(c=='"'){ if(t[i+1]=='"'){cur+='"'; i++;} else q=false; } else cur+=c; }
-      else{ if(c=='"') q=true; else if(c==','){row.push(cur);cur='';}
-        else if(c=='\r'){} else if(c=='\n'){row.push(cur);r.push(row);row=[];cur='';} else cur+=c; }
-    }
-    if(cur.length>0||row.length>0){ row.push(cur); r.push(row); }
-    return r;
-  }
-  function csvToObjsAndHeader(text){
-    const rows=parseCsv(text); if(!rows.length) return { header:[], rows:[] };
-    const H=rows[0], out=[];
-    for(let i=1;i<rows.length;i++){ const rr=rows[i]; if(!rr || (rr.length===1&&rr[0]==='')) continue;
-      const o={}; for(let j=0;j<H.length;j++) o[H[j]]=rr[j]||''; out.push(o);
-    }
-    return { header:H, rows:out };
-  }
-  function toCsv(H, rows){
-    const head=H.join(',')+'\n';
-    const body=rows.map(o=> H.map(k=> csvEsc(o[k]??'')).join(',')).join('\n');
-    return head + (body? body+'\n' : '');
-  }
-  function b64ToSmartText(b64){
-    const bin=atob(b64); const bytes=new Uint8Array(bin.length); for(let i=0;i<bytes.length;i++) bytes[i]=bin.charCodeAt(i);
-    let utf8=new TextDecoder('utf-8',{fatal:false}).decode(bytes);
-    if(!/Ã.|�/.test(utf8)) return utf8;
-    try{
-      const lat=new TextDecoder('windows-1252',{fatal:false}).decode(bytes);
-      const score=s=>(s.match(/[çáéíóúâêôãõÇÁÉÍÓÚÂÊÔÃÕ]/g)||[]).length-(s.match(/Ã.|�/g)||[]).length;
-      return score(lat)>score(utf8)?lat:utf8;
-    }catch{ return utf8; }
-  }
-  const GH_API_VER='2022-11-28';
-  const ghHeaders=(tok)=>({'Accept':'application/vnd.github+json','X-GitHub-Api-Version':GH_API_VER, ...(tok?{'Authorization':`Bearer ${tok}`}:{})});
-  async function ghGetFile(path, branch){
-    const token=getToken(); if(!token) throw new Error('Token GitHub não configurado.');
-    const url=`https://api.github.com/repos/${encodeURIComponent(GH.owner)}/${encodeURIComponent(GH.repo)}/contents/${encodeURIComponent(path)}?ref=${encodeURIComponent(branch||GH.branch)}`;
-    const r=await fetch(url,{headers:ghHeaders(token)});
-    if(r.status===404) return { text:'', sha:null };
-    if(!r.ok) throw new Error('Falha ao ler ('+r.status+')');
-    const j=await r.json(); return { text: j && j.content ? b64ToSmartText(j.content) : '', sha:j.sha||null };
-  }
-  function utf8ToB64(str){ const bytes=new TextEncoder().encode(str); let bin=''; for(let i=0;i<bytes.length;i++) bin+=String.fromCharCode(bytes[i]); return btoa(bin); }
-  async function ghPutFile(path, newText, message){
-    const token=getToken(); if(!token) throw new Error('Token GitHub não configurado.');
-    let sha=null; try{ const cur=await ghGetFile(path, GH.branch); sha=cur.sha; }catch{}
-    const url=`https://api.github.com/repos/${encodeURIComponent(GH.owner)}/${encodeURIComponent(GH.repo)}/contents/${encodeURIComponent(path)}`;
-    const body={ message:message||`chore(csv): update ${path}`, content:utf8ToB64(newText), branch:GH.branch, ...(sha?{sha}:{}) };
-    const r=await fetch(url,{method:'PUT', headers:{...ghHeaders(token),'Content-Type':'application/json'}, body:JSON.stringify(body)});
-    if(!r.ok){ const t=await r.text(); throw new Error('Falha ao salvar ('+r.status+'): '+t); }
-    return true;
-  }
-
-  function ensureHeaderColumns(H, rows, needed){
-    const head=H.slice(); const have=new Set(head);
-    let changed=false; needed.forEach(col=>{ if(!have.has(col)){ head.push(col); changed=true; } });
-    if(changed){ rows.forEach(r=> needed.forEach(col=>{ if(r[col]===undefined) r[col]=''; })); }
-    return { head, rows };
-  }
-  function extractMaxOT(rows){
-    let max=0; for(const r of rows){
-      const v=String(r.ot||''); const m=v.match(/(\d+)/);
-      if(m){ const n=parseInt(m[1],10); if(n>max) max=n; }
-    } return max;
-  }
-
-  /* === monta combos de lote === */
-  function splitFiliais(str){
-    return String(str||'')
-      .split(/[,;|\s]+/)
-      .map(s=>s.trim())
-      .filter(Boolean);
-  }
-  function getLoteCombos(){
-    const selRegional = el('novoRegional');
-    const selUF       = el('novoEstado');
-    const inpFilial   = el('novoFilial');
-    const inpIni      = el('novoIni');
-    const inpFim      = el('novoFim');
-
-    const baseUF   = selUF ? (selUF.value||'') : '';
-    const baseIni  = inpIni ? (inpIni.value||'') : '';
-    const baseFim  = inpFim ? (inpFim.value||'') : '';
-    const baseFils = splitFiliais(inpFilial ? inpFilial.value : '');
-
-    const wrap = el('novoBatchList');
-    const rows = wrap ? [...wrap.querySelectorAll('.novo-batch-item')] : [];
-
-    const out = [];
-
-    if(rows.length){
-      // tem UI de lote (+)
-      rows.forEach(row=>{
-        const parts = row.querySelectorAll('select,input');
-        const UF  = parts[0]?.value||'';
-        const FIL = parts[1]?.value||'';
-        const INI = parts[2]?.value||'';
-        const FIM = parts[3]?.value||'';
-        const muitos = splitFiliais(FIL);
-        if(muitos.length){
-          muitos.forEach(f=> out.push({ uf:UF, filial:f, ini:INI, fim:FIM }));
-        }else{
-          out.push({ uf:UF, filial:FIL, ini:INI, fim:FIM });
-        }
-      });
-      // inclui a linha “principal” também (se tiver preenchida)
-      if(baseUF && baseIni && baseFim){
-        (baseFils.length? baseFils:['']).forEach(f=> out.push({ uf:baseUF, filial:f, ini:baseIni, fim:baseFim }));
-      }
-    }else{
-      // sem UI de lote: duplica por filial(s)
-      const filList = baseFils.length? baseFils : [''];
-      filList.forEach(f=> out.push({ uf:baseUF, filial:f, ini:baseIni, fim:baseFim }));
-    }
-    // filtra vazios (precisa UF + datas)
-    return out.filter(c=> c.uf && c.ini && c.fim);
-  }
-
-  /* === validações base === */
-  function baseValid(regional, combos){
-    const ufs = UF_MAP[regional] || [];
-    if(!combos.length){ toast('Adicione ao menos uma linha válida (UF/Data).'); return false; }
-    for(const c of combos){
-      if(ufs.length && !ufs.includes(c.uf)){ toast(`UF ${c.uf} não é permitida para ${regional}.`); return false; }
-      if(new Date(c.ini) > new Date(c.fim)){ toast('Período inválido em uma das linhas.'); return false; }
-    }
-    return true;
-  }
-
-  /* === handler (override) === */
-  const btnSalvar = el('btnNovoSalvar');
-  if(!btnSalvar) return;
-
-  btnSalvar.addEventListener('click', async (ev)=>{
-    // evita que um listener antigo rode também
-    ev.stopImmediatePropagation();
-    ev.preventDefault();
-
-    if(!getToken()){ toast('Configurar GitHub primeiro.'); return; }
-
-    const regional = el('novoRegional')?.value || '';
-    const tipoLoja = el('novoTipoLoja')?.value || '';
-    const tipoJob  = el('novoTipoJob')?.value || '';
-    const nome     = el('novoNomeSel')?.value || '';
-    const compl    = el('novoCompl')?.value || '';
-    const tam      = el('novoTam')?.value || '';
-    const qtdRaw   = el('novoQtd')?.value || '';
-    const link     = el('novoLink')?.value || '';
-    const acaoNacional = (el('novoAcaoSim')?.checked ? 'Sim' : 'Não');
-    const acaoNome     = (acaoNacional==='Sim') ? (el('novoAcaoNome')?.value || '') : '';
-
-    if(!regional || !tipoLoja || !tipoJob || !nome || !tam || !qtdRaw){ toast('Preencha Regional, Tipo da loja, Tipo do JOB, Nome, Tamanho e Quantidade.'); return; }
-    const qtd = parseInt(qtdRaw,10); if(isNaN(qtd)||qtd<=0){ toast('Quantidade inválida.'); return; }
-
-    if(acaoNacional==='Sim' && !acaoNome){ toast('Defina/Selecione a Ação nacional.'); return; }
-
-    const combos = getLoteCombos();
-    if(!baseValid(regional, combos)) return;
-
-    setBusy(true, 'Gravando jobs em lote…');
-
-    try{
-      // lê arquivos para calcular OT global e montar header
-      const [curJobs, curClosed] = await Promise.all([ghGetFile(GH.jobsPath, GH.branch), ghGetFile(GH.jobsClosedPath, GH.branch)]);
-      const pj = csvToObjsAndHeader(curJobs.text);
-      const pc = csvToObjsAndHeader(curClosed.text);
-
-      const need=['ot','regional','tipoLoja','tipoJob','nome','compl','uf','filial','ini','fim','tam','qtd','link','acaoNacional','acaoNome','status','statusStep','logs','criado_em','atualizado_em'];
-      let ensured = ensureHeaderColumns(pj.header, pj.rows, need);
-      let H = ensured.head, rows = ensured.rows;
-
-      let next = Math.max(extractMaxOT(rows), extractMaxOT(pc.rows||[]));
-      const agora = new Date().toISOString();
-      const resp  = (window.currentUser && window.currentUser.nome) ? String(window.currentUser.nome) : '—';
-
-      const novos=[];
-      for(const c of combos){
-        next += 1;
-        const ot = 'OT-' + next; // sem zeros à esquerda
-        const logs = { criado:[{ nome:resp, ts:agora }] };
-        const row = {
-          ot, regional, tipoLoja, tipoJob, nome, compl,
-          uf:c.uf, filial:c.filial||'',
-          ini:c.ini, fim:c.fim,
-          tam, qtd:String(qtd), link,
-          acaoNacional, acaoNome,
-          status:'Novo', statusStep:'',
-          logs:JSON.stringify(logs),
-          criado_em:agora, atualizado_em:agora
-        };
-        rows.push(row);
-        novos.push(row);
-      }
-
-      const nextCsv = toCsv(H, rows);
-      await ghPutFile(GH.jobsPath, nextCsv, `chore(csv): add ${novos.length} job(s) [lote]`);
-
-      // atualiza UI/tabela se sua app tiver esse método
-      if(typeof window.loadJobsFromGitHub==='function'){
-        await window.loadJobsFromGitHub();
-      }
-
-      // fecha modal se existir
-      const dlgNovo = el('modalNovo'); if(dlgNovo && typeof dlgNovo.close==='function') dlgNovo.close();
-
-      toast(`${novos.length} job(s) criado(s).`);
-    }catch(e){
-      console.error(e);
-      toast('Falha ao salvar o lote.');
-    }finally{
-      setBusy(false);
-    }
-  }, true); // captura para ser o primeiro e bloquear outros
-})();
-</script>
-
-<!//===== AJUSTE SALVAR EM LOTE FIM======>
 
 <!// Tamanho fonte linha>
 
@@ -9628,6 +9267,86 @@
 
 <!// NOVO MODELO VISUALIZAR FINALIZADOS- FIM --->
 
+<!-- PATCH: remover "Ver lojas" mantendo filiais (+ellipsis e modal) -->
+<script>
+(function(){
+  "use strict";
+  const COL = { filiais: 7 }; // índice da coluna FILIAL(S)
+  const tbody = document.getElementById('jobsBody');
+  if (!tbody) return;
+
+  // estiliza o “clip” com reticências
+  const css = document.createElement('style');
+  css.textContent = `
+    #jobsBody td .clip{
+      display:inline-block; max-width:100%;
+      overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+      border-bottom:1px dotted rgba(255,255,255,.35); cursor:pointer;
+    }`;
+  document.head.appendChild(css);
+
+  function renderClip(td, fullText){
+    const full = String(fullText||'').trim();
+    td.innerHTML = '';
+    if (!full) return;
+    const span = document.createElement('span');
+    span.className = 'clip';
+    span.setAttribute('data-full', full);
+    span.textContent = full;               // o ellipsis vem do CSS acima
+    td.appendChild(span);
+  }
+
+  // transforma a célula de filiais da linha
+  function fixRow(tr){
+    if (!tr || !tr.children || tr.classList.contains('sep-row') || tr.classList.contains('sub-row')) return;
+    const td = tr.children[COL.filiais];
+    if (!td) return;
+
+    // tenta extrair o texto completo das filiais
+    let full =
+      td.querySelector('.btnVerLojas, .ver-lojas')?.dataset?.full ||
+      td.querySelector('.clip[data-full], .cell-clip[data-full]')?.dataset?.full ||
+      td.getAttribute('data-full') ||
+      (td.textContent || '').replace(/^\s*ver\s+lojas\s*$/i,'').trim();
+
+    renderClip(td, full);
+  }
+
+  function fixAll(){ tbody.querySelectorAll('tr[data-ot]').forEach(fixRow); }
+
+  // clique no “clip” abre o modal padrão (#modalCell)
+  document.addEventListener('click', function(e){
+    const sp = e.target.closest('#jobsBody td .clip');
+    if (!sp) return;
+    const full = sp.getAttribute('data-full') || sp.textContent || '';
+    const dlg  = document.getElementById('modalCell');
+    const ttl  = document.getElementById('cellTitle');
+    const body = document.getElementById('cellBody');
+    if (!dlg || !ttl || !body) return;
+
+    ttl.textContent = 'Filiais';
+    const items = full.split(/[,;]+/).map(s=>s.trim()).filter(Boolean);
+    body.innerHTML = items.length
+      ? '<ul style="margin:0;padding-left:18px">' + items.map(s=>`<li>${s}</li>`).join('') + '</ul>'
+      : '<em>Sem dados</em>';
+
+    try{ dlg.showModal(); }catch{}
+  });
+
+  // observa novas linhas adicionadas na tabela
+  const mo = new MutationObserver(muts=>{
+    muts.forEach(m=> m.addedNodes.forEach(n=>{
+      if (n.nodeType===1 && n.matches('tr[data-ot]')) fixRow(n);
+    }));
+  });
+  mo.observe(tbody, { childList:true });
+
+  // passa inicial
+  fixAll();
+})();
+</script>
+
+<!-- PATCH: remover "Ver lojas" mantendo filiais (+ellipsis e modal) FIM -->
 
 </body>
 </html>
