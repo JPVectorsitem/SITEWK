@@ -9348,5 +9348,395 @@
 
 <!-- PATCH: remover "Ver lojas" mantendo filiais (+ellipsis e modal) FIM -->
 
+<!-- ========== PATCH: Viewer por etapa no modal Etapas (clique no título) ========== -->
+<script>
+(function(){
+  "use strict";
+
+  /* ============== GH + CSV helpers ============== */
+  const GH={ owner:'JPVectorsitem', repo:'LINKS-img', branch:'main',
+             jobsPath:'jobs.csv', jobsClosedPath:'jobs_encerrados.csv' };
+  const GH_API_VER='2022-11-28';
+  function getToken(){ try{ const s=JSON.parse(localStorage.getItem('wv_gh_cfg')||'{}'); return (window.gh&&window.gh.token)||s.token||''; }catch{ return (window.gh&&window.gh.token)||''; } }
+  const ghHeaders=(tok)=>({'Accept':'application/vnd.github+json','X-GitHub-Api-Version':GH_API_VER,...(tok?{'Authorization':`Bearer ${tok}`}:{})});
+  function b64ToUtf8(b64){ const bin=atob(b64); const bytes=new Uint8Array(bin.length); for(let i=0;i<bytes.length;i++) bytes[i]=bin.charCodeAt(i); return new TextDecoder().decode(bytes); }
+  function utf8ToB64(str){ const bytes=new TextEncoder().encode(str); let bin=''; for(let i=0;i<bytes.length;i++) bin+=String.fromCharCode(bytes[i]); return btoa(bin); }
+
+  async function ghGetFile(path){
+    const tok=getToken(); if(!tok) return {text:'',sha:null,skip:true};
+    const url=`https://api.github.com/repos/${encodeURIComponent(GH.owner)}/${encodeURIComponent(GH.repo)}/contents/${encodeURIComponent(path)}?ref=${encodeURIComponent(GH.branch)}`;
+    try{
+      const r=await fetch(url,{headers:ghHeaders(tok)}); if(!r.ok) return {text:'',sha:null};
+      const j=await r.json(); return { text: j && j.content ? b64ToUtf8(j.content) : '', sha:j.sha||null };
+    }catch{ return {text:'',sha:null}; }
+  }
+  async function ghPutFile(path, text, msg){
+    const tok=getToken(); if(!tok) throw new Error('Token GitHub não configurado.');
+    let sha=null; try{ const cur=await ghGetFile(path); sha=cur.sha; }catch{}
+    const url=`https://api.github.com/repos/${encodeURIComponent(GH.owner)}/${encodeURIComponent(GH.repo)}/contents/${encodeURIComponent(path)}`;
+    const body={ message:msg||`chore(csv): update ${path}`, content:utf8ToB64(text), branch:GH.branch, ...(sha?{sha}:{}) };
+    const r=await fetch(url,{method:'PUT',headers:{...ghHeaders(tok),'Content-Type':'application/json'},body:JSON.stringify(body)});
+    if(!r.ok) throw new Error('Falha ao salvar ('+r.status+')');
+    return true;
+  }
+
+  function parseCsv(t){ if(!t) return []; const r=[]; let row=[],cur='',q=false;
+    for(let i=0;i<t.length;i++){ const c=t[i];
+      if(q){ if(c=='"'){ if(t[i+1]=='"'){cur+='"'; i++;} else q=false; } else cur+=c; }
+      else { if(c=='"') q=true; else if(c==','){row.push(cur);cur='';}
+        else if(c=='\r'){} else if(c=='\n'){row.push(cur);r.push(row);row=[];cur='';} else cur+=c; } }
+    if(cur.length>0||row.length>0){ row.push(cur); r.push(row); }
+    return r;
+  }
+  function csvTable(text){
+    const rows=parseCsv(text); if(!rows.length) return {H:[], rows:[]};
+    const H=rows[0]; const body=rows.slice(1).filter(rr=>rr && !(rr.length===1&&rr[0]===''));
+    return { H, rows: body.map(rr=> rr.length<H.length ? rr.concat(Array(H.length-rr.length).fill('')) : rr ) };
+  }
+  const csvEsc=v=>{v=v==null?'':String(v); return /[",\n]/.test(v)?`"${v.replace(/"/g,'""')}"`:v;};
+  function tableToCsv(H, rows){ return H.join(',')+'\n'+rows.map(r=> H.map((_,i)=>csvEsc(r[i]??'')).join(',')).join('\n')+(rows.length?'\n':''); }
+  const norm=s=>String(s||'').trim().normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+
+  /* ============== Hierarquia / mapeamentos ============== */
+  const LABELS = ['Lista','Layout','Digitação','Diagramação','Revisão','Aprovação','Encerramento','Site','Cancelado'];
+  const LABEL_TO_KEYS = {
+    'Lista':['lista'],
+    'Layout':['layout'],
+    'Digitação':['digitando','digitacao'],
+    'Diagramação':['diagramando','diagramacao'],
+    'Revisão':['revisando','revisao'],
+    'Aprovação':['aprovado','aprovacao'],
+    'Encerramento':['encerrando'],
+    'Site':['site'],
+    'Cancelado':['cancelado']
+  };
+  const STATUS_NAME = {
+    lista:'Lista recebida', layout:'Criando layout', digitando:'Digitando', diagramando:'Diagramando',
+    revisando:'Revisando', aprovado:'Aprovação', aprovacao:'Aprovação', encerrando:'Encerrando',
+    site:'Site', finalizado:'Finalizado', cancelado:'Cancelado', novo:'Novo'
+  };
+  const ORDER = { novo:0, lista:10, layout:20, digitando:30, diagramando:40, revisando:50, aprovado:60, aprovacao:60, encerrando:70, site:80, finalizado:90, cancelado:95 };
+
+  function highestStatusFromLogs(L){
+    let best='novo', bestR=ORDER.novo;
+    ['lista','layout','digitando','diagramando','revisando','aprovado','aprovacao','encerrando','site','finalizado','cancelado']
+      .forEach(k=>{
+        const a=L && Array.isArray(L[k]) ? L[k] : [];
+        if(a.length && (ORDER[k]??-1) > bestR){ best=k; bestR=ORDER[k]; }
+      });
+    return STATUS_NAME[best] || 'Novo';
+  }
+
+  /* ============== Util DOM ============== */
+  function toast(m){ const t=document.getElementById('toast'); if(!t){ alert(m); return; } t.textContent=m; t.style.display='block'; setTimeout(()=>t.style.display='none',1800); }
+  function getOT(){ return (document.getElementById('etapasTitleOT')?.textContent||'').trim(); }
+
+  // acha título clicado
+  function getClickedLabel(target){
+    const text=(target.textContent||'').trim();
+    if(LABELS.includes(text)) return text;
+    const h = target.closest('h1,h2,h3,h4,strong'); if(h){ const t=(h.textContent||'').trim(); if(LABELS.includes(t)) return t; }
+    return null;
+  }
+
+  // cria/mostra painel viewer
+  function ensureViewer(){
+    const dlg=document.getElementById('modalEtapas'); if(!dlg) return null;
+    let box=dlg.querySelector('#wvStepViewer');
+    if(!box){
+      box=document.createElement('div');
+      box.id='wvStepViewer';
+      box.style.cssText='margin-top:10px;border:1px solid rgba(255,255,255,.12);border-radius:10px;overflow:hidden';
+      box.innerHTML=`
+        <div style="display:flex;align-items:center;gap:10px;justify-content:space-between;background:#0f182b;padding:8px 10px">
+          <div><strong id="wvSVTitle">Eventos</strong> <span id="wvSVCount" class="muted"></span></div>
+          <div style="display:flex;gap:8px">
+            <button class="btn small" id="wvSVRefresh" type="button">Atualizar</button>
+            <button class="btn small" id="wvSVClose" type="button">Fechar</button>
+          </div>
+        </div>
+        <div style="max-height:260px;overflow:auto">
+          <table style="width:100%;border-collapse:collapse">
+            <thead><tr>
+              <th style="text-align:left;padding:8px 10px">Registro</th>
+              <th style="text-align:left;padding:8px 10px">Quando</th>
+              <th style="width:120px"></th>
+            </tr></thead>
+            <tbody id="wvSVBody"><tr><td colspan="3" class="hint" style="padding:10px">Carregando…</td></tr></tbody>
+          </table>
+        </div>`;
+      const anchor=document.getElementById('etapasList');
+      if(anchor) anchor.parentNode.insertBefore(box, anchor.nextSibling);
+      box.querySelector('#wvSVClose').addEventListener('click', ()=> box.style.display='none');
+      box.querySelector('#wvSVRefresh').addEventListener('click', ()=> {
+        const cur=box.getAttribute('data-current')||'';
+        if(cur) openViewer(cur);
+      });
+    }
+    box.style.display='block';
+    return box;
+  }
+
+  function fmtPT(iso){
+    if(!iso) return '—';
+    try{
+      const d=new Date(iso);
+      const dt=d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'});
+      const hr=d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+      return `${dt}, ${hr}`;
+    }catch{ return String(iso).replace('T',' ').replace('Z',''); }
+  }
+
+  /* ============== IO de logs para um OT ============== */
+  async function readRowForOT(ot){
+    const [a,b]=await Promise.all([ghGetFile(GH.jobsPath), ghGetFile(GH.jobsClosedPath)]);
+    let src='jobs', T=csvTable(a.text);
+    let iOT=T.H.findIndex(h=>norm(h)==='ot'), iLG=T.H.findIndex(h=>norm(h)==='logs'), iST=T.H.findIndex(h=>norm(h)==='status');
+    let rowIdx = T.rows.findIndex(r=> (r[iOT]||'').trim()===ot);
+    if(rowIdx<0){
+      src='jobs_enc'; T=csvTable(b.text);
+      iOT=T.H.findIndex(h=>norm(h)==='ot'); iLG=T.H.findIndex(h=>norm(h)==='logs'); iST=T.H.findIndex(h=>norm(h)==='status');
+      rowIdx=T.rows.findIndex(r=> (r[iOT]||'').trim()===ot);
+      if(rowIdx<0) throw new Error('OT não encontrado.');
+    }
+    return {src, table:T, idx:{ot:iOT, logs:iLG, status:iST}, rowIdx};
+  }
+
+  async function writeRow(src, table){
+    const path = (src==='jobs')? GH.jobsPath : GH.jobsClosedPath;
+    const csv  = tableToCsv(table.H, table.rows);
+    await ghPutFile(path, csv, 'chore(csv): update logs/status (viewer etapas)');
+  }
+
+  /* ============== Abrir viewer de uma ETAPA ============== */
+  async function openViewer(label){
+    const box=ensureViewer(); if(!box) return;
+    const ot=getOT(); if(!ot){ toast('OT não identificado.'); return; }
+    box.setAttribute('data-current', label);
+    box.querySelector('#wvSVTitle').textContent = `${label} — eventos`;
+    const tbody=box.querySelector('#wvSVBody'); tbody.innerHTML=`<tr><td colspan="3" class="hint" style="padding:10px">Carregando…</td></tr>`;
+
+    try{
+      const {src, table, idx, rowIdx}=await readRowForOT(ot);
+      let logs={}; try{ logs=JSON.parse(table.rows[rowIdx][idx.logs]||'{}'); }catch{ logs={}; }
+
+      const keys = LABEL_TO_KEYS[label] || [];
+      // junta arrays de chaves sinônimas (ex.: aprovado/aprovacao)
+      let merged=[];
+      keys.forEach(k=>{
+        const a = Array.isArray(logs[k]) ? logs[k] : [];
+        a.forEach((ev,i)=> merged.push({k, i, ev}));
+      });
+
+      if(!merged.length){
+        tbody.innerHTML = `<tr><td colspan="3" class="hint" style="padding:10px">Sem eventos nesta etapa.</td></tr>`;
+      }else{
+        // mais recentes primeiro (ordena por ts/data se possível)
+        merged.sort((a,b)=>{
+          const ta = Date.parse(a.ev.ts||a.ev.data||a.ev.date||0) || 0;
+          const tb = Date.parse(b.ev.ts||b.ev.data||b.ev.date||0) || 0;
+          return tb - ta;
+        });
+        tbody.innerHTML='';
+        merged.forEach((item,viewIdx)=>{
+          const msg = (item.ev.obs||item.ev.msg||item.ev.texto||item.ev.descricao||item.ev.nome||'').toString();
+          const when = fmtPT(item.ev.ts||item.ev.data||item.ev.date);
+          const tr=document.createElement('tr');
+          tr.innerHTML=`
+            <td style="padding:8px 10px">${msg.replace(/</g,'&lt;')}</td>
+            <td class="muted" style="padding:8px 10px">${when}</td>
+            <td style="padding:8px 10px;text-align:right">
+              <button class="btn small" data-del-k="${item.k}" data-del-i="${item.i}">Excluir</button>
+            </td>`;
+          tbody.appendChild(tr);
+        });
+
+        // bind remover item
+        tbody.querySelectorAll('[data-del-k]').forEach(btn=>{
+          btn.addEventListener('click', async ()=>{
+            if(!confirm('Excluir este registro?')) return;
+            try{
+              const {src, table, idx, rowIdx}=await readRowForOT(ot);
+              let L={}; try{ L=JSON.parse(table.rows[rowIdx][idx.logs]||'{}'); }catch{ L={}; }
+              const k = btn.getAttribute('data-del-k');
+              const i = parseInt(btn.getAttribute('data-del-i'),10);
+              if(Array.isArray(L[k]) && L[k][i]!==undefined){ L[k].splice(i,1); }
+              // recalcula status
+              const newStatus = highestStatusFromLogs(L);
+              table.rows[rowIdx][idx.logs]   = JSON.stringify(L);
+              table.rows[rowIdx][idx.status] = newStatus;
+              await writeRow(src, table);
+              // feedback e refresh
+              toast('Registro excluído.');
+              openViewer(label);
+              if(typeof window.loadJobsFromGitHub==='function'){ try{ await window.loadJobsFromGitHub(); }catch{} }
+            }catch(e){ console.error(e); toast('Falha ao excluir.'); }
+          });
+        });
+      }
+
+      box.querySelector('#wvSVCount').textContent = merged.length ? `(${merged.length})` : '';
+    }catch(e){
+      console.error(e);
+      tbody.innerHTML=`<tr><td colspan="3" class="hint" style="padding:10px">Erro ao carregar.</td></tr>`;
+    }
+  }
+
+  /* ============== Click nos títulos das etapas ============== */
+  function bindClicks(){
+    const grid=document.getElementById('etapasList'); if(!grid) return;
+    grid.addEventListener('click', (ev)=>{
+      const lab = getClickedLabel(ev.target);
+      if(lab){ openViewer(lab); }
+    }, {passive:true});
+
+    // deixa título “clicável”
+    LABELS.forEach(lab=>{
+      const header = Array.from(grid.querySelectorAll('h1,h2,h3,h4,strong'))
+        .find(el => (el.textContent||'').trim()===lab);
+      if(header) header.style.cursor='pointer';
+    });
+  }
+
+  // (re)bind sempre que abrir o modal
+  const dlg=document.getElementById('modalEtapas');
+  if(dlg){
+    const mo=new MutationObserver(()=>{ if(dlg.open){ bindClicks(); } });
+    mo.observe(dlg, { attributes:true, attributeFilter:['open'] });
+    if(dlg.open) bindClicks();
+  }
+})();
+</script>
+<!-- ========== PATCH: Viewer por etapa — FIM ========== -->
+
+
+<!-- ========== PATCH: Hierarquia rígida de Status (1..9) sobre qualquer salvamento ========== -->
+<script>
+(function(){
+  "use strict";
+  if (window.__wvHierarquiaHook) return; // evita duplicar
+  window.__wvHierarquiaHook = true;
+
+  // normalizador básico
+  const norm = s => String(s||'').trim().normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+
+  // ---- Ordem que você definiu (1..9) ----
+  // (usamos as chaves canônicas abaixo; 'aprovado' mapeia para 'aprovacao', etc)
+  const ORDER = {
+    lista:1,
+    layout:2,
+    digitando:3,
+    diagramando:4,
+    revisando:5,
+    aprovacao:6,
+    encerrando:7,
+    site:8,
+    cancelado:9
+  };
+
+  // nome que vai para a coluna STATUS
+  const LABEL = {
+    lista:'Lista recebida',
+    layout:'Criando layout',
+    digitando:'Digitando',
+    diagramando:'Diagramando',
+    revisando:'Revisando',
+    aprovacao:'Aprovado',
+    encerrando:'Encerrando',
+    site:'Site',
+    cancelado:'Cancelado',
+    novo:'Novo'
+  };
+
+  // mapeia qualquer chave de log para a canônica
+  function canonKey(k){
+    const n = norm(k);
+    if (n.startsWith('lista'))    return 'lista';
+    if (n.includes('layout'))     return 'layout';
+    if (n.startsWith('digit'))    return 'digitando';   // digitacao
+    if (n.startsWith('diagram'))  return 'diagramando'; // diagramacao
+    if (n.startsWith('revis'))    return 'revisando';   // revisao
+    if (n.startsWith('aprova'))   return 'aprovacao';   // aprovado/aprovacao
+    if (n.startsWith('encer'))    return 'encerrando';
+    if (n==='site')               return 'site';
+    if (n.startsWith('cancel'))   return 'cancelado';
+    return null;
+  }
+
+  // calcula o MAIOR status presente nos logs (seguindo a ordem 1..9)
+  function highestFromLogsStrict(logs){
+    let bestKey = null, bestRank = 0;
+    try{
+      const L = (typeof logs==='string') ? JSON.parse(logs||'{}') : (logs||{});
+      // agrega por chave canônica (une sinônimos)
+      const has = {};
+      for (const raw in L){
+        const key = canonKey(raw);
+        if (!key) continue;
+        if (Array.isArray(L[raw]) && L[raw].length) has[key] = true;
+      }
+      // varre por ranking (1..9)
+      Object.keys(ORDER).forEach(k=>{
+        if (has[k] && ORDER[k] > bestRank){ bestKey=k; bestRank=ORDER[k]; }
+      });
+    }catch{}
+    return bestKey ? LABEL[bestKey] : LABEL.novo;
+  }
+
+  // --- CSV helpers simples (só o necessário p/ interceptar) ---
+  function b64ToUtf8(b64){ const bin=atob(b64); const bytes=new Uint8Array(bin.length); for(let i=0;i<bytes.length;i++) bytes[i]=bin.charCodeAt(i); return new TextDecoder().decode(bytes); }
+  function utf8ToB64(str){ const bytes=new TextEncoder().encode(str); let bin=''; for(let i=0;i<bytes.length;i++) bin+=String.fromCharCode(bytes[i]); return btoa(bin); }
+  function parseCsv(t){ if(!t) return []; const r=[]; let row=[],cur='',q=false;
+    for(let i=0;i<t.length;i++){ const c=t[i];
+      if(q){ if(c=='"'){ if(t[i+1]=='"'){cur+='"';i++;} else q=false; } else cur+=c; }
+      else { if(c=='"') q=true; else if(c==','){row.push(cur);cur='';}
+        else if(c=='\r'){} else if(c=='\n'){row.push(cur);r.push(row);row=[];cur='';} else cur+=c; } }
+    if(cur.length>0||row.length>0){ row.push(cur); r.push(row); }
+    return r;
+  }
+  function csvTable(text){
+    const rows=parseCsv(text); if(!rows.length) return {H:[], rows:[]};
+    const H=rows[0]; const body=rows.slice(1).filter(rr=>rr && !(rr.length===1 && rr[0]===''));
+    return { H, rows: body.map(rr=> rr.length<H.length ? rr.concat(Array(H.length-rr.length).fill('')) : rr ) };
+  }
+  const csvEsc=v=>{v=v==null?'':String(v); return /[",\n]/.test(v)?`"${v.replace(/"/g,'""')}"`:v;};
+  function tableToCsv(H, rows){ return H.join(',')+'\n'+rows.map(r=> H.map((_,i)=>csvEsc(r[i]??'')).join(',')).join('\n')+(rows.length?'\n':''); }
+
+  // --- Intercepta salvamentos para jobs.csv / jobs_encerrados.csv ---
+  const _origFetch = window.fetch.bind(window);
+  window.fetch = async function(input, init){
+    const url = (typeof input==='string') ? input : (input && input.url) || '';
+    const isPut = init && String(init.method||'').toUpperCase()==='PUT';
+    const touchesJobs = isPut && (url.includes('/contents/jobs.csv') || url.includes('/contents/jobs_encerrados.csv'));
+
+    try{
+      if (touchesJobs && init && init.body){
+        const body = JSON.parse(init.body);
+        if (body && body.content){
+          const text = b64ToUtf8(body.content);
+          const {H, rows} = csvTable(text);
+          const ixStatus = H.findIndex(h=> norm(h)==='status');
+          const ixLogs   = H.findIndex(h=> norm(h)==='logs');
+          if (ixStatus>=0 && ixLogs>=0){
+            for (let i=0;i<rows.length;i++){
+              const curLogs = rows[i][ixLogs] || '{}';
+              rows[i][ixStatus] = highestFromLogsStrict(curLogs);
+            }
+            const nextCsv = tableToCsv(H, rows);
+            body.content = utf8ToB64(nextCsv);
+            init.body = JSON.stringify(body);
+          }
+        }
+      }
+    }catch(e){
+      console.warn('WV Hierarquia: fallback sem ajuste', e);
+    }
+    return _origFetch(input, init);
+  };
+})();
+</script>
+<!-- ========== PATCH: Hierarquia rígida — FIM ========== -->
+
+
 </body>
 </html>
